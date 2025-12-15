@@ -81,9 +81,55 @@ const DEFAULT_TASKS: Task[] = [
   },
 ];
 
-export default function PointsDashboard({ email }: { email: string }) {
+interface PointsDashboardProps {
+  email: string;
+  testWallet?: string; // Optional test wallet for bypassing Privy
+}
+
+// Inner component that uses Privy (when available)
+function PointsDashboardWithPrivy({ email }: { email: string }) {
   const { logout, user } = usePrivy();
-  const walletAddress = user?.wallet?.address;
+  return (
+    <PointsDashboardContent
+      email={email}
+      walletAddress={user?.wallet?.address}
+      userId={user?.id}
+      onLogout={logout}
+    />
+  );
+}
+
+// Component for test mode (no Privy)
+function PointsDashboardTestMode({ email, testWallet }: { email: string; testWallet: string }) {
+  return (
+    <PointsDashboardContent
+      email={email}
+      walletAddress={testWallet}
+      userId="test-user"
+      onLogout={() => window.location.href = '/'}
+      isTestMode
+    />
+  );
+}
+
+// Main export - chooses between Privy and test mode
+export default function PointsDashboard({ email, testWallet }: PointsDashboardProps) {
+  if (testWallet) {
+    return <PointsDashboardTestMode email={email} testWallet={testWallet} />;
+  }
+  return <PointsDashboardWithPrivy email={email} />;
+}
+
+// Shared content component
+interface PointsDashboardContentProps {
+  email: string;
+  walletAddress?: string;
+  userId?: string;
+  onLogout: () => void;
+  isTestMode?: boolean;
+}
+
+function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTestMode }: PointsDashboardContentProps) {
 
   // Snag integration
   const {
@@ -103,9 +149,9 @@ export default function PointsDashboard({ email }: { email: string }) {
   // Initialize Snag account when wallet is available
   useEffect(() => {
     if (walletAddress && !snagAccount) {
-      initializeAccount(walletAddress, user?.id);
+      initializeAccount(walletAddress, userId || 'test-user');
     }
-  }, [walletAddress, snagAccount, initializeAccount, user?.id]);
+  }, [walletAddress, snagAccount, initializeAccount, userId]);
 
   // Determine if using Snag or mock data
   const useSnagData = snagAccount && snagRules.length > 0;
@@ -228,10 +274,10 @@ export default function PointsDashboard({ email }: { email: string }) {
               <span className="text-sm text-white/60 font-[350]">{email}</span>
             </div>
             <button
-              onClick={() => logout()}
+              onClick={onLogout}
               className="px-4 py-2 text-xs text-white/50 hover:text-white transition-colors uppercase tracking-[0.15em] border border-white/10 rounded-full backdrop-blur-sm"
             >
-              Logout
+              {isTestMode ? 'Exit Test' : 'Logout'}
             </button>
           </div>
         </nav>
@@ -255,6 +301,9 @@ export default function PointsDashboard({ email }: { email: string }) {
               Complete tasks to increase your rank and unlock exclusive benefits
               {!useSnagData && (
                 <span className="ml-2 text-yellow-500/60 text-sm">(Demo Mode)</span>
+              )}
+              {isTestMode && (
+                <span className="ml-2 text-cyan-500/60 text-sm">(Test Mode)</span>
               )}
             </p>
           </motion.div>
