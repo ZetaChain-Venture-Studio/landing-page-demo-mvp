@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
+import { usePrivyConfig } from '@/providers/PrivyProvider';
 import PointsDashboard from './PointsDashboard';
 
-export default function LandingPage() {
+// Inner component that uses Privy hooks
+function LandingPageWithPrivy() {
   const [email, setEmail] = useState('');
   const [isHovered, setIsHovered] = useState(false);
   const [showAnimation, setShowAnimation] = useState(false);
@@ -16,7 +18,6 @@ export default function LandingPage() {
     e.preventDefault();
     if (!email) return;
 
-    // Trigger Privy login with email prefilled
     login({
       prefill: {
         type: 'email',
@@ -26,12 +27,15 @@ export default function LandingPage() {
   };
 
   // Watch for authentication and trigger animation
-  if (authenticated && !showAnimation && user) {
-    setShowAnimation(true);
-    setTimeout(() => {
-      setShowAnimation(false);
-    }, 4000);
-  }
+  useEffect(() => {
+    if (authenticated && !showAnimation && user) {
+      setShowAnimation(true);
+      const timer = setTimeout(() => {
+        setShowAnimation(false);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [authenticated, user, showAnimation]);
 
   // Show loading while Privy initializes
   if (!ready) {
@@ -47,6 +51,73 @@ export default function LandingPage() {
     return <PointsDashboard email={user.email?.address || email} />;
   }
 
+  return (
+    <LandingPageUI
+      email={email}
+      setEmail={setEmail}
+      isHovered={isHovered}
+      setIsHovered={setIsHovered}
+      showAnimation={showAnimation}
+      onSubmit={handleSubmit}
+      onLoginClick={login}
+    />
+  );
+}
+
+// Fallback component when Privy is not configured
+function LandingPageFallback() {
+  const [email, setEmail] = useState('');
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    alert('Privy is not configured. Please set NEXT_PUBLIC_PRIVY_APP_ID environment variable.');
+  };
+
+  return (
+    <LandingPageUI
+      email={email}
+      setEmail={setEmail}
+      isHovered={isHovered}
+      setIsHovered={setIsHovered}
+      showAnimation={false}
+      onSubmit={handleSubmit}
+      onLoginClick={() => alert('Privy is not configured. Please set NEXT_PUBLIC_PRIVY_APP_ID environment variable.')}
+    />
+  );
+}
+
+// Main export - checks if Privy is configured
+export default function LandingPage() {
+  const { isConfigured } = usePrivyConfig();
+
+  if (isConfigured) {
+    return <LandingPageWithPrivy />;
+  }
+
+  return <LandingPageFallback />;
+}
+
+// Shared UI component
+interface LandingPageUIProps {
+  email: string;
+  setEmail: (email: string) => void;
+  isHovered: boolean;
+  setIsHovered: (hovered: boolean) => void;
+  showAnimation: boolean;
+  onSubmit: (e: React.FormEvent) => void;
+  onLoginClick: () => void;
+}
+
+function LandingPageUI({
+  email,
+  setEmail,
+  isHovered,
+  setIsHovered,
+  showAnimation,
+  onSubmit,
+  onLoginClick,
+}: LandingPageUIProps) {
   return (
     <div className="relative min-h-screen bg-black overflow-hidden font-['Space_Grotesk']">
       {/* Film Grain Texture */}
@@ -68,7 +139,6 @@ export default function LandingPage() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black"
           >
-            {/* Radial glow */}
             <motion.div
               className="absolute inset-0"
               initial={{ opacity: 0 }}
@@ -78,7 +148,6 @@ export default function LandingPage() {
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-violet-600/40 via-fuchsia-600/40 to-cyan-600/40 rounded-full blur-[150px]" />
             </motion.div>
 
-            {/* Typing text effect */}
             <motion.div className="relative z-10 text-center px-6">
               <motion.h2
                 className="text-4xl md:text-6xl lg:text-7xl tracking-tight font-[500]"
@@ -86,15 +155,7 @@ export default function LandingPage() {
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5 }}
               >
-                {[
-                  'You',
-                  ' are',
-                  ' now',
-                  ' ready',
-                  ' for',
-                  ' the',
-                  ' ',
-                ].map((word, i) => (
+                {['You', ' are', ' now', ' ready', ' for', ' the', ' '].map((word, i) => (
                   <motion.span
                     key={i}
                     initial={{ opacity: 0 }}
@@ -115,15 +176,11 @@ export default function LandingPage() {
                 </motion.span>
               </motion.h2>
 
-              {/* Particles burst */}
               {[...Array(30)].map((_, i) => (
                 <motion.div
                   key={i}
                   className="absolute w-2 h-2 bg-gradient-to-r from-violet-400 to-cyan-400 rounded-full"
-                  style={{
-                    left: '50%',
-                    top: '50%',
-                  }}
+                  style={{ left: '50%', top: '50%' }}
                   initial={{ scale: 0, x: 0, y: 0 }}
                   animate={{
                     scale: [0, 1, 0],
@@ -131,11 +188,7 @@ export default function LandingPage() {
                     y: Math.sin((i / 30) * Math.PI * 2) * 300,
                     opacity: [0, 1, 0],
                   }}
-                  transition={{
-                    duration: 2,
-                    delay: 1.5,
-                    ease: 'easeOut',
-                  }}
+                  transition={{ duration: 2, delay: 1.5, ease: 'easeOut' }}
                 />
               ))}
             </motion.div>
@@ -145,50 +198,22 @@ export default function LandingPage() {
 
       {/* Animated Background Elements */}
       <div className="absolute inset-0">
-        {/* Complex Gradient Mesh */}
         <motion.div
           className="absolute top-0 left-1/4 w-[800px] h-[800px] bg-violet-600/30 rounded-full blur-[120px]"
-          animate={{
-            scale: [1, 1.3, 1],
-            x: [-50, 50, -50],
-            y: [-30, 30, -30],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{
-            duration: 15,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
+          animate={{ scale: [1, 1.3, 1], x: [-50, 50, -50], y: [-30, 30, -30], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
           className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-cyan-500/25 rounded-full blur-[100px]"
-          animate={{
-            scale: [1.2, 1, 1.2],
-            x: [30, -30, 30],
-            y: [50, -50, 50],
-            opacity: [0.25, 0.4, 0.25],
-          }}
-          transition={{
-            duration: 18,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
+          animate={{ scale: [1.2, 1, 1.2], x: [30, -30, 30], y: [50, -50, 50], opacity: [0.25, 0.4, 0.25] }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
           className="absolute bottom-1/4 left-1/3 w-[600px] h-[600px] bg-fuchsia-600/20 rounded-full blur-[90px]"
-          animate={{
-            scale: [1, 1.4, 1],
-            x: [40, -40, 40],
-            opacity: [0.2, 0.35, 0.2],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
+          animate={{ scale: [1, 1.4, 1], x: [40, -40, 40], opacity: [0.2, 0.35, 0.2] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        {/* Sacred Geometry - Rotating Rings */}
         <motion.div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px]"
           animate={{ rotate: 360 }}
@@ -213,7 +238,6 @@ export default function LandingPage() {
           ))}
         </motion.div>
 
-        {/* Hexagon Grid Pattern */}
         <div className="absolute inset-0 opacity-[0.03]">
           <svg width="100%" height="100%">
             <defs>
@@ -225,7 +249,6 @@ export default function LandingPage() {
           </svg>
         </div>
 
-        {/* Animated Light Rays */}
         {[...Array(8)].map((_, i) => (
           <motion.div
             key={i}
@@ -234,19 +257,11 @@ export default function LandingPage() {
               background: 'linear-gradient(to top, transparent, rgba(139, 92, 246, 0.1), transparent)',
               transform: `rotate(${i * 45}deg)`,
             }}
-            animate={{
-              opacity: [0, 0.5, 0],
-            }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              delay: i * 0.5,
-              ease: "easeInOut"
-            }}
+            animate={{ opacity: [0, 0.5, 0] }}
+            transition={{ duration: 4, repeat: Infinity, delay: i * 0.5, ease: "easeInOut" }}
           />
         ))}
 
-        {/* Energy Particles */}
         {[...Array(40)].map((_, i) => (
           <motion.div
             key={i}
@@ -265,12 +280,7 @@ export default function LandingPage() {
               opacity: [0, 1, 0],
               scale: [0, 1, 0],
             }}
-            transition={{
-              duration: 4 + Math.random() * 4,
-              repeat: Infinity,
-              delay: Math.random() * 3,
-              ease: "easeInOut"
-            }}
+            transition={{ duration: 4 + Math.random() * 4, repeat: Infinity, delay: Math.random() * 3, ease: "easeInOut" }}
           />
         ))}
       </div>
@@ -301,7 +311,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            onClick={() => login()}
+            onClick={onLoginClick}
             className="px-5 py-2 text-xs text-white/50 hover:text-white transition-colors uppercase tracking-[0.15em] border border-white/10 rounded-full backdrop-blur-sm"
           >
             Access
@@ -312,25 +322,19 @@ export default function LandingPage() {
       {/* Hero Content */}
       <main className="relative z-10 px-6 pt-12 pb-24">
         <div className="max-w-6xl mx-auto text-center">
-          {/* Badge */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1 }}
             className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-gradient-to-r from-white/[0.03] to-white/[0.08] border border-white/20 backdrop-blur-md mb-8 shadow-[0_0_30px_rgba(139,92,246,0.15)]"
           >
-            <motion.div
-              className="relative"
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
+            <motion.div className="relative" animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}>
               <div className="w-2 h-2 bg-emerald-400 rounded-full" />
               <div className="absolute inset-0 bg-emerald-400 rounded-full animate-ping" />
             </motion.div>
             <span className="text-xs text-white/80 uppercase tracking-[0.2em] font-[450]">Frontier Access Portal</span>
           </motion.div>
 
-          {/* Headline */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -345,14 +349,8 @@ export default function LandingPage() {
                 </span>
                 <motion.div
                   className="absolute -inset-4 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-cyan-600/20 blur-3xl -z-10"
-                  animate={{
-                    opacity: [0.5, 0.8, 0.5],
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
+                  animate={{ opacity: [0.5, 0.8, 0.5] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 />
               </span>
             </h1>
@@ -367,17 +365,12 @@ export default function LandingPage() {
                   key={i}
                   className="w-1 h-1 bg-white/30 rounded-full"
                   animate={{ opacity: [0.3, 1, 0.3] }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    delay: i * 0.2,
-                  }}
+                  transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
                 />
               ))}
             </motion.div>
           </motion.div>
 
-          {/* Subheadline */}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -389,12 +382,11 @@ export default function LandingPage() {
             <span className="text-white/60">Early initiates gain priority access and elevated standing.</span>
           </motion.p>
 
-          {/* CTA Form */}
           <motion.form
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.5 }}
-            onSubmit={handleSubmit}
+            onSubmit={onSubmit}
             className="max-w-lg mx-auto mb-6"
           >
             <div className="relative p-[1px] rounded-2xl bg-gradient-to-r from-violet-500/50 via-fuchsia-500/50 to-cyan-500/50 shadow-[0_0_50px_rgba(139,92,246,0.3)]">
@@ -434,10 +426,7 @@ export default function LandingPage() {
                   />
                   <span className="relative flex items-center gap-2 text-white whitespace-nowrap uppercase tracking-[0.1em] text-sm font-[500]">
                     Initiate
-                    <motion.div
-                      animate={{ x: isHovered ? 3 : 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
+                    <motion.div animate={{ x: isHovered ? 3 : 0 }} transition={{ duration: 0.2 }}>
                       <ArrowRight className="w-4 h-4" />
                     </motion.div>
                   </span>
@@ -446,7 +435,6 @@ export default function LandingPage() {
             </div>
           </motion.form>
 
-          {/* Micro-copy */}
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -456,7 +444,6 @@ export default function LandingPage() {
             Priority access • Elevated status • Founding member privileges
           </motion.p>
 
-          {/* Stats */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -506,10 +493,7 @@ export default function LandingPage() {
         </div>
       </main>
 
-      {/* Bottom Glow */}
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-
-      {/* Vignette */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,black_100%)] pointer-events-none" />
     </div>
   );

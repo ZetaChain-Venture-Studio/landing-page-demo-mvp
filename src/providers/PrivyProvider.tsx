@@ -1,7 +1,14 @@
 "use client";
 
 import { PrivyProvider as PrivyAuthProvider } from "@privy-io/react-auth";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+
+// Context to check if Privy is available
+const PrivyConfigContext = createContext<{ isConfigured: boolean }>({ isConfigured: false });
+
+export function usePrivyConfig() {
+  return useContext(PrivyConfigContext);
+}
 
 export default function PrivyProvider({
   children,
@@ -16,29 +23,40 @@ export default function PrivyProvider({
 
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 
-  // During SSR or if no app ID, just render children
-  if (!mounted || !appId) {
+  // During SSR, just render children
+  if (!mounted) {
     return <>{children}</>;
   }
 
+  // If no app ID, render with context indicating Privy is not configured
+  if (!appId) {
+    return (
+      <PrivyConfigContext.Provider value={{ isConfigured: false }}>
+        {children}
+      </PrivyConfigContext.Provider>
+    );
+  }
+
   return (
-    <PrivyAuthProvider
-      appId={appId}
-      config={{
-        appearance: {
-          theme: "dark",
-          accentColor: "#7C3AED",
-          logo: undefined,
-        },
-        loginMethods: ["email"],
-        embeddedWallets: {
-          ethereum: {
-            createOnLogin: "all-users",
+    <PrivyConfigContext.Provider value={{ isConfigured: true }}>
+      <PrivyAuthProvider
+        appId={appId}
+        config={{
+          appearance: {
+            theme: "dark",
+            accentColor: "#7C3AED",
+            logo: undefined,
           },
-        },
-      }}
-    >
-      {children}
-    </PrivyAuthProvider>
+          loginMethods: ["email"],
+          embeddedWallets: {
+            ethereum: {
+              createOnLogin: "all-users",
+            },
+          },
+        }}
+      >
+        {children}
+      </PrivyAuthProvider>
+    </PrivyConfigContext.Provider>
   );
 }
