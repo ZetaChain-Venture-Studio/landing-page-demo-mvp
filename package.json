@@ -12,6 +12,8 @@
     "@privy-io/react-auth": "^3.9.0",
     "@reverbia/sdk": "1.0.0-next.20251127161729",
     "@solana-program/system": "^0.10.0",
+    "framer-motion": "12.23.26",
+    "lucide-react": "0.561.0",
     "next": "16.0.10",
     "react": "19.2.1",
     "react-dom": "19.2.1"
