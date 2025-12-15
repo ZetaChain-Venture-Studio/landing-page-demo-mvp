@@ -1,7 +1,7 @@
 "use client";
 
 import { PrivyProvider as PrivyAuthProvider } from "@privy-io/react-auth";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext } from "react";
 
 // Context to check if Privy is available
 const PrivyConfigContext = createContext<{ isConfigured: boolean }>({ isConfigured: false });
@@ -15,21 +15,11 @@ export default function PrivyProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
-
-  // During SSR, just render children
-  if (!mounted) {
-    return <>{children}</>;
-  }
 
   // If no app ID, render with context indicating Privy is not configured
   if (!appId) {
+    console.warn("NEXT_PUBLIC_PRIVY_APP_ID is not set");
     return (
       <PrivyConfigContext.Provider value={{ isConfigured: false }}>
         {children}

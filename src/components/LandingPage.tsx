@@ -12,6 +12,7 @@ function LandingPageWithPrivy() {
   const [email, setEmail] = useState('');
   const [isHovered, setIsHovered] = useState(false);
   const [showAnimation, setShowAnimation] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
   const { login, authenticated, ready, user } = usePrivy();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -37,11 +38,23 @@ function LandingPageWithPrivy() {
     }
   }, [authenticated, user, showAnimation]);
 
-  // Show loading while Privy initializes
-  if (!ready) {
+  // Timeout for loading state - show page anyway after 5 seconds
+  useEffect(() => {
+    if (!ready) {
+      const timer = setTimeout(() => {
+        console.warn('Privy initialization timeout - showing page anyway');
+        setLoadingTimeout(true);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [ready]);
+
+  // Show loading while Privy initializes (max 5 seconds)
+  if (!ready && !loadingTimeout) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-500 border-t-transparent"></div>
+        <p className="text-white/40 text-sm">Initializing...</p>
       </div>
     );
   }
