@@ -166,7 +166,9 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   }, [walletAddress, snagAccount, initializeAccount, userId]);
 
   // Determine if using Snag or mock data
-  const useSnagData = snagAccount && snagRules.length > 0;
+  // We use Snag data if we have rules, regardless of account status
+  // Account will be created when user completes their first task
+  const useSnagData = snagRules.length > 0;
 
   // Convert Snag rules to tasks format
   const snagTasks: Task[] = useMemo(() => {

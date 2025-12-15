@@ -25,16 +25,32 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, ruleId } = body;
+    const { userId, ruleId, walletAddress } = body;
 
-    if (!userId || !ruleId) {
+    if (!ruleId) {
       return NextResponse.json(
-        { error: 'userId and ruleId are required' },
+        { error: 'ruleId is required' },
         { status: 400 }
       );
     }
 
-    const success = await snagClient.completeRule(userId, ruleId);
+    if (!userId && !walletAddress) {
+      return NextResponse.json(
+        { error: 'Either userId or walletAddress is required' },
+        { status: 400 }
+      );
+    }
+
+    console.log('[Snag API] Completing rule:', { ruleId, userId, walletAddress });
+
+    let success: boolean;
+    if (walletAddress) {
+      // Use wallet-based completion (handles account creation)
+      success = await snagClient.completeRuleByWallet(walletAddress, ruleId);
+    } else {
+      // Use direct userId completion
+      success = await snagClient.completeRule(userId, ruleId);
+    }
 
     if (success) {
       return NextResponse.json({ success: true });
@@ -45,9 +61,9 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error) {
-    console.error('Error completing rule:', error);
+    console.error('[Snag API] Error completing rule:', error);
     return NextResponse.json(
-      { error: 'Failed to complete rule' },
+      { error: 'Failed to complete rule', details: String(error) },
       { status: 500 }
     );
   }

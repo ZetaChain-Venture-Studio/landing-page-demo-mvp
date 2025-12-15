@@ -146,34 +146,45 @@ export function useSnag(walletAddress?: string): UseSnagReturn {
   // Complete a rule
   const completeRule = useCallback(
     async (ruleId: string): Promise<boolean> => {
-      if (!account) return false;
+      if (!walletAddress && !account) {
+        console.error('[useSnag] Cannot complete rule: no wallet address or account');
+        return false;
+      }
 
       try {
+        console.log('[useSnag] Completing rule:', { ruleId, accountId: account?.id, walletAddress });
+
         const response = await fetch('/api/snag/rules', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: account.id,
+            userId: account?.id,
+            walletAddress: walletAddress,
             ruleId,
           }),
         });
 
         const data = await response.json();
+        console.log('[useSnag] Complete rule response:', data);
 
         if (data.success) {
           // Refresh data after completing rule
-          await fetchAccount(account.walletAddress);
-          await fetchRuleStatuses(account.id);
+          if (walletAddress) {
+            await fetchAccount(walletAddress);
+          }
+          if (account?.id) {
+            await fetchRuleStatuses(account.id);
+          }
           return true;
         }
 
         return false;
       } catch (err) {
-        console.error('Failed to complete rule:', err);
+        console.error('[useSnag] Failed to complete rule:', err);
         return false;
       }
     },
-    [account, fetchAccount, fetchRuleStatuses]
+    [account, walletAddress, fetchAccount, fetchRuleStatuses]
   );
 
   // Refresh all data

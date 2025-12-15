@@ -184,7 +184,52 @@ class SnagSolutionsClient {
         }),
       });
       return true;
-    } catch {
+    } catch (error) {
+      console.error('[Snag] Failed to complete rule:', error);
+      return false;
+    }
+  }
+
+  async completeRuleByWallet(walletAddress: string, ruleId: string): Promise<boolean> {
+    try {
+      // First try to get or create account
+      let account = await this.getAccount(walletAddress);
+
+      if (!account) {
+        // Try to award 0 points to create the account
+        try {
+          await this.request('/loyalty/transaction_entries', {
+            method: 'POST',
+            body: JSON.stringify({
+              walletAddress,
+              websiteId: this.websiteId,
+              amount: 0,
+              description: 'Account initialization',
+            }),
+          });
+          // Fetch the created account
+          account = await this.getAccount(walletAddress);
+        } catch (createError) {
+          console.error('[Snag] Failed to create account:', createError);
+        }
+      }
+
+      if (account) {
+        return this.completeRule(account.id, ruleId);
+      }
+
+      // If we still don't have an account, try completing with wallet directly
+      await this.request('/loyalty/rules/complete', {
+        method: 'POST',
+        body: JSON.stringify({
+          loyaltyRuleId: ruleId,
+          walletAddress,
+          websiteId: this.websiteId,
+        }),
+      });
+      return true;
+    } catch (error) {
+      console.error('[Snag] Failed to complete rule by wallet:', error);
       return false;
     }
   }
