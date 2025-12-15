@@ -1,85 +1,180 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Twitter, MessageCircle, Share2, CheckCircle, Sparkles, Trophy, Zap } from 'lucide-react';
+import { Twitter, MessageCircle, Share2, CheckCircle, Sparkles, Trophy, Zap, UserPlus, LucideIcon } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
+import { useSnag } from '@/hooks/useSnag';
 
 interface Task {
   id: string;
   title: string;
   description: string;
   points: number;
-  icon: typeof Twitter;
+  icon: LucideIcon;
   completed: boolean;
   action: string;
+  ruleId?: string; // Snag rule ID
 }
+
+// Map Snag rule types to icons
+const RULE_TYPE_ICONS: Record<string, LucideIcon> = {
+  twitter_follow: Twitter,
+  twitter_post: Twitter,
+  twitter_reaction: Twitter,
+  discord_role: MessageCircle,
+  discord_messages: MessageCircle,
+  telegram_join: MessageCircle,
+  refer_friend: UserPlus,
+  connect_twitter: Twitter,
+  connect_discord: MessageCircle,
+  external: Zap,
+  default: Sparkles,
+};
+
+// Default mock tasks (used when Snag is not configured)
+const DEFAULT_TASKS: Task[] = [
+  {
+    id: '1',
+    title: 'Follow on Twitter',
+    description: 'Follow @PopAI on Twitter for updates',
+    points: 50,
+    icon: Twitter,
+    completed: false,
+    action: 'Follow'
+  },
+  {
+    id: '2',
+    title: 'Join Discord',
+    description: 'Join our Discord community',
+    points: 50,
+    icon: MessageCircle,
+    completed: false,
+    action: 'Join'
+  },
+  {
+    id: '3',
+    title: 'Share on Twitter',
+    description: 'Tweet about Pop AI with #PopAI',
+    points: 75,
+    icon: Share2,
+    completed: false,
+    action: 'Tweet'
+  },
+  {
+    id: '4',
+    title: 'Refer a Friend',
+    description: 'Invite friends to join the waitlist',
+    points: 100,
+    icon: Zap,
+    completed: false,
+    action: 'Share'
+  },
+  {
+    id: '5',
+    title: 'Complete Profile',
+    description: 'Add your bio and interests',
+    points: 25,
+    icon: Sparkles,
+    completed: false,
+    action: 'Complete'
+  },
+];
 
 export default function PointsDashboard({ email }: { email: string }) {
   const { logout, user } = usePrivy();
-  const [totalPoints, setTotalPoints] = useState(100); // Starting bonus
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: '1',
-      title: 'Follow on Twitter',
-      description: 'Follow @PopAI on Twitter for updates',
-      points: 50,
-      icon: Twitter,
-      completed: false,
-      action: 'Follow'
-    },
-    {
-      id: '2',
-      title: 'Join Discord',
-      description: 'Join our Discord community',
-      points: 50,
-      icon: MessageCircle,
-      completed: false,
-      action: 'Join'
-    },
-    {
-      id: '3',
-      title: 'Share on Twitter',
-      description: 'Tweet about Pop AI with #PopAI',
-      points: 75,
-      icon: Share2,
-      completed: false,
-      action: 'Tweet'
-    },
-    {
-      id: '4',
-      title: 'Refer a Friend',
-      description: 'Invite friends to join the waitlist',
-      points: 100,
-      icon: Zap,
-      completed: false,
-      action: 'Share'
-    },
-    {
-      id: '5',
-      title: 'Complete Profile',
-      description: 'Add your bio and interests',
-      points: 25,
-      icon: Sparkles,
-      completed: false,
-      action: 'Complete'
-    },
-  ]);
+  const walletAddress = user?.wallet?.address;
 
-  const handleCompleteTask = (taskId: string) => {
-    setTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === taskId ? { ...task, completed: true } : task
-      )
-    );
-    const task = tasks.find(t => t.id === taskId);
-    if (task) {
-      setTotalPoints(prev => prev + task.points);
+  // Snag integration
+  const {
+    account: snagAccount,
+    rank: snagRank,
+    rules: snagRules,
+    ruleStatuses,
+    loading: snagLoading,
+    initializeAccount,
+    completeRule: completeSnagRule,
+  } = useSnag(walletAddress);
+
+  // Local state for mock mode
+  const [mockTasks, setMockTasks] = useState<Task[]>(DEFAULT_TASKS);
+  const [mockPoints, setMockPoints] = useState(100);
+
+  // Initialize Snag account when wallet is available
+  useEffect(() => {
+    if (walletAddress && !snagAccount) {
+      initializeAccount(walletAddress, user?.id);
+    }
+  }, [walletAddress, snagAccount, initializeAccount, user?.id]);
+
+  // Determine if using Snag or mock data
+  const useSnagData = snagAccount && snagRules.length > 0;
+
+  // Convert Snag rules to tasks format
+  const snagTasks: Task[] = useMemo(() => {
+    return snagRules.map((rule) => {
+      const status = ruleStatuses.get(rule.id);
+      const iconType = rule.type || 'default';
+      const Icon = RULE_TYPE_ICONS[iconType] || RULE_TYPE_ICONS.default;
+
+      return {
+        id: rule.id,
+        title: rule.name,
+        description: rule.description,
+        points: rule.points,
+        icon: Icon,
+        completed: status?.completed || false,
+        action: 'Complete',
+        ruleId: rule.id,
+      };
+    });
+  }, [snagRules, ruleStatuses]);
+
+  // Use Snag tasks or mock tasks
+  const tasks = useSnagData ? snagTasks : mockTasks;
+  const totalPoints = useSnagData ? (snagAccount?.points || 0) : mockPoints;
+  const rank = useSnagData
+    ? (snagRank?.position || 0)
+    : Math.ceil(12847 / (1 + mockPoints / 100));
+  const totalUsers = snagRank?.total || 12847;
+
+  // Handle task completion
+  const handleCompleteTask = async (taskId: string) => {
+    if (useSnagData) {
+      // Use Snag API
+      const success = await completeSnagRule(taskId);
+      if (!success) {
+        console.error('Failed to complete task');
+      }
+    } else {
+      // Mock mode
+      setMockTasks(prevTasks =>
+        prevTasks.map(task =>
+          task.id === taskId ? { ...task, completed: true } : task
+        )
+      );
+      const task = mockTasks.find(t => t.id === taskId);
+      if (task) {
+        setMockPoints(prev => prev + task.points);
+      }
     }
   };
 
   const completedTasksCount = tasks.filter(t => t.completed).length;
-  const rank = Math.ceil(12847 / (1 + totalPoints / 100));
+
+  // Calculate tier based on points
+  const getTier = (points: number) => {
+    if (points >= 10000) return 'Diamond';
+    if (points >= 5000) return 'Gold';
+    if (points >= 1000) return 'Silver';
+    return 'Bronze';
+  };
+
+  const tier = getTier(totalPoints);
+  const nextTierPoints = totalPoints < 1000 ? 1000 : totalPoints < 5000 ? 5000 : totalPoints < 10000 ? 10000 : null;
+  const progressPercent = nextTierPoints
+    ? Math.min((totalPoints / nextTierPoints) * 100, 100)
+    : 100;
 
   return (
     <div className="relative min-h-screen bg-black overflow-hidden font-['Space_Grotesk']">
@@ -97,27 +192,13 @@ export default function PointsDashboard({ email }: { email: string }) {
       <div className="absolute inset-0">
         <motion.div
           className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-violet-600/20 rounded-full blur-[120px]"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.2, 0.3, 0.2],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
+          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.3, 0.2] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
           className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-cyan-500/20 rounded-full blur-[100px]"
-          animate={{
-            scale: [1.2, 1, 1.2],
-            opacity: [0.15, 0.25, 0.15],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
+          animate={{ scale: [1.2, 1, 1.2], opacity: [0.15, 0.25, 0.15] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
         />
       </div>
 
@@ -172,11 +253,14 @@ export default function PointsDashboard({ email }: { email: string }) {
             </h1>
             <p className="text-white/40 text-lg font-[350]">
               Complete tasks to increase your rank and unlock exclusive benefits
+              {!useSnagData && (
+                <span className="ml-2 text-yellow-500/60 text-sm">(Demo Mode)</span>
+              )}
             </p>
           </motion.div>
 
           {/* Wallet Info */}
-          {user?.wallet?.address && (
+          {walletAddress && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -189,7 +273,7 @@ export default function PointsDashboard({ email }: { email: string }) {
                 </div>
                 <div>
                   <p className="text-sm text-white/40 font-[350]">Wallet Created</p>
-                  <p className="text-sm text-white/80 font-mono truncate max-w-[300px] sm:max-w-none">{user.wallet.address}</p>
+                  <p className="text-sm text-white/80 font-mono truncate max-w-[300px] sm:max-w-none">{walletAddress}</p>
                 </div>
               </div>
             </motion.div>
@@ -204,51 +288,61 @@ export default function PointsDashboard({ email }: { email: string }) {
               transition={{ delay: 0.2 }}
               className="space-y-4"
             >
-              {tasks.map((task, index) => {
-                const Icon = task.icon;
-                return (
-                  <motion.div
-                    key={task.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 * index }}
-                    className="relative group"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 to-cyan-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="relative p-6 bg-white/[0.02] backdrop-blur-sm border border-white/10 rounded-2xl hover:border-white/20 transition-all">
-                      <div className="flex items-start gap-4">
-                        <div className={`p-3 rounded-xl ${task.completed ? 'bg-emerald-500/20' : 'bg-white/5'}`}>
-                          <Icon className={`w-5 h-5 ${task.completed ? 'text-emerald-400' : 'text-white/60'}`} />
-                        </div>
-
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-white font-[450] tracking-tight">{task.title}</h3>
-                            <span className="text-violet-400 text-sm font-[500]">+{task.points} pts</span>
+              {snagLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-500 border-t-transparent"></div>
+                </div>
+              ) : tasks.length === 0 ? (
+                <div className="text-center py-12 text-white/40">
+                  No tasks available yet
+                </div>
+              ) : (
+                tasks.map((task, index) => {
+                  const Icon = task.icon;
+                  return (
+                    <motion.div
+                      key={task.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 * index }}
+                      className="relative group"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 to-cyan-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="relative p-6 bg-white/[0.02] backdrop-blur-sm border border-white/10 rounded-2xl hover:border-white/20 transition-all">
+                        <div className="flex items-start gap-4">
+                          <div className={`p-3 rounded-xl ${task.completed ? 'bg-emerald-500/20' : 'bg-white/5'}`}>
+                            <Icon className={`w-5 h-5 ${task.completed ? 'text-emerald-400' : 'text-white/60'}`} />
                           </div>
-                          <p className="text-white/40 text-sm font-[350] mb-4">{task.description}</p>
 
-                          {task.completed ? (
-                            <div className="flex items-center gap-2 text-emerald-400 text-sm font-[450]">
-                              <CheckCircle className="w-4 h-4" />
-                              <span>Completed</span>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="text-white font-[450] tracking-tight">{task.title}</h3>
+                              <span className="text-violet-400 text-sm font-[500]">+{task.points} pts</span>
                             </div>
-                          ) : (
-                            <motion.button
-                              onClick={() => handleCompleteTask(task.id)}
-                              className="px-4 py-2 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-lg text-sm text-white font-[500] uppercase tracking-wider hover:shadow-[0_0_20px_rgba(139,92,246,0.5)] transition-all"
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                            >
-                              {task.action}
-                            </motion.button>
-                          )}
+                            <p className="text-white/40 text-sm font-[350] mb-4">{task.description}</p>
+
+                            {task.completed ? (
+                              <div className="flex items-center gap-2 text-emerald-400 text-sm font-[450]">
+                                <CheckCircle className="w-4 h-4" />
+                                <span>Completed</span>
+                              </div>
+                            ) : (
+                              <motion.button
+                                onClick={() => handleCompleteTask(task.id)}
+                                className="px-4 py-2 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-lg text-sm text-white font-[500] uppercase tracking-wider hover:shadow-[0_0_20px_rgba(139,92,246,0.5)] transition-all"
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                              >
+                                {task.action}
+                              </motion.button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
+                    </motion.div>
+                  );
+                })
+              )}
             </motion.div>
 
             {/* Right: NFT Coupon Card */}
@@ -272,7 +366,7 @@ export default function PointsDashboard({ email }: { email: string }) {
                     {/* Badge */}
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm mb-6">
                       <Trophy className="w-4 h-4 text-yellow-400" />
-                      <span className="text-xs text-white/80 uppercase tracking-wider font-[450]">Genesis Member</span>
+                      <span className="text-xs text-white/80 uppercase tracking-wider font-[450]">{tier} Member</span>
                     </div>
 
                     {/* Points Display */}
@@ -284,7 +378,7 @@ export default function PointsDashboard({ email }: { email: string }) {
                         initial={{ scale: 1.2, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                       >
-                        {totalPoints}
+                        {totalPoints.toLocaleString()}
                       </motion.div>
                     </div>
 
@@ -292,7 +386,12 @@ export default function PointsDashboard({ email }: { email: string }) {
                     <div className="grid grid-cols-2 gap-4 mb-8">
                       <div className="p-4 bg-white/5 rounded-xl border border-white/10">
                         <div className="text-white/40 text-xs uppercase tracking-wider mb-1 font-[350]">Rank</div>
-                        <div className="text-2xl text-white font-[500]">#{rank.toLocaleString()}</div>
+                        <div className="text-2xl text-white font-[500]">
+                          {rank > 0 ? `#${rank.toLocaleString()}` : '-'}
+                        </div>
+                        {totalUsers > 0 && (
+                          <div className="text-white/30 text-xs mt-1">of {totalUsers.toLocaleString()}</div>
+                        )}
                       </div>
                       <div className="p-4 bg-white/5 rounded-xl border border-white/10">
                         <div className="text-white/40 text-xs uppercase tracking-wider mb-1 font-[350]">Tasks</div>
@@ -304,13 +403,13 @@ export default function PointsDashboard({ email }: { email: string }) {
                     <div className="mb-6">
                       <div className="flex justify-between text-xs text-white/40 mb-2 font-[350]">
                         <span>Level Progress</span>
-                        <span>{Math.min(Math.floor((totalPoints / 500) * 100), 100)}%</span>
+                        <span>{nextTierPoints ? `${totalPoints}/${nextTierPoints}` : 'Max Level'}</span>
                       </div>
                       <div className="h-2 bg-white/10 rounded-full overflow-hidden">
                         <motion.div
                           className="h-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500"
                           initial={{ width: 0 }}
-                          animate={{ width: `${Math.min((totalPoints / 500) * 100, 100)}%` }}
+                          animate={{ width: `${progressPercent}%` }}
                           transition={{ duration: 1, ease: "easeOut" }}
                         />
                       </div>
@@ -322,7 +421,9 @@ export default function PointsDashboard({ email }: { email: string }) {
                       <div className="relative text-center">
                         <Sparkles className="w-12 h-12 text-white/60 mx-auto mb-3" />
                         <div className="text-sm text-white/60 uppercase tracking-widest font-[450]">Access Pass</div>
-                        <div className="text-xs text-white/40 mt-2 font-[350]">Membership #{Math.floor(Math.random() * 10000)}</div>
+                        <div className="text-xs text-white/40 mt-2 font-[350]">
+                          {snagAccount?.id ? `#${snagAccount.id.slice(0, 8)}` : 'Genesis'}
+                        </div>
                       </div>
                     </div>
 
@@ -330,7 +431,7 @@ export default function PointsDashboard({ email }: { email: string }) {
                     <div className="mt-6 pt-6 border-t border-white/10">
                       <div className="flex items-center justify-between text-xs text-white/40 font-[350]">
                         <span>Member since Genesis</span>
-                        <span>Verified ✓</span>
+                        <span>{useSnagData ? 'Verified ✓' : 'Demo Mode'}</span>
                       </div>
                     </div>
                   </div>
