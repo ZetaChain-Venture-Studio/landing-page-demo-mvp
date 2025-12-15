@@ -138,9 +138,21 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     rules: snagRules,
     ruleStatuses,
     loading: snagLoading,
+    error: snagError,
     initializeAccount,
     completeRule: completeSnagRule,
   } = useSnag(walletAddress);
+
+  // Debug: Log Snag state
+  useEffect(() => {
+    console.log('[PointsDashboard] Snag state:', {
+      account: snagAccount,
+      rulesCount: snagRules.length,
+      loading: snagLoading,
+      error: snagError,
+      walletAddress,
+    });
+  }, [snagAccount, snagRules, snagLoading, snagError, walletAddress]);
 
   // Local state for mock mode
   const [mockTasks, setMockTasks] = useState<Task[]>(DEFAULT_TASKS);
@@ -299,13 +311,22 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
             </h1>
             <p className="text-white/40 text-lg font-[350]">
               Complete tasks to increase your rank and unlock exclusive benefits
-              {!useSnagData && (
-                <span className="ml-2 text-yellow-500/60 text-sm">(Demo Mode)</span>
+              {!useSnagData && !snagLoading && (
+                <span className="ml-2 text-yellow-500/60 text-sm">(Demo Mode - Snag not connected)</span>
+              )}
+              {snagError && (
+                <span className="ml-2 text-red-500/60 text-sm">(Error: {snagError})</span>
               )}
               {isTestMode && (
                 <span className="ml-2 text-cyan-500/60 text-sm">(Test Mode)</span>
               )}
             </p>
+            {!useSnagData && !snagLoading && (
+              <p className="text-yellow-500/40 text-sm mt-2">
+                Check Vercel env vars: SNAG_API_KEY, SNAG_API_URL, NEXT_PUBLIC_SNAG_WEBSITE_ID.
+                Test at: <a href="/api/snag/debug" className="underline">/api/snag/debug</a>
+              </p>
+            )}
           </motion.div>
 
           {/* Wallet Info */}

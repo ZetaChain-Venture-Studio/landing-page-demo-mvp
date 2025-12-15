@@ -4,12 +4,18 @@ import { snagClient } from '@/lib/snag';
 // GET /api/snag/rules - Get all active rules
 export async function GET() {
   try {
+    console.log('[Snag API] Fetching rules...');
+    console.log('[Snag API] Website ID:', process.env.NEXT_PUBLIC_SNAG_WEBSITE_ID);
+    console.log('[Snag API] API Key set:', !!process.env.SNAG_API_KEY);
+
     const rules = await snagClient.getRules();
+    console.log('[Snag API] Got rules:', rules.length);
+
     return NextResponse.json({ rules });
   } catch (error) {
-    console.error('Error fetching Snag rules:', error);
+    console.error('[Snag API] Error fetching rules:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch rules' },
+      { error: 'Failed to fetch rules', details: String(error) },
       { status: 500 }
     );
   }

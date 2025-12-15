@@ -70,14 +70,22 @@ export function useSnag(walletAddress?: string): UseSnagReturn {
   // Fetch rules
   const fetchRules = useCallback(async () => {
     try {
+      console.log('[useSnag] Fetching rules...');
       const response = await fetch('/api/snag/rules');
+      console.log('[useSnag] Rules response status:', response.status);
       const data = await response.json();
+      console.log('[useSnag] Rules data:', data);
 
       if (data.rules) {
         setRules(data.rules);
+        console.log('[useSnag] Set rules:', data.rules.length);
+      } else if (data.error) {
+        console.error('[useSnag] API error:', data.error, data.details);
+        setError(data.error);
       }
     } catch (err) {
-      console.error('Failed to fetch rules:', err);
+      console.error('[useSnag] Failed to fetch rules:', err);
+      setError('Failed to fetch rules');
     }
   }, []);
 
