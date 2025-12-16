@@ -18,7 +18,8 @@ interface SnagRule {
   name: string;
   description: string;
   type: string;
-  points: number;
+  amount: string | number; // Snag returns amount as string
+  points?: number; // Computed from amount
   imageUrl?: string;
   isActive: boolean;
   completionLimit?: number;

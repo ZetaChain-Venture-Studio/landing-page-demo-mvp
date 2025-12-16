@@ -205,9 +205,11 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
 
     switch (type) {
       case 'drip_x_follow':
-        return 'https://twitter.com/memoryless_ai'; // You can customize this
+        return 'https://twitter.com/memoryless_ai';
+      case 'drip_x_new_tweet':
+        return 'https://twitter.com/intent/tweet?text=Check%20out%20%40memoryless_ai';
       case 'connected_telegram':
-        return 'https://t.me/memoryless_ai'; // You can customize this
+        return 'https://t.me/memoryless_ai';
       default:
         return undefined;
     }
@@ -219,13 +221,15 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
       const status = ruleStatuses.get(rule.id);
       const iconType = rule.type || 'default';
       const Icon = RULE_TYPE_ICONS[iconType] || RULE_TYPE_ICONS.default;
-      const ruleAny = rule as { claimType?: string; metadata?: { cta?: { href?: string } } };
+      const ruleAny = rule as { claimType?: string; metadata?: { cta?: { href?: string } }; amount?: string | number };
+      // Snag returns amount as string, convert to number
+      const points = Number(ruleAny.amount) || rule.points || 0;
 
       return {
         id: rule.id,
         title: rule.name,
-        description: rule.description || `Complete this task to earn ${rule.points} points`,
-        points: rule.points,
+        description: rule.description || `Complete this task to earn ${points} points`,
+        points: points,
         icon: Icon,
         completed: status?.completed || false,
         action: getActionLabel(rule.type, ruleAny.claimType),
