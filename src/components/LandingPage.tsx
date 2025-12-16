@@ -12,9 +12,11 @@ function LandingPageWithPrivy() {
   const [email, setEmail] = useState('');
   const [isHovered, setIsHovered] = useState(false);
   const [showAnimation, setShowAnimation] = useState(false);
+  const [showMintingAnimation, setShowMintingAnimation] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [isNewSignup, setIsNewSignup] = useState(false);
   const [nftMinted, setNftMinted] = useState(false);
+  const [allAnimationsDone, setAllAnimationsDone] = useState(false);
   const { login, authenticated, ready, user } = usePrivy();
 
   // Check if wallet is created
@@ -36,11 +38,25 @@ function LandingPageWithPrivy() {
     });
   };
 
-  // Mint NFT when new user signs up
+  // Watch for wallet creation and trigger "ready for future" animation ONLY for new signups
+  useEffect(() => {
+    if (authenticated && walletCreated && isNewSignup && !showAnimation && !nftMinted) {
+      setShowAnimation(true);
+      const timer = setTimeout(() => {
+        setShowAnimation(false);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [authenticated, walletCreated, isNewSignup, showAnimation, nftMinted]);
+
+  // After "ready for future" animation, show minting animation and mint NFT
   useEffect(() => {
     async function mintNFT() {
-      if (authenticated && walletCreated && isNewSignup && !nftMinted) {
-        setNftMinted(true); // Prevent duplicate mints
+      if (authenticated && walletCreated && isNewSignup && !nftMinted && !showAnimation && !showMintingAnimation) {
+        setNftMinted(true);
+        setShowMintingAnimation(true);
+
+        // Start minting in background
         try {
           console.log('[Signup] Minting NFT for:', walletCreated);
           const response = await fetch('/api/nft/mint', {
@@ -53,21 +69,16 @@ function LandingPageWithPrivy() {
         } catch (error) {
           console.error('[Signup] NFT mint error:', error);
         }
+
+        // Show minting animation for 3.5 seconds
+        setTimeout(() => {
+          setShowMintingAnimation(false);
+          setAllAnimationsDone(true);
+        }, 3500);
       }
     }
     mintNFT();
-  }, [authenticated, walletCreated, isNewSignup, nftMinted]);
-
-  // Watch for wallet creation and trigger animation ONLY for new signups
-  useEffect(() => {
-    if (authenticated && walletCreated && isNewSignup && !showAnimation) {
-      setShowAnimation(true);
-      const timer = setTimeout(() => {
-        setShowAnimation(false);
-      }, 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [authenticated, walletCreated, isNewSignup, showAnimation]);
+  }, [authenticated, walletCreated, isNewSignup, nftMinted, showAnimation, showMintingAnimation]);
 
   // Timeout for loading state - show page anyway after 5 seconds
   useEffect(() => {
@@ -90,8 +101,8 @@ function LandingPageWithPrivy() {
     );
   }
 
-  // Show dashboard if authenticated and wallet created (skip animation if not new signup)
-  if (authenticated && walletCreated && !showAnimation) {
+  // Show dashboard if authenticated and wallet created and all animations done (or returning user)
+  if (authenticated && walletCreated && !showAnimation && !showMintingAnimation && (allAnimationsDone || !isNewSignup)) {
     return <PointsDashboard email={user?.email?.address || email} />;
   }
 
@@ -112,6 +123,7 @@ function LandingPageWithPrivy() {
       isHovered={isHovered}
       setIsHovered={setIsHovered}
       showAnimation={showAnimation}
+      showMintingAnimation={showMintingAnimation}
       onSubmit={handleSubmit}
       onLoginClick={() => {
         setIsNewSignup(true);
@@ -138,6 +150,7 @@ function LandingPageFallback() {
       isHovered={isHovered}
       setIsHovered={setIsHovered}
       showAnimation={false}
+      showMintingAnimation={false}
       onSubmit={handleSubmit}
       onLoginClick={() => alert('Privy is not configured. Please set NEXT_PUBLIC_PRIVY_APP_ID environment variable.')}
     />
@@ -162,6 +175,7 @@ interface LandingPageUIProps {
   isHovered: boolean;
   setIsHovered: (hovered: boolean) => void;
   showAnimation: boolean;
+  showMintingAnimation?: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onLoginClick: () => void;
 }
@@ -172,6 +186,7 @@ function LandingPageUI({
   isHovered,
   setIsHovered,
   showAnimation,
+  showMintingAnimation,
   onSubmit,
   onLoginClick,
 }: LandingPageUIProps) {
@@ -246,6 +261,144 @@ function LandingPageUI({
                     opacity: [0, 1, 0],
                   }}
                   transition={{ duration: 2, delay: 1.5, ease: 'easeOut' }}
+                />
+              ))}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* NFT Minting Animation Overlay */}
+      <AnimatePresence>
+        {showMintingAnimation && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black"
+          >
+            {/* Animated background glow */}
+            <motion.div
+              className="absolute inset-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 1, 1, 0] }}
+              transition={{ duration: 3.5, times: [0, 0.2, 0.8, 1] }}
+            >
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-amber-500/30 via-violet-600/40 to-cyan-500/30 rounded-full blur-[120px]" />
+            </motion.div>
+
+            {/* NFT Card with animation */}
+            <motion.div className="relative z-10 flex flex-col items-center gap-6 px-6">
+              {/* Spinning ring around NFT */}
+              <motion.div
+                className="absolute w-[320px] h-[320px] md:w-[400px] md:h-[400px]"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              >
+                <svg viewBox="0 0 100 100" className="w-full h-full">
+                  <defs>
+                    <linearGradient id="mintGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#8B5CF6" />
+                      <stop offset="50%" stopColor="#D946EF" />
+                      <stop offset="100%" stopColor="#06B6D4" />
+                    </linearGradient>
+                  </defs>
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="48"
+                    fill="none"
+                    stroke="url(#mintGradient)"
+                    strokeWidth="0.5"
+                    strokeDasharray="8 4"
+                    opacity="0.6"
+                  />
+                </svg>
+              </motion.div>
+
+              {/* NFT Card Image */}
+              <motion.div
+                className="relative"
+                initial={{ scale: 0.5, opacity: 0, rotateY: -180 }}
+                animate={{ scale: 1, opacity: 1, rotateY: 0 }}
+                transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
+              >
+                <motion.div
+                  className="absolute -inset-4 bg-gradient-to-r from-violet-500/50 via-fuchsia-500/50 to-cyan-500/50 rounded-2xl blur-xl"
+                  animate={{ opacity: [0.5, 0.8, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+                <img
+                  src="/nft-card.png"
+                  alt="Genesis NFT Pass"
+                  className="relative w-[280px] md:w-[350px] rounded-xl shadow-2xl"
+                />
+
+                {/* Shimmer effect */}
+                <motion.div
+                  className="absolute inset-0 rounded-xl overflow-hidden"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12"
+                    animate={{ x: ['-200%', '200%'] }}
+                    transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }}
+                  />
+                </motion.div>
+              </motion.div>
+
+              {/* Minting text */}
+              <motion.div
+                className="text-center mt-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+              >
+                <motion.h2
+                  className="text-2xl md:text-3xl font-[500] tracking-tight mb-2"
+                >
+                  <span className="bg-gradient-to-r from-amber-300 via-violet-300 to-cyan-300 bg-clip-text text-transparent">
+                    Minting your Genesis Pass
+                  </span>
+                </motion.h2>
+                <motion.div
+                  className="flex items-center justify-center gap-2 text-white/50 text-sm"
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  <span>Creating on-chain identity</span>
+                  <motion.span
+                    animate={{ opacity: [0, 1, 0] }}
+                    transition={{ duration: 0.5, repeat: Infinity }}
+                  >
+                    ...
+                  </motion.span>
+                </motion.div>
+              </motion.div>
+
+              {/* Sparkle particles */}
+              {[...Array(20)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-1.5 h-1.5 rounded-full"
+                  style={{
+                    background: i % 3 === 0 ? '#8B5CF6' : i % 3 === 1 ? '#D946EF' : '#06B6D4',
+                    left: '50%',
+                    top: '40%',
+                  }}
+                  initial={{ scale: 0, x: 0, y: 0 }}
+                  animate={{
+                    scale: [0, 1, 0],
+                    x: Math.cos((i / 20) * Math.PI * 2) * (150 + Math.random() * 100),
+                    y: Math.sin((i / 20) * Math.PI * 2) * (150 + Math.random() * 100),
+                    opacity: [0, 1, 0],
+                  }}
+                  transition={{
+                    duration: 2,
+                    delay: 0.8 + (i * 0.05),
+                    ease: 'easeOut',
+                  }}
                 />
               ))}
             </motion.div>
