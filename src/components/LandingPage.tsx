@@ -12,8 +12,8 @@ function LandingPageWithPrivy() {
   const [email, setEmail] = useState('');
   const [isHovered, setIsHovered] = useState(false);
   const [showAnimation, setShowAnimation] = useState(false);
-  const [animationComplete, setAnimationComplete] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [isNewSignup, setIsNewSignup] = useState(false);
   const { login, authenticated, ready, user } = usePrivy();
 
   // Check if wallet is created
@@ -22,6 +22,9 @@ function LandingPageWithPrivy() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
+
+    // Mark as new signup attempt
+    setIsNewSignup(true);
 
     // Login with email prefilled - no wallet connect needed
     login({
@@ -32,18 +35,16 @@ function LandingPageWithPrivy() {
     });
   };
 
-  // Watch for wallet creation and trigger animation
+  // Watch for wallet creation and trigger animation ONLY for new signups
   useEffect(() => {
-    // Only show animation when authenticated AND wallet is created
-    if (authenticated && walletCreated && !showAnimation && !animationComplete) {
+    if (authenticated && walletCreated && isNewSignup && !showAnimation) {
       setShowAnimation(true);
       const timer = setTimeout(() => {
         setShowAnimation(false);
-        setAnimationComplete(true);
       }, 4000);
       return () => clearTimeout(timer);
     }
-  }, [authenticated, walletCreated, showAnimation, animationComplete]);
+  }, [authenticated, walletCreated, isNewSignup, showAnimation]);
 
   // Timeout for loading state - show page anyway after 5 seconds
   useEffect(() => {
@@ -66,8 +67,8 @@ function LandingPageWithPrivy() {
     );
   }
 
-  // Show dashboard if authenticated, wallet created, and animation finished
-  if (authenticated && walletCreated && animationComplete) {
+  // Show dashboard if authenticated and wallet created (skip animation if not new signup)
+  if (authenticated && walletCreated && !showAnimation) {
     return <PointsDashboard email={user?.email?.address || email} />;
   }
 
@@ -89,7 +90,10 @@ function LandingPageWithPrivy() {
       setIsHovered={setIsHovered}
       showAnimation={showAnimation}
       onSubmit={handleSubmit}
-      onLoginClick={login}
+      onLoginClick={() => {
+        setIsNewSignup(true);
+        login();
+      }}
     />
   );
 }
