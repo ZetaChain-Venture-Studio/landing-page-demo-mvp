@@ -24,10 +24,16 @@ const rpcUrl = USE_TESTNET
   ? 'https://zetachain-athens-evm.blockpi.network/v1/rpc/public'
   : 'https://zetachain-mainnet.g.allthatnode.com/archive/evm';
 
-// Create clients
+// Create clients with explicit fetch options
 const publicClient = createPublicClient({
   chain,
-  transport: http(rpcUrl),
+  transport: http(rpcUrl, {
+    fetchOptions: {
+      cache: 'no-store',
+    },
+    retryCount: 3,
+    retryDelay: 1000,
+  }),
 });
 
 function getWalletClient() {
@@ -40,7 +46,13 @@ function getWalletClient() {
   return createWalletClient({
     account,
     chain,
-    transport: http(rpcUrl),
+    transport: http(rpcUrl, {
+      fetchOptions: {
+        cache: 'no-store',
+      },
+      retryCount: 3,
+      retryDelay: 1000,
+    }),
   });
 }
 
