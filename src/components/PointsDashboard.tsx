@@ -15,6 +15,9 @@ interface Task {
   completed: boolean;
   action: string;
   ruleId?: string; // Snag rule ID
+  type?: string; // Task type for handling different actions
+  claimType?: 'manual' | 'auto';
+  ctaUrl?: string; // External URL for task
 }
 
 // Map Snag rule types to icons
@@ -170,22 +173,66 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   // Account will be created when user completes their first task
   const useSnagData = snagRules.length > 0;
 
+  // Get action label based on task type
+  const getActionLabel = (type: string, claimType?: string) => {
+    if (claimType === 'auto') return 'Auto';
+
+    switch (type) {
+      case 'drip_x_follow':
+        return 'Follow';
+      case 'drip_x_new_tweet':
+        return 'Tweet';
+      case 'swap':
+        return 'Swap';
+      case 'connected_telegram':
+        return 'Connect';
+      case 'connected_email':
+        return 'Connect';
+      case 'connect_wallet':
+        return 'Connect';
+      case 'referred_user':
+        return 'Share';
+      case 'check_in':
+        return 'Check In';
+      default:
+        return 'Claim';
+    }
+  };
+
+  // Get CTA URL for external tasks
+  const getCtaUrl = (type: string, metadata?: { cta?: { href?: string } }) => {
+    if (metadata?.cta?.href) return metadata.cta.href;
+
+    switch (type) {
+      case 'drip_x_follow':
+        return 'https://twitter.com/memoryless_ai'; // You can customize this
+      case 'connected_telegram':
+        return 'https://t.me/memoryless_ai'; // You can customize this
+      default:
+        return undefined;
+    }
+  };
+
   // Convert Snag rules to tasks format
   const snagTasks: Task[] = useMemo(() => {
     return snagRules.map((rule) => {
       const status = ruleStatuses.get(rule.id);
       const iconType = rule.type || 'default';
       const Icon = RULE_TYPE_ICONS[iconType] || RULE_TYPE_ICONS.default;
+      const ruleAny = rule as { claimType?: string; metadata?: { cta?: { href?: string } } };
 
       return {
         id: rule.id,
         title: rule.name,
-        description: rule.description,
+        description: rule.description || `Complete this task to earn ${rule.points} points`,
         points: rule.points,
         icon: Icon,
         completed: status?.completed || false,
-        action: 'Complete',
+        action: getActionLabel(rule.type, ruleAny.claimType),
         ruleId: rule.id,
+        type: rule.type,
+        claimType: ruleAny.claimType as 'manual' | 'auto' | undefined,
+        ctaUrl: getCtaUrl(rule.type, ruleAny.metadata),
       };
     });
   }, [snagRules, ruleStatuses]);
@@ -198,25 +245,55 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     : Math.ceil(12847 / (1 + mockPoints / 100));
   const totalUsers = snagRank?.total || 12847;
 
+  // State for task completion loading
+  const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
+
+  // Handle task click - different behavior based on task type
+  const handleTaskClick = async (task: Task) => {
+    // If task has external URL, open it
+    if (task.ctaUrl) {
+      window.open(task.ctaUrl, '_blank');
+      return;
+    }
+
+    // Auto tasks can't be manually completed
+    if (task.claimType === 'auto') {
+      return;
+    }
+
+    // Try to complete/claim the task
+    await handleCompleteTask(task.id);
+  };
+
   // Handle task completion
   const handleCompleteTask = async (taskId: string) => {
-    if (useSnagData) {
-      // Use Snag API
-      const success = await completeSnagRule(taskId);
-      if (!success) {
-        console.error('Failed to complete task');
+    setCompletingTaskId(taskId);
+
+    try {
+      if (useSnagData) {
+        // Use Snag API
+        console.log('[Dashboard] Attempting to complete task:', taskId);
+        const success = await completeSnagRule(taskId);
+        if (!success) {
+          console.error('[Dashboard] Failed to complete task');
+          alert('Could not complete task. It may require external verification.');
+        } else {
+          console.log('[Dashboard] Task completed successfully');
+        }
+      } else {
+        // Mock mode
+        setMockTasks(prevTasks =>
+          prevTasks.map(task =>
+            task.id === taskId ? { ...task, completed: true } : task
+          )
+        );
+        const task = mockTasks.find(t => t.id === taskId);
+        if (task) {
+          setMockPoints(prev => prev + task.points);
+        }
       }
-    } else {
-      // Mock mode
-      setMockTasks(prevTasks =>
-        prevTasks.map(task =>
-          task.id === taskId ? { ...task, completed: true } : task
-        )
-      );
-      const task = mockTasks.find(t => t.id === taskId);
-      if (task) {
-        setMockPoints(prev => prev + task.points);
-      }
+    } finally {
+      setCompletingTaskId(null);
     }
   };
 
@@ -398,14 +475,29 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                                 <CheckCircle className="w-4 h-4" />
                                 <span>Completed</span>
                               </div>
+                            ) : task.claimType === 'auto' ? (
+                              <div className="flex items-center gap-2 text-white/30 text-sm font-[350]">
+                                <span>Auto-verified when connected</span>
+                              </div>
                             ) : (
                               <motion.button
-                                onClick={() => handleCompleteTask(task.id)}
-                                className="px-4 py-2 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-lg text-sm text-white font-[500] uppercase tracking-wider hover:shadow-[0_0_20px_rgba(139,92,246,0.5)] transition-all"
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
+                                onClick={() => handleTaskClick(task)}
+                                disabled={completingTaskId === task.id}
+                                className="px-4 py-2 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-lg text-sm text-white font-[500] uppercase tracking-wider hover:shadow-[0_0_20px_rgba(139,92,246,0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                whileHover={{ scale: completingTaskId === task.id ? 1 : 1.02 }}
+                                whileTap={{ scale: completingTaskId === task.id ? 1 : 0.98 }}
                               >
-                                {task.action}
+                                {completingTaskId === task.id ? (
+                                  <>
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <span>Processing...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    {task.ctaUrl && <span>→</span>}
+                                    <span>{task.action}</span>
+                                  </>
+                                )}
                               </motion.button>
                             )}
                           </div>

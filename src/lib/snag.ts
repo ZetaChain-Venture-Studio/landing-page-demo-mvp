@@ -22,6 +22,15 @@ interface SnagRule {
   imageUrl?: string;
   isActive: boolean;
   completionLimit?: number;
+  claimType?: 'manual' | 'auto';
+  metadata?: {
+    cta?: {
+      label?: string;
+      href?: string;
+    };
+    checkText?: string;
+    requirePostLink?: boolean;
+  };
 }
 
 interface SnagRuleStatus {
