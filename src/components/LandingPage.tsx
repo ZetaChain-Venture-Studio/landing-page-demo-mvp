@@ -14,6 +14,7 @@ function LandingPageWithPrivy() {
   const [showAnimation, setShowAnimation] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [isNewSignup, setIsNewSignup] = useState(false);
+  const [nftMinted, setNftMinted] = useState(false);
   const { login, authenticated, ready, user } = usePrivy();
 
   // Check if wallet is created
@@ -34,6 +35,28 @@ function LandingPageWithPrivy() {
       },
     });
   };
+
+  // Mint NFT when new user signs up
+  useEffect(() => {
+    async function mintNFT() {
+      if (authenticated && walletCreated && isNewSignup && !nftMinted) {
+        setNftMinted(true); // Prevent duplicate mints
+        try {
+          console.log('[Signup] Minting NFT for:', walletCreated);
+          const response = await fetch('/api/nft/mint', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ walletAddress: walletCreated }),
+          });
+          const result = await response.json();
+          console.log('[Signup] NFT mint result:', result);
+        } catch (error) {
+          console.error('[Signup] NFT mint error:', error);
+        }
+      }
+    }
+    mintNFT();
+  }, [authenticated, walletCreated, isNewSignup, nftMinted]);
 
   // Watch for wallet creation and trigger animation ONLY for new signups
   useEffect(() => {

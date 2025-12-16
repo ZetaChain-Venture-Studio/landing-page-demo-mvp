@@ -1,0 +1,20 @@
+{
+  "name": "pop-ai-genesis-nft",
+  "version": "1.0.0",
+  "description": "POP AI Genesis Member NFT - Fully Onchain ERC721",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:testnet": "hardhat run scripts/deploy.js --network zetachain_testnet",
+    "deploy:mainnet": "hardhat run scripts/deploy.js --network zetachain",
+    "verify": "hardhat verify --network zetachain"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "dotenv": "^16.3.1",
+    "hardhat": "^2.19.0"
+  }
+}
