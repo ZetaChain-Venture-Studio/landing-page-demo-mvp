@@ -22,12 +22,29 @@ function LandingPageWithPrivy() {
   // Check if wallet is created
   const walletCreated = user?.wallet?.address;
 
+  // Debug logging for state changes
+  useEffect(() => {
+    console.log('[DEBUG] State changed:', {
+      ready,
+      authenticated,
+      walletCreated,
+      isNewSignup,
+      showAnimation,
+      showMintingAnimation,
+      nftMinted,
+      allAnimationsDone,
+      userEmail: user?.email?.address,
+    });
+  }, [ready, authenticated, walletCreated, isNewSignup, showAnimation, showMintingAnimation, nftMinted, allAnimationsDone, user]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
 
+    console.log('[DEBUG] Form submitted with email:', email);
     // Mark as new signup attempt
     setIsNewSignup(true);
+    console.log('[DEBUG] Set isNewSignup to true');
 
     // Login with email prefilled - no wallet connect needed
     login({
@@ -36,13 +53,25 @@ function LandingPageWithPrivy() {
         value: email,
       },
     });
+    console.log('[DEBUG] Called login() with prefill');
   };
 
   // Watch for wallet creation and trigger "ready for future" animation ONLY for new signups
   useEffect(() => {
+    console.log('[DEBUG] Animation effect check:', {
+      authenticated,
+      walletCreated,
+      isNewSignup,
+      showAnimation,
+      nftMinted,
+      shouldTrigger: authenticated && walletCreated && isNewSignup && !showAnimation && !nftMinted
+    });
+
     if (authenticated && walletCreated && isNewSignup && !showAnimation && !nftMinted) {
+      console.log('[DEBUG] ✅ Triggering "Ready for Future" animation!');
       setShowAnimation(true);
       const timer = setTimeout(() => {
+        console.log('[DEBUG] "Ready for Future" animation ended');
         setShowAnimation(false);
       }, 4000);
       return () => clearTimeout(timer);
@@ -52,26 +81,38 @@ function LandingPageWithPrivy() {
   // After "ready for future" animation, show minting animation and mint NFT
   useEffect(() => {
     async function mintNFT() {
+      console.log('[DEBUG] Mint effect check:', {
+        authenticated,
+        walletCreated,
+        isNewSignup,
+        nftMinted,
+        showAnimation,
+        showMintingAnimation,
+        shouldMint: authenticated && walletCreated && isNewSignup && !nftMinted && !showAnimation && !showMintingAnimation
+      });
+
       if (authenticated && walletCreated && isNewSignup && !nftMinted && !showAnimation && !showMintingAnimation) {
+        console.log('[DEBUG] ✅ Starting NFT mint process!');
         setNftMinted(true);
         setShowMintingAnimation(true);
 
         // Start minting in background
         try {
-          console.log('[Signup] Minting NFT for:', walletCreated);
+          console.log('[DEBUG] 📤 POST /api/nft/mint with wallet:', walletCreated);
           const response = await fetch('/api/nft/mint', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ walletAddress: walletCreated }),
           });
           const result = await response.json();
-          console.log('[Signup] NFT mint result:', result);
+          console.log('[DEBUG] 📥 NFT mint response:', result);
         } catch (error) {
-          console.error('[Signup] NFT mint error:', error);
+          console.error('[DEBUG] ❌ NFT mint error:', error);
         }
 
         // Show minting animation for 3.5 seconds
         setTimeout(() => {
+          console.log('[DEBUG] Minting animation ended');
           setShowMintingAnimation(false);
           setAllAnimationsDone(true);
         }, 3500);
