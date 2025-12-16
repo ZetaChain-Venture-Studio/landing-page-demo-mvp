@@ -37,7 +37,8 @@ export default function PrivyProvider({
             accentColor: "#7C3AED",
             logo: undefined,
           },
-          loginMethods: ["email"],
+          // Don't specify loginMethods - let dashboard settings control this
+          // loginMethods: ["email"],
           embeddedWallets: {
             ethereum: {
               createOnLogin: "all-users",
