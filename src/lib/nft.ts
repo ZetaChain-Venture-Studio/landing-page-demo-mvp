@@ -22,7 +22,7 @@ const USE_TESTNET = process.env.ZETACHAIN_TESTNET === 'true';
 const chain = USE_TESTNET ? zetachainAthensTestnet : zetachain;
 const rpcUrl = USE_TESTNET
   ? 'https://zetachain-athens-evm.blockpi.network/v1/rpc/public'
-  : 'https://zetachain-evm.blockpi.network/v1/rpc/public';
+  : 'https://zetachain-mainnet.g.allthatnode.com/archive/evm';
 
 // Create clients
 const publicClient = createPublicClient({
