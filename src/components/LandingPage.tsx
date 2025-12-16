@@ -12,13 +12,18 @@ function LandingPageWithPrivy() {
   const [email, setEmail] = useState('');
   const [isHovered, setIsHovered] = useState(false);
   const [showAnimation, setShowAnimation] = useState(false);
+  const [animationComplete, setAnimationComplete] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const { login, authenticated, ready, user } = usePrivy();
+
+  // Check if wallet is created
+  const walletCreated = user?.wallet?.address;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
 
+    // Login with email prefilled - no wallet connect needed
     login({
       prefill: {
         type: 'email',
@@ -27,16 +32,18 @@ function LandingPageWithPrivy() {
     });
   };
 
-  // Watch for authentication and trigger animation
+  // Watch for wallet creation and trigger animation
   useEffect(() => {
-    if (authenticated && !showAnimation && user) {
+    // Only show animation when authenticated AND wallet is created
+    if (authenticated && walletCreated && !showAnimation && !animationComplete) {
       setShowAnimation(true);
       const timer = setTimeout(() => {
         setShowAnimation(false);
+        setAnimationComplete(true);
       }, 4000);
       return () => clearTimeout(timer);
     }
-  }, [authenticated, user, showAnimation]);
+  }, [authenticated, walletCreated, showAnimation, animationComplete]);
 
   // Timeout for loading state - show page anyway after 5 seconds
   useEffect(() => {
@@ -59,9 +66,19 @@ function LandingPageWithPrivy() {
     );
   }
 
-  // Show dashboard if authenticated and animation finished
-  if (authenticated && !showAnimation && user) {
-    return <PointsDashboard email={user.email?.address || email} />;
+  // Show dashboard if authenticated, wallet created, and animation finished
+  if (authenticated && walletCreated && animationComplete) {
+    return <PointsDashboard email={user?.email?.address || email} />;
+  }
+
+  // Show loading if authenticated but waiting for wallet
+  if (authenticated && !walletCreated) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-500 border-t-transparent"></div>
+        <p className="text-white/40 text-sm">Creating your wallet...</p>
+      </div>
+    );
   }
 
   return (
