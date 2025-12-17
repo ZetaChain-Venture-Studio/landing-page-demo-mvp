@@ -136,6 +136,44 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     }
   }, [walletAddress, snagAccount, initializeAccount, userId]);
 
+  // Auto-complete "Join the waitlist" task when user is on dashboard
+  // This runs once when rules are loaded and account exists
+  const [waitlistCompleted, setWaitlistCompleted] = useState(false);
+
+  useEffect(() => {
+    async function autoCompleteWaitlist() {
+      if (!snagAccount || waitlistCompleted || snagRules.length === 0) return;
+
+      // Find the waitlist/profile_completed task
+      const waitlistRule = snagRules.find(rule =>
+        rule.type === 'profile_completed' ||
+        rule.name.toLowerCase().includes('waitlist') ||
+        rule.name.toLowerCase().includes('join')
+      );
+
+      if (waitlistRule) {
+        const status = ruleStatuses.get(waitlistRule.id);
+        if (!status?.completed) {
+          console.log('[Dashboard] Auto-completing waitlist task:', waitlistRule.id);
+          try {
+            const success = await completeRule(waitlistRule.id);
+            if (success) {
+              console.log('[Dashboard] Waitlist task auto-completed!');
+              setWaitlistCompleted(true);
+              await refreshData();
+            }
+          } catch (err) {
+            console.error('[Dashboard] Failed to auto-complete waitlist:', err);
+          }
+        } else {
+          setWaitlistCompleted(true);
+        }
+      }
+    }
+
+    autoCompleteWaitlist();
+  }, [snagAccount, snagRules, ruleStatuses, waitlistCompleted, completeRule, refreshData]);
+
   // Convert Snag rules to Task format
   const tasks: Task[] = useMemo(() => {
     console.log('[Dashboard] Converting Snag rules to tasks:', snagRules.length, 'rules');
@@ -179,13 +217,20 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
 
     return snagRules.map(rule => {
       const status = ruleStatuses.get(rule.id);
-      const isCompleted = status?.completed || false;
       // Use points if available, otherwise parse amount
       const points = rule.points || (typeof rule.amount === 'string' ? parseInt(rule.amount, 10) : rule.amount) || 0;
 
       // Determine task type from rule
       const isReferral = rule.type === 'referral' || rule.type === 'referred_user' || rule.name.toLowerCase().includes('invite') || rule.name.toLowerCase().includes('referral');
       const isTwitterFollow = rule.type === 'drip_x_follow' || rule.name.toLowerCase().includes('follow');
+
+      // Profile completed / waitlist tasks are auto-completed since user is viewing dashboard
+      const isWaitlistTask = rule.type === 'profile_completed' ||
+        rule.name.toLowerCase().includes('waitlist') ||
+        rule.name.toLowerCase().includes('join');
+
+      // Mark as completed if: API says so, OR it's a waitlist task (user is already on dashboard)
+      const isCompleted = status?.completed || isWaitlistTask;
 
       // Get CTA URL from Snag metadata - check twitterAccountUrl for follow tasks
       const ctaUrl = rule.metadata?.twitterAccountUrl || rule.metadata?.cta?.href;
