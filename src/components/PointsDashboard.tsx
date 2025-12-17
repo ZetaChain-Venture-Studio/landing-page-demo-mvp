@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Twitter, CheckCircle, Sparkles, UserPlus, LucideIcon, Copy, Check } from 'lucide-react';
+import { Twitter, CheckCircle, Sparkles, UserPlus, LucideIcon, Copy, Check, ExternalLink, Gift, Star, Zap } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSnag } from '@/hooks/useSnag';
 
@@ -20,39 +20,28 @@ interface Task {
   ctaUrl?: string; // External URL for task
 }
 
-// The 3 core tasks
-const CORE_TASKS: Task[] = [
-  {
-    id: 'waitlist',
-    title: 'Join the Waitlist',
-    description: 'Sign up to be among the first to access Pop AI',
-    points: 100,
-    icon: Sparkles,
-    completed: true, // Auto-completed since they're viewing dashboard
-    action: 'Joined',
-    claimType: 'auto',
-  },
-  {
-    id: 'follow_x',
-    title: 'Follow us on X',
-    description: 'Stay updated with the latest news and announcements',
-    points: 50,
-    icon: Twitter,
-    completed: false,
-    action: 'Follow',
-    ctaUrl: 'https://x.com/PopAI', // Update with actual X handle
-  },
-  {
-    id: 'invite_friend',
-    title: 'Invite a Friend',
-    description: 'Share your referral link and earn points for each signup',
-    points: 200,
-    icon: UserPlus,
-    completed: false,
-    action: 'Invite',
-    type: 'referral',
-  },
-];
+// Map task types/names to icons
+function getTaskIcon(name: string, type?: string): LucideIcon {
+  const lowerName = name.toLowerCase();
+  if (lowerName.includes('follow') || lowerName.includes('twitter') || lowerName.includes('x')) return Twitter;
+  if (lowerName.includes('invite') || lowerName.includes('referral') || lowerName.includes('friend')) return UserPlus;
+  if (lowerName.includes('join') || lowerName.includes('waitlist') || lowerName.includes('signup')) return Sparkles;
+  if (lowerName.includes('gift') || lowerName.includes('reward')) return Gift;
+  if (lowerName.includes('star') || lowerName.includes('rate')) return Star;
+  if (type === 'social') return Twitter;
+  if (type === 'referral') return UserPlus;
+  return Zap;
+}
+
+// Get CTA label from task
+function getTaskAction(name: string, metadata?: { cta?: { label?: string } }): string {
+  if (metadata?.cta?.label) return metadata.cta.label;
+  const lowerName = name.toLowerCase();
+  if (lowerName.includes('follow')) return 'Follow';
+  if (lowerName.includes('invite') || lowerName.includes('referral')) return 'Invite';
+  if (lowerName.includes('join')) return 'Join';
+  return 'Complete';
+}
 
 interface PointsDashboardProps {
   email: string;
@@ -104,16 +93,20 @@ interface PointsDashboardContentProps {
 
 function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTestMode }: PointsDashboardContentProps) {
 
-  // Snag integration (for points tracking)
+  // Snag integration (for points tracking and tasks)
   const {
     account: snagAccount,
     rank: snagRank,
+    rules: snagRules,
+    ruleStatuses,
+    loading: snagLoading,
     initializeAccount,
+    completeRule,
+    refreshData,
   } = useSnag(walletAddress);
 
-  // Core tasks state - "Join waitlist" is always completed
-  const [tasks, setTasks] = useState<Task[]>(CORE_TASKS);
   const [copiedReferral, setCopiedReferral] = useState(false);
+  const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
 
   // Generate referral link based on wallet address
   const referralLink = useMemo(() => {
@@ -126,62 +119,155 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   // Initialize Snag account when wallet is available
   useEffect(() => {
     if (walletAddress && !snagAccount) {
+      console.log('[Dashboard] Initializing Snag account for:', walletAddress);
       initializeAccount(walletAddress, userId || 'test-user');
     }
   }, [walletAddress, snagAccount, initializeAccount, userId]);
 
-  // Calculate points from completed tasks
-  const totalPoints = useMemo(() => {
-    const taskPoints = tasks.filter(t => t.completed).reduce((sum, t) => sum + t.points, 0);
-    // Add any Snag points if available
-    return taskPoints + (snagAccount?.points || 0);
-  }, [tasks, snagAccount]);
+  // Convert Snag rules to Task format
+  const tasks: Task[] = useMemo(() => {
+    console.log('[Dashboard] Converting Snag rules to tasks:', snagRules.length, 'rules');
 
-  // Use Snag rank or calculate from total users
-  const rank = snagRank?.position || 1;
-  const totalUsers = snagRank?.total || 100;
+    if (snagRules.length === 0) {
+      // Fallback to default tasks if no Snag rules available
+      console.log('[Dashboard] No Snag rules, using fallback tasks');
+      return [
+        {
+          id: 'waitlist',
+          title: 'Join the Waitlist',
+          description: 'Sign up to be among the first to access Pop AI',
+          points: 100,
+          icon: Sparkles,
+          completed: true, // Auto-completed since they're viewing dashboard
+          action: 'Joined',
+          claimType: 'auto',
+        },
+        {
+          id: 'follow_x',
+          title: 'Follow us on X',
+          description: 'Stay updated with the latest news and announcements',
+          points: 50,
+          icon: Twitter,
+          completed: false,
+          action: 'Follow',
+          ctaUrl: 'https://x.com/PopAI_xyz',
+        },
+        {
+          id: 'invite_friend',
+          title: 'Invite a Friend',
+          description: 'Share your referral link and earn points for each signup',
+          points: 200,
+          icon: UserPlus,
+          completed: false,
+          action: 'Invite',
+          type: 'referral',
+        },
+      ];
+    }
 
-  // State for task completion loading
-  const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
+    return snagRules.map(rule => {
+      const status = ruleStatuses.get(rule.id);
+      const isCompleted = status?.completed || false;
+      const points = rule.points || 0;
+
+      // Determine task type from rule
+      const isReferral = rule.type === 'referral' || rule.name.toLowerCase().includes('invite') || rule.name.toLowerCase().includes('referral');
+      const isTwitter = rule.type === 'social' || rule.name.toLowerCase().includes('follow') || rule.name.toLowerCase().includes('twitter');
+
+      // Extract CTA URL from rule if it's a social/external task
+      let ctaUrl: string | undefined;
+      if (isTwitter) {
+        ctaUrl = 'https://x.com/PopAI_xyz';
+      }
+
+      return {
+        id: rule.id,
+        title: rule.name,
+        description: rule.description || '',
+        points,
+        icon: getTaskIcon(rule.name, rule.type),
+        completed: isCompleted,
+        action: getTaskAction(rule.name),
+        ruleId: rule.id,
+        type: isReferral ? 'referral' : rule.type,
+        ctaUrl,
+      };
+    });
+  }, [snagRules, ruleStatuses]);
+
+  // Total points from Snag account
+  const totalPoints = snagAccount?.points || 0;
+
+  // Use Snag rank
+  const rank = snagRank?.position || 0;
+  const totalUsers = snagRank?.total || 0;
 
   // Copy referral link to clipboard
-  const copyReferralLink = async () => {
+  const copyReferralLink = useCallback(async () => {
     if (referralLink) {
-      await navigator.clipboard.writeText(referralLink);
-      setCopiedReferral(true);
-      setTimeout(() => setCopiedReferral(false), 2000);
+      try {
+        await navigator.clipboard.writeText(referralLink);
+        setCopiedReferral(true);
+        setTimeout(() => setCopiedReferral(false), 2000);
+        console.log('[Dashboard] Referral link copied:', referralLink);
+      } catch (err) {
+        console.error('[Dashboard] Failed to copy referral link:', err);
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = referralLink;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        setCopiedReferral(true);
+        setTimeout(() => setCopiedReferral(false), 2000);
+      }
     }
-  };
+  }, [referralLink]);
 
   // Handle task click - different behavior based on task type
-  const handleTaskClick = async (task: Task) => {
+  const handleTaskClick = useCallback(async (task: Task) => {
+    console.log('[Dashboard] Task clicked:', task.id, task.title);
+
     // Auto-completed tasks can't be clicked
     if (task.claimType === 'auto' || task.completed) {
-      return;
-    }
-
-    // If task has external URL, open it
-    if (task.ctaUrl) {
-      window.open(task.ctaUrl, '_blank');
-      // Mark as completed after clicking (user needs to verify manually or via Snag)
+      console.log('[Dashboard] Task already completed or auto-claim');
       return;
     }
 
     // Referral task - copy link
     if (task.type === 'referral') {
-      copyReferralLink();
+      console.log('[Dashboard] Referral task - copying link');
+      await copyReferralLink();
       return;
     }
-  };
 
-  // Mark task as completed (for local tracking)
-  const markTaskCompleted = (taskId: string) => {
-    setTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === taskId ? { ...task, completed: true } : task
-      )
-    );
-  };
+    // If task has external URL, open it and then try to complete
+    if (task.ctaUrl) {
+      console.log('[Dashboard] Opening external URL:', task.ctaUrl);
+      window.open(task.ctaUrl, '_blank');
+    }
+
+    // Try to complete the rule in Snag
+    if (task.ruleId) {
+      setCompletingTaskId(task.id);
+      console.log('[Dashboard] Completing Snag rule:', task.ruleId);
+
+      try {
+        const success = await completeRule(task.ruleId);
+        console.log('[Dashboard] Rule completion result:', success);
+
+        if (success) {
+          // Refresh data to get updated points/status
+          await refreshData();
+        }
+      } catch (err) {
+        console.error('[Dashboard] Failed to complete rule:', err);
+      } finally {
+        setCompletingTaskId(null);
+      }
+    }
+  }, [copyReferralLink, completeRule, refreshData]);
 
   const completedTasksCount = tasks.filter(t => t.completed).length;
 

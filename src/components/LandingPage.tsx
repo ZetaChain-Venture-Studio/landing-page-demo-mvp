@@ -12,15 +12,27 @@ function LandingPageWithPrivy() {
   const [email, setEmail] = useState('');
   const [isHovered, setIsHovered] = useState(false);
   const [showAnimation, setShowAnimation] = useState(false);
-  // const [showMintingAnimation, setShowMintingAnimation] = useState(false); // NFT - BACKLOG
   const [loadingTimeout, setLoadingTimeout] = useState(false);
-  const [isNewSignup, setIsNewSignup] = useState(false);
-  // const [nftMinted, setNftMinted] = useState(false); // NFT - BACKLOG
   const [animationDone, setAnimationDone] = useState(false);
   const { login, authenticated, ready, user } = usePrivy();
 
   // Check if wallet is created
   const walletCreated = user?.wallet?.address;
+
+  // Use localStorage to persist isNewSignup flag across auth redirects
+  const [isNewSignup, setIsNewSignup] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('popai_new_signup') === 'true';
+    }
+    return false;
+  });
+
+  // Clear the flag once animation is done
+  useEffect(() => {
+    if (animationDone && typeof window !== 'undefined') {
+      localStorage.removeItem('popai_new_signup');
+    }
+  }, [animationDone]);
 
   // Debug logging for state changes
   useEffect(() => {
@@ -40,9 +52,12 @@ function LandingPageWithPrivy() {
     if (!email) return;
 
     console.log('[DEBUG] Form submitted with email:', email);
-    // Mark as new signup attempt
+    // Mark as new signup attempt and persist to localStorage
     setIsNewSignup(true);
-    console.log('[DEBUG] Set isNewSignup to true');
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('popai_new_signup', 'true');
+    }
+    console.log('[DEBUG] Set isNewSignup to true (persisted to localStorage)');
 
     // Login with email prefilled - no wallet connect needed
     login({
