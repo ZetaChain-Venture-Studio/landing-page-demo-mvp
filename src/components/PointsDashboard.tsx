@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Twitter, MessageCircle, Share2, CheckCircle, Sparkles, Zap, UserPlus, LucideIcon } from 'lucide-react';
+import { Twitter, CheckCircle, Sparkles, UserPlus, LucideIcon, Copy, Check } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSnag } from '@/hooks/useSnag';
 
@@ -20,67 +20,37 @@ interface Task {
   ctaUrl?: string; // External URL for task
 }
 
-// Map Snag rule types to icons
-const RULE_TYPE_ICONS: Record<string, LucideIcon> = {
-  twitter_follow: Twitter,
-  twitter_post: Twitter,
-  twitter_reaction: Twitter,
-  discord_role: MessageCircle,
-  discord_messages: MessageCircle,
-  telegram_join: MessageCircle,
-  refer_friend: UserPlus,
-  connect_twitter: Twitter,
-  connect_discord: MessageCircle,
-  external: Zap,
-  default: Sparkles,
-};
-
-// Default mock tasks (used when Snag is not configured)
-const DEFAULT_TASKS: Task[] = [
+// The 3 core tasks
+const CORE_TASKS: Task[] = [
   {
-    id: '1',
-    title: 'Follow on Twitter',
-    description: 'Follow @PopAI on Twitter for updates',
+    id: 'waitlist',
+    title: 'Join the Waitlist',
+    description: 'Sign up to be among the first to access Pop AI',
+    points: 100,
+    icon: Sparkles,
+    completed: true, // Auto-completed since they're viewing dashboard
+    action: 'Joined',
+    claimType: 'auto',
+  },
+  {
+    id: 'follow_x',
+    title: 'Follow us on X',
+    description: 'Stay updated with the latest news and announcements',
     points: 50,
     icon: Twitter,
     completed: false,
-    action: 'Follow'
+    action: 'Follow',
+    ctaUrl: 'https://x.com/PopAI', // Update with actual X handle
   },
   {
-    id: '2',
-    title: 'Join Discord',
-    description: 'Join our Discord community',
-    points: 50,
-    icon: MessageCircle,
+    id: 'invite_friend',
+    title: 'Invite a Friend',
+    description: 'Share your referral link and earn points for each signup',
+    points: 200,
+    icon: UserPlus,
     completed: false,
-    action: 'Join'
-  },
-  {
-    id: '3',
-    title: 'Share on Twitter',
-    description: 'Tweet about Pop AI with #PopAI',
-    points: 75,
-    icon: Share2,
-    completed: false,
-    action: 'Tweet'
-  },
-  {
-    id: '4',
-    title: 'Refer a Friend',
-    description: 'Invite friends to join the waitlist',
-    points: 100,
-    icon: Zap,
-    completed: false,
-    action: 'Share'
-  },
-  {
-    id: '5',
-    title: 'Complete Profile',
-    description: 'Add your bio and interests',
-    points: 25,
-    icon: Sparkles,
-    completed: false,
-    action: 'Complete'
+    action: 'Invite',
+    type: 'referral',
   },
 ];
 
@@ -134,32 +104,24 @@ interface PointsDashboardContentProps {
 
 function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTestMode }: PointsDashboardContentProps) {
 
-  // Snag integration
+  // Snag integration (for points tracking)
   const {
     account: snagAccount,
     rank: snagRank,
-    rules: snagRules,
-    ruleStatuses,
-    loading: snagLoading,
-    error: snagError,
     initializeAccount,
-    completeRule: completeSnagRule,
   } = useSnag(walletAddress);
 
-  // Debug: Log Snag state
-  useEffect(() => {
-    console.log('[PointsDashboard] Snag state:', {
-      account: snagAccount,
-      rulesCount: snagRules.length,
-      loading: snagLoading,
-      error: snagError,
-      walletAddress,
-    });
-  }, [snagAccount, snagRules, snagLoading, snagError, walletAddress]);
+  // Core tasks state - "Join waitlist" is always completed
+  const [tasks, setTasks] = useState<Task[]>(CORE_TASKS);
+  const [copiedReferral, setCopiedReferral] = useState(false);
 
-  // Local state for mock mode
-  const [mockTasks, setMockTasks] = useState<Task[]>(DEFAULT_TASKS);
-  const [mockPoints, setMockPoints] = useState(100);
+  // Generate referral link based on wallet address
+  const referralLink = useMemo(() => {
+    if (typeof window !== 'undefined' && walletAddress) {
+      return `${window.location.origin}?ref=${walletAddress.slice(0, 8)}`;
+    }
+    return '';
+  }, [walletAddress]);
 
   // Initialize Snag account when wallet is available
   useEffect(() => {
@@ -168,137 +130,57 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     }
   }, [walletAddress, snagAccount, initializeAccount, userId]);
 
-  // Determine if using Snag or mock data
-  // We use Snag data if we have rules, regardless of account status
-  // Account will be created when user completes their first task
-  const useSnagData = snagRules.length > 0;
+  // Calculate points from completed tasks
+  const totalPoints = useMemo(() => {
+    const taskPoints = tasks.filter(t => t.completed).reduce((sum, t) => sum + t.points, 0);
+    // Add any Snag points if available
+    return taskPoints + (snagAccount?.points || 0);
+  }, [tasks, snagAccount]);
 
-  // Get action label based on task type
-  const getActionLabel = (type: string, claimType?: string) => {
-    if (claimType === 'auto') return 'Auto';
-
-    switch (type) {
-      case 'drip_x_follow':
-        return 'Follow';
-      case 'drip_x_new_tweet':
-        return 'Tweet';
-      case 'swap':
-        return 'Swap';
-      case 'connected_telegram':
-        return 'Connect';
-      case 'connected_email':
-        return 'Connect';
-      case 'connect_wallet':
-        return 'Connect';
-      case 'referred_user':
-        return 'Share';
-      case 'check_in':
-        return 'Check In';
-      default:
-        return 'Claim';
-    }
-  };
-
-  // Get CTA URL for external tasks
-  const getCtaUrl = (type: string, metadata?: { cta?: { href?: string } }) => {
-    if (metadata?.cta?.href) return metadata.cta.href;
-
-    switch (type) {
-      case 'drip_x_follow':
-        return 'https://twitter.com/memoryless_ai';
-      case 'drip_x_new_tweet':
-        return 'https://twitter.com/intent/tweet?text=Check%20out%20%40memoryless_ai';
-      case 'connected_telegram':
-        return 'https://t.me/memoryless_ai';
-      default:
-        return undefined;
-    }
-  };
-
-  // Convert Snag rules to tasks format
-  const snagTasks: Task[] = useMemo(() => {
-    return snagRules.map((rule) => {
-      const status = ruleStatuses.get(rule.id);
-      const iconType = rule.type || 'default';
-      const Icon = RULE_TYPE_ICONS[iconType] || RULE_TYPE_ICONS.default;
-      const ruleAny = rule as { claimType?: string; metadata?: { cta?: { href?: string } }; amount?: string | number };
-      // Snag returns amount as string, convert to number
-      const points = Number(ruleAny.amount) || rule.points || 0;
-
-      return {
-        id: rule.id,
-        title: rule.name,
-        description: rule.description || `Complete this task to earn ${points} points`,
-        points: points,
-        icon: Icon,
-        completed: status?.completed || false,
-        action: getActionLabel(rule.type, ruleAny.claimType),
-        ruleId: rule.id,
-        type: rule.type,
-        claimType: ruleAny.claimType as 'manual' | 'auto' | undefined,
-        ctaUrl: getCtaUrl(rule.type, ruleAny.metadata),
-      };
-    });
-  }, [snagRules, ruleStatuses]);
-
-  // Use Snag tasks or mock tasks
-  const tasks = useSnagData ? snagTasks : mockTasks;
-  const totalPoints = useSnagData ? (snagAccount?.points || 0) : mockPoints;
-  const rank = useSnagData
-    ? (snagRank?.position || 0)
-    : Math.ceil(12847 / (1 + mockPoints / 100));
-  const totalUsers = snagRank?.total || 12847;
+  // Use Snag rank or calculate from total users
+  const rank = snagRank?.position || 1;
+  const totalUsers = snagRank?.total || 100;
 
   // State for task completion loading
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
 
+  // Copy referral link to clipboard
+  const copyReferralLink = async () => {
+    if (referralLink) {
+      await navigator.clipboard.writeText(referralLink);
+      setCopiedReferral(true);
+      setTimeout(() => setCopiedReferral(false), 2000);
+    }
+  };
+
   // Handle task click - different behavior based on task type
   const handleTaskClick = async (task: Task) => {
+    // Auto-completed tasks can't be clicked
+    if (task.claimType === 'auto' || task.completed) {
+      return;
+    }
+
     // If task has external URL, open it
     if (task.ctaUrl) {
       window.open(task.ctaUrl, '_blank');
+      // Mark as completed after clicking (user needs to verify manually or via Snag)
       return;
     }
 
-    // Auto tasks can't be manually completed
-    if (task.claimType === 'auto') {
+    // Referral task - copy link
+    if (task.type === 'referral') {
+      copyReferralLink();
       return;
     }
-
-    // Try to complete/claim the task
-    await handleCompleteTask(task.id);
   };
 
-  // Handle task completion
-  const handleCompleteTask = async (taskId: string) => {
-    setCompletingTaskId(taskId);
-
-    try {
-      if (useSnagData) {
-        // Use Snag API
-        console.log('[Dashboard] Attempting to complete task:', taskId);
-        const success = await completeSnagRule(taskId);
-        if (!success) {
-          console.error('[Dashboard] Failed to complete task');
-          alert('Could not complete task. It may require external verification.');
-        } else {
-          console.log('[Dashboard] Task completed successfully');
-        }
-      } else {
-        // Mock mode
-        setMockTasks(prevTasks =>
-          prevTasks.map(task =>
-            task.id === taskId ? { ...task, completed: true } : task
-          )
-        );
-        const task = mockTasks.find(t => t.id === taskId);
-        if (task) {
-          setMockPoints(prev => prev + task.points);
-        }
-      }
-    } finally {
-      setCompletingTaskId(null);
-    }
+  // Mark task as completed (for local tracking)
+  const markTaskCompleted = (taskId: string) => {
+    setTasks(prevTasks =>
+      prevTasks.map(task =>
+        task.id === taskId ? { ...task, completed: true } : task
+      )
+    );
   };
 
   const completedTasksCount = tasks.filter(t => t.completed).length;
@@ -385,22 +267,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
             </h1>
             <p className="text-white/40 text-lg font-[350]">
               Complete tasks to increase your rank and unlock exclusive benefits
-              {!useSnagData && !snagLoading && (
-                <span className="ml-2 text-yellow-500/60 text-sm">(Demo Mode - Snag not connected)</span>
-              )}
-              {snagError && (
-                <span className="ml-2 text-red-500/60 text-sm">(Error: {snagError})</span>
-              )}
-              {isTestMode && (
-                <span className="ml-2 text-cyan-500/60 text-sm">(Test Mode)</span>
-              )}
             </p>
-            {!useSnagData && !snagLoading && (
-              <p className="text-yellow-500/40 text-sm mt-2">
-                Check Vercel env vars: SNAG_API_KEY, SNAG_API_URL, NEXT_PUBLIC_SNAG_WEBSITE_ID.
-                Test at: <a href="/api/snag/debug" className="underline">/api/snag/debug</a>
-              </p>
-            )}
           </motion.div>
 
           {/* Wallet Info */}
@@ -432,76 +299,94 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
               transition={{ delay: 0.2 }}
               className="space-y-4"
             >
-              {snagLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-500 border-t-transparent"></div>
-                </div>
-              ) : tasks.length === 0 ? (
-                <div className="text-center py-12 text-white/40">
-                  No tasks available yet
-                </div>
-              ) : (
-                tasks.map((task, index) => {
-                  const Icon = task.icon;
-                  return (
-                    <motion.div
-                      key={task.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 * index }}
-                      className="relative group"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 to-cyan-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <div className="relative p-6 bg-white/[0.02] backdrop-blur-sm border border-white/10 rounded-2xl hover:border-white/20 transition-all">
-                        <div className="flex items-start gap-4">
-                          <div className={`p-3 rounded-xl ${task.completed ? 'bg-emerald-500/20' : 'bg-white/5'}`}>
-                            <Icon className={`w-5 h-5 ${task.completed ? 'text-emerald-400' : 'text-white/60'}`} />
-                          </div>
+              {tasks.map((task, index) => {
+                const Icon = task.icon;
+                const isReferralTask = task.type === 'referral';
 
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-2">
-                              <h3 className="text-white font-[450] tracking-tight">{task.title}</h3>
-                              <span className="text-violet-400 text-sm font-[500]">+{task.points} pts</span>
+                return (
+                  <motion.div
+                    key={task.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 * index }}
+                    className="relative group"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 to-cyan-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="relative p-6 bg-white/[0.02] backdrop-blur-sm border border-white/10 rounded-2xl hover:border-white/20 transition-all">
+                      <div className="flex items-start gap-4">
+                        <div className={`p-3 rounded-xl ${task.completed ? 'bg-emerald-500/20' : 'bg-white/5'}`}>
+                          <Icon className={`w-5 h-5 ${task.completed ? 'text-emerald-400' : 'text-white/60'}`} />
+                        </div>
+
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-white font-[450] tracking-tight">{task.title}</h3>
+                            <span className="text-violet-400 text-sm font-[500]">+{task.points} pts</span>
+                          </div>
+                          <p className="text-white/40 text-sm font-[350] mb-4">{task.description}</p>
+
+                          {task.completed ? (
+                            <div className="flex items-center gap-2 text-emerald-400 text-sm font-[450]">
+                              <CheckCircle className="w-4 h-4" />
+                              <span>Completed</span>
                             </div>
-                            <p className="text-white/40 text-sm font-[350] mb-4">{task.description}</p>
-
-                            {task.completed ? (
-                              <div className="flex items-center gap-2 text-emerald-400 text-sm font-[450]">
-                                <CheckCircle className="w-4 h-4" />
-                                <span>Completed</span>
+                          ) : isReferralTask ? (
+                            // Special UI for referral task - show copy link
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  readOnly
+                                  value={referralLink}
+                                  className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white/60 text-sm font-mono truncate"
+                                />
+                                <motion.button
+                                  onClick={copyReferralLink}
+                                  className="px-4 py-2 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-lg text-sm text-white font-[500] uppercase tracking-wider hover:shadow-[0_0_20px_rgba(139,92,246,0.5)] transition-all flex items-center gap-2"
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                >
+                                  {copiedReferral ? (
+                                    <>
+                                      <Check className="w-4 h-4" />
+                                      <span>Copied!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="w-4 h-4" />
+                                      <span>Copy</span>
+                                    </>
+                                  )}
+                                </motion.button>
                               </div>
-                            ) : task.claimType === 'auto' ? (
-                              <div className="flex items-center gap-2 text-white/30 text-sm font-[350]">
-                                <span>Auto-verified when connected</span>
-                              </div>
-                            ) : (
-                              <motion.button
-                                onClick={() => handleTaskClick(task)}
-                                disabled={completingTaskId === task.id}
-                                className="px-4 py-2 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-lg text-sm text-white font-[500] uppercase tracking-wider hover:shadow-[0_0_20px_rgba(139,92,246,0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                whileHover={{ scale: completingTaskId === task.id ? 1 : 1.02 }}
-                                whileTap={{ scale: completingTaskId === task.id ? 1 : 0.98 }}
-                              >
-                                {completingTaskId === task.id ? (
-                                  <>
-                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    <span>Processing...</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    {task.ctaUrl && <span>→</span>}
-                                    <span>{task.action}</span>
-                                  </>
-                                )}
-                              </motion.button>
-                            )}
-                          </div>
+                            </div>
+                          ) : (
+                            <motion.button
+                              onClick={() => handleTaskClick(task)}
+                              disabled={completingTaskId === task.id}
+                              className="px-4 py-2 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-lg text-sm text-white font-[500] uppercase tracking-wider hover:shadow-[0_0_20px_rgba(139,92,246,0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                              whileHover={{ scale: completingTaskId === task.id ? 1 : 1.02 }}
+                              whileTap={{ scale: completingTaskId === task.id ? 1 : 0.98 }}
+                            >
+                              {completingTaskId === task.id ? (
+                                <>
+                                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                  <span>Processing...</span>
+                                </>
+                              ) : (
+                                <>
+                                  {task.ctaUrl && <span>→</span>}
+                                  <span>{task.action}</span>
+                                </>
+                              )}
+                            </motion.button>
+                          )}
                         </div>
                       </div>
-                    </motion.div>
-                  );
-                })
-              )}
+                    </div>
+                  </motion.div>
+                );
+              })}
             </motion.div>
 
             {/* Right: NFT Coupon Card */}
@@ -568,7 +453,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                     <div className="mt-6 pt-6 border-t border-white/10">
                       <div className="flex items-center justify-between text-xs text-white/40 font-[350]">
                         <span>Member since {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                        <span>{useSnagData ? 'Verified ✓' : 'Demo Mode'}</span>
+                        <span>Active ✓</span>
                       </div>
                     </div>
                   </div>
