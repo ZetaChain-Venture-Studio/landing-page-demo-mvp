@@ -15,7 +15,19 @@ interface SnagRule {
   description: string;
   type: string;
   points: number;
+  amount?: string | number;
   imageUrl?: string;
+  isActive?: boolean;
+  completionLimit?: number;
+  claimType?: 'manual' | 'auto';
+  metadata?: {
+    cta?: {
+      label?: string;
+      href?: string;
+    };
+    checkText?: string;
+    requirePostLink?: boolean;
+  };
 }
 
 interface SnagRuleStatus {
@@ -77,8 +89,14 @@ export function useSnag(walletAddress?: string): UseSnagReturn {
       console.log('[useSnag] Rules data:', data);
 
       if (data.rules) {
-        setRules(data.rules);
-        console.log('[useSnag] Set rules:', data.rules.length);
+        // Convert amount to points if needed and log metadata
+        const processedRules = data.rules.map((rule: SnagRule) => {
+          const points = rule.points || (typeof rule.amount === 'string' ? parseInt(rule.amount, 10) : rule.amount) || 0;
+          console.log('[useSnag] Rule:', rule.name, 'points:', points, 'metadata:', rule.metadata);
+          return { ...rule, points };
+        });
+        setRules(processedRules);
+        console.log('[useSnag] Set rules:', processedRules.length);
       } else if (data.error) {
         console.error('[useSnag] API error:', data.error, data.details);
         setError(data.error);

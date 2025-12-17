@@ -168,17 +168,25 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     return snagRules.map(rule => {
       const status = ruleStatuses.get(rule.id);
       const isCompleted = status?.completed || false;
-      const points = rule.points || 0;
+      // Use points if available, otherwise parse amount
+      const points = rule.points || (typeof rule.amount === 'string' ? parseInt(rule.amount, 10) : rule.amount) || 0;
 
       // Determine task type from rule
       const isReferral = rule.type === 'referral' || rule.name.toLowerCase().includes('invite') || rule.name.toLowerCase().includes('referral');
-      const isTwitter = rule.type === 'social' || rule.name.toLowerCase().includes('follow') || rule.name.toLowerCase().includes('twitter');
 
-      // Extract CTA URL from rule if it's a social/external task
-      let ctaUrl: string | undefined;
-      if (isTwitter) {
-        ctaUrl = 'https://x.com/PopAI_xyz';
-      }
+      // Get CTA URL from Snag metadata
+      const ctaUrl = rule.metadata?.cta?.href;
+      const ctaLabel = rule.metadata?.cta?.label;
+
+      console.log('[Dashboard] Mapping rule:', {
+        id: rule.id,
+        name: rule.name,
+        type: rule.type,
+        points,
+        ctaUrl,
+        ctaLabel,
+        metadata: rule.metadata,
+      });
 
       return {
         id: rule.id,
@@ -187,9 +195,10 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
         points,
         icon: getTaskIcon(rule.name, rule.type),
         completed: isCompleted,
-        action: getTaskAction(rule.name),
+        action: ctaLabel || getTaskAction(rule.name),
         ruleId: rule.id,
         type: isReferral ? 'referral' : rule.type,
+        claimType: rule.claimType,
         ctaUrl,
       };
     });
