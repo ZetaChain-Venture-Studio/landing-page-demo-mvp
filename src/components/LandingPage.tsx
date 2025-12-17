@@ -70,6 +70,7 @@ function LandingPageWithPrivy() {
   };
 
   // Watch for wallet creation and trigger "ready for future" animation ONLY for new signups
+  // Add delay to ensure Privy popup has closed
   useEffect(() => {
     console.log('[DEBUG] Animation effect check:', {
       authenticated,
@@ -81,14 +82,23 @@ function LandingPageWithPrivy() {
     });
 
     if (authenticated && walletCreated && isNewSignup && !showAnimation && !animationDone) {
-      console.log('[DEBUG] ✅ Triggering "Ready for Future" animation!');
-      setShowAnimation(true);
-      const timer = setTimeout(() => {
-        console.log('[DEBUG] "Ready for Future" animation ended');
-        setShowAnimation(false);
-        setAnimationDone(true);
-      }, 4000);
-      return () => clearTimeout(timer);
+      // Wait 800ms for Privy popup to fully close before showing animation
+      console.log('[DEBUG] Waiting for Privy popup to close...');
+      const delayTimer = setTimeout(() => {
+        console.log('[DEBUG] ✅ Triggering "Ready for Future" animation!');
+        setShowAnimation(true);
+
+        // Animation duration
+        const animationTimer = setTimeout(() => {
+          console.log('[DEBUG] "Ready for Future" animation ended');
+          setShowAnimation(false);
+          setAnimationDone(true);
+        }, 4000);
+
+        return () => clearTimeout(animationTimer);
+      }, 800);
+
+      return () => clearTimeout(delayTimer);
     }
   }, [authenticated, walletCreated, isNewSignup, showAnimation, animationDone]);
 

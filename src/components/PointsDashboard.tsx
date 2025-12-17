@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { Twitter, CheckCircle, Sparkles, UserPlus, LucideIcon, Copy, Check, ExternalLink, Gift, Star, Zap } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Twitter, CheckCircle, Sparkles, UserPlus, LucideIcon, Copy, Check, ExternalLink, Gift, Star, Zap, RotateCcw } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSnag } from '@/hooks/useSnag';
+import SpinWheel from './SpinWheel';
 
 interface Task {
   id: string;
@@ -107,6 +108,17 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
 
   const [copiedReferral, setCopiedReferral] = useState(false);
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
+  const [showSpinWheel, setShowSpinWheel] = useState(false);
+  const [spinsRemaining, setSpinsRemaining] = useState(1); // Demo: 1 free spin
+  const [bonusPoints, setBonusPoints] = useState(0);
+
+  // Handle spin wheel completion
+  const handleSpinComplete = useCallback((points: number) => {
+    console.log('[Dashboard] Spin wheel won:', points, 'points');
+    setBonusPoints(prev => prev + points);
+    setSpinsRemaining(prev => Math.max(0, prev - 1));
+    // In production, you'd call Snag API to award these points
+  }, []);
 
   // Generate referral link based on wallet address
   const referralLink = useMemo(() => {
@@ -212,8 +224,8 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     });
   }, [snagRules, ruleStatuses]);
 
-  // Total points from Snag account
-  const totalPoints = snagAccount?.points || 0;
+  // Total points from Snag account + bonus points from spin wheel
+  const totalPoints = (snagAccount?.points || 0) + bonusPoints;
 
   // Use Snag rank
   const rank = snagRank?.position || 0;
@@ -490,6 +502,44 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                   </motion.div>
                 );
               })}
+
+              {/* Spin Wheel Button */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="relative group mt-6"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-red-500/20 rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity" />
+                <motion.button
+                  onClick={() => setShowSpinWheel(true)}
+                  disabled={spinsRemaining <= 0}
+                  className={`relative w-full p-6 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 backdrop-blur-sm border border-amber-500/30 rounded-2xl hover:border-amber-500/50 transition-all ${
+                    spinsRemaining <= 0 ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  whileHover={spinsRemaining > 0 ? { scale: 1.02 } : {}}
+                  whileTap={spinsRemaining > 0 ? { scale: 0.98 } : {}}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-xl bg-gradient-to-br from-amber-500/30 to-orange-500/30">
+                      <RotateCcw className="w-6 h-6 text-amber-400" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <h3 className="text-white font-[500] tracking-tight text-lg">Lucky Spin Wheel</h3>
+                      <p className="text-white/50 text-sm font-[350]">
+                        {spinsRemaining > 0
+                          ? `Spin to win bonus points! ${spinsRemaining} spin${spinsRemaining !== 1 ? 's' : ''} available`
+                          : 'No spins remaining'}
+                      </p>
+                    </div>
+                    {spinsRemaining > 0 && (
+                      <div className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl text-white font-[600] uppercase tracking-wider text-sm">
+                        Spin Now!
+                      </div>
+                    )}
+                  </div>
+                </motion.button>
+              </motion.div>
             </motion.div>
 
             {/* Right: NFT Coupon Card */}
@@ -566,6 +616,47 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
           </div>
         </div>
       </main>
+
+      {/* Spin Wheel Modal */}
+      <AnimatePresence>
+        {showSpinWheel && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowSpinWheel(false);
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative bg-gradient-to-br from-gray-900 to-black border border-white/20 rounded-3xl p-8 max-w-md w-full"
+            >
+              {/* Close button */}
+              <button
+                onClick={() => setShowSpinWheel(false)}
+                className="absolute top-4 right-4 p-2 text-white/50 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              <h2 className="text-2xl font-[600] text-white text-center mb-2">Lucky Spin Wheel</h2>
+              <p className="text-white/50 text-center mb-8">Spin to win bonus points!</p>
+
+              <SpinWheel
+                onSpinComplete={handleSpinComplete}
+                spinsRemaining={spinsRemaining}
+                disabled={spinsRemaining <= 0}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
