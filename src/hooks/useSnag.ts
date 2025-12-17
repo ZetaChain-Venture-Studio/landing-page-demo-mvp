@@ -20,11 +20,14 @@ interface SnagRule {
   isActive?: boolean;
   completionLimit?: number;
   claimType?: 'manual' | 'auto';
+  hideInUi?: boolean;
   metadata?: {
     cta?: {
       label?: string;
       href?: string;
     };
+    twitterAccountUrl?: string;
+    referrerReward?: number;
     checkText?: string;
     requirePostLink?: boolean;
   };
@@ -89,14 +92,16 @@ export function useSnag(walletAddress?: string): UseSnagReturn {
       console.log('[useSnag] Rules data:', data);
 
       if (data.rules) {
-        // Convert amount to points if needed and log metadata
-        const processedRules = data.rules.map((rule: SnagRule) => {
-          const points = rule.points || (typeof rule.amount === 'string' ? parseInt(rule.amount, 10) : rule.amount) || 0;
-          console.log('[useSnag] Rule:', rule.name, 'points:', points, 'metadata:', rule.metadata);
-          return { ...rule, points };
-        });
+        // Filter out hidden rules and convert amount to points
+        const processedRules = data.rules
+          .filter((rule: SnagRule) => !rule.hideInUi)
+          .map((rule: SnagRule) => {
+            const points = rule.points || (typeof rule.amount === 'string' ? parseInt(rule.amount, 10) : rule.amount) || 0;
+            console.log('[useSnag] Rule:', rule.name, 'points:', points, 'ctaUrl:', rule.metadata?.twitterAccountUrl || rule.metadata?.cta?.href, 'metadata:', rule.metadata);
+            return { ...rule, points };
+          });
         setRules(processedRules);
-        console.log('[useSnag] Set rules:', processedRules.length);
+        console.log('[useSnag] Set rules:', processedRules.length, '(filtered hidden)');
       } else if (data.error) {
         console.error('[useSnag] API error:', data.error, data.details);
         setError(data.error);

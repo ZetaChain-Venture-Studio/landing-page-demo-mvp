@@ -172,19 +172,27 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
       const points = rule.points || (typeof rule.amount === 'string' ? parseInt(rule.amount, 10) : rule.amount) || 0;
 
       // Determine task type from rule
-      const isReferral = rule.type === 'referral' || rule.name.toLowerCase().includes('invite') || rule.name.toLowerCase().includes('referral');
+      const isReferral = rule.type === 'referral' || rule.type === 'referred_user' || rule.name.toLowerCase().includes('invite') || rule.name.toLowerCase().includes('referral');
+      const isTwitterFollow = rule.type === 'drip_x_follow' || rule.name.toLowerCase().includes('follow');
 
-      // Get CTA URL from Snag metadata
-      const ctaUrl = rule.metadata?.cta?.href;
+      // Get CTA URL from Snag metadata - check twitterAccountUrl for follow tasks
+      const ctaUrl = rule.metadata?.twitterAccountUrl || rule.metadata?.cta?.href;
       const ctaLabel = rule.metadata?.cta?.label;
+
+      // For referral tasks, get the referrer reward amount
+      const referralPoints = rule.metadata?.referrerReward || 0;
+
+      // Use referrerReward for referral tasks
+      const displayPoints = isReferral && referralPoints > 0 ? referralPoints : points;
 
       console.log('[Dashboard] Mapping rule:', {
         id: rule.id,
         name: rule.name,
         type: rule.type,
-        points,
+        points: displayPoints,
         ctaUrl,
         ctaLabel,
+        isReferral,
         metadata: rule.metadata,
       });
 
@@ -192,7 +200,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
         id: rule.id,
         title: rule.name,
         description: rule.description || '',
-        points,
+        points: displayPoints,
         icon: getTaskIcon(rule.name, rule.type),
         completed: isCompleted,
         action: ctaLabel || getTaskAction(rule.name),
