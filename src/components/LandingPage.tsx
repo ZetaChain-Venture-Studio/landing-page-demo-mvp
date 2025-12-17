@@ -470,7 +470,7 @@ function LandingPageUI({
               <div className="w-2 h-2 bg-emerald-400 rounded-full" />
               <div className="absolute inset-0 bg-emerald-400 rounded-full animate-ping" />
             </motion.div>
-            <span className="text-xs text-white/80 uppercase tracking-[0.2em] font-[450]">Frontier Access Portal</span>
+            <span className="text-xs text-white/80 uppercase tracking-[0.2em] font-[450]">Early Access</span>
           </motion.div>
 
           <motion.div
@@ -479,11 +479,11 @@ function LandingPageUI({
             transition={{ duration: 1, delay: 0.2 }}
             className="mb-8"
           >
-            <h1 className="text-7xl md:text-8xl lg:text-9xl tracking-[-0.02em] mb-4 font-[600] leading-[0.9]">
-              <span className="block text-white/90 mb-2">Beyond</span>
+            <h1 className="text-5xl md:text-6xl lg:text-7xl tracking-[-0.02em] mb-4 font-[600] leading-[1.1]">
+              <span className="block text-white/90 mb-2">The Last AI</span>
               <span className="block relative inline-block">
                 <span className="relative bg-gradient-to-r from-violet-300 via-fuchsia-300 to-cyan-300 bg-clip-text text-transparent">
-                  Intelligence
+                  You'll Ever Need
                 </span>
                 <motion.div
                   className="absolute -inset-4 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-cyan-600/20 blur-3xl -z-10"
@@ -492,6 +492,9 @@ function LandingPageUI({
                 />
               </span>
             </h1>
+            <h2 className="text-xl md:text-2xl text-white/60 uppercase tracking-[0.15em] font-[400] mt-4">
+              POP AI — Platform for Ownership & Privacy
+            </h2>
             <motion.div
               className="flex items-center justify-center gap-2 mt-6"
               initial={{ opacity: 0 }}
@@ -515,9 +518,9 @@ function LandingPageUI({
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-lg md:text-xl text-white/40 max-w-2xl mx-auto mb-16 tracking-wide leading-relaxed font-[350]"
           >
-            An unprecedented convergence of consciousness and computation.
+            Unlimited context. Complete privacy. Your data stays yours.
             <br />
-            <span className="text-white/60">Early initiates gain priority access and elevated standing.</span>
+            <span className="text-white/60">One AI that truly understands you — without the surveillance.</span>
           </motion.p>
 
           <motion.form
@@ -563,7 +566,7 @@ function LandingPageUI({
                     transition={{ duration: 2, repeat: Infinity }}
                   />
                   <span className="relative flex items-center gap-2 text-white whitespace-nowrap uppercase tracking-[0.1em] text-sm font-[500]">
-                    Initiate
+                    Join Waitlist
                     <motion.div animate={{ x: isHovered ? 3 : 0 }} transition={{ duration: 0.2 }}>
                       <ArrowRight className="w-4 h-4" />
                     </motion.div>
@@ -579,7 +582,7 @@ function LandingPageUI({
             transition={{ duration: 0.8, delay: 0.6 }}
             className="text-xs text-white/30 uppercase tracking-[0.15em] mb-20 font-[350]"
           >
-            Priority access • Elevated status • Founding member privileges
+            Unlimited context • Zero data collection • Full ownership
           </motion.p>
 
           <motion.div
@@ -597,7 +600,7 @@ function LandingPageUI({
                   transition={{ duration: 2, repeat: Infinity }}
                 />
               </div>
-              <span className="text-white/30 uppercase tracking-[0.15em] text-[10px] font-[350]">Initiated</span>
+              <span className="text-white/30 uppercase tracking-[0.15em] text-[10px] font-[350]">On Waitlist</span>
             </div>
 
             <div className="hidden sm:block w-px h-16 bg-gradient-to-b from-transparent via-white/20 to-transparent" />
@@ -611,21 +614,21 @@ function LandingPageUI({
                   transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
                 />
               </div>
-              <span className="text-white/30 uppercase tracking-[0.15em] text-[10px] font-[350]">Frontiers</span>
+              <span className="text-white/30 uppercase tracking-[0.15em] text-[10px] font-[350]">Context Window</span>
             </div>
 
             <div className="hidden sm:block w-px h-16 bg-gradient-to-b from-transparent via-white/20 to-transparent" />
 
             <div className="flex flex-col gap-2 items-center">
               <div className="relative">
-                <span className="block text-3xl text-white font-[450] tracking-tight">Genesis</span>
+                <span className="block text-3xl text-white font-[450] tracking-tight">100%</span>
                 <motion.div
                   className="absolute -bottom-1 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-500 to-transparent"
                   animate={{ opacity: [0.3, 0.7, 0.3] }}
                   transition={{ duration: 2, repeat: Infinity, delay: 1 }}
                 />
               </div>
-              <span className="text-white/30 uppercase tracking-[0.15em] text-[10px] font-[350]">Phase Active</span>
+              <span className="text-white/30 uppercase tracking-[0.15em] text-[10px] font-[350]">Private</span>
             </div>
           </motion.div>
         </div>
