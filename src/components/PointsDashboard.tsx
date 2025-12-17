@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Twitter, MessageCircle, Share2, CheckCircle, Sparkles, Trophy, Zap, UserPlus, LucideIcon } from 'lucide-react';
+import { Twitter, MessageCircle, Share2, CheckCircle, Sparkles, Zap, UserPlus, LucideIcon } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSnag } from '@/hooks/useSnag';
 
@@ -303,19 +303,10 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
 
   const completedTasksCount = tasks.filter(t => t.completed).length;
 
-  // Calculate tier based on points
-  const getTier = (points: number) => {
-    if (points >= 10000) return 'Diamond';
-    if (points >= 5000) return 'Gold';
-    if (points >= 1000) return 'Silver';
-    return 'Bronze';
-  };
-
-  const tier = getTier(totalPoints);
-  const nextTierPoints = totalPoints < 1000 ? 1000 : totalPoints < 5000 ? 5000 : totalPoints < 10000 ? 10000 : null;
-  const progressPercent = nextTierPoints
-    ? Math.min((totalPoints / nextTierPoints) * 100, 100)
-    : 100;
+  // Calculate rank percentage (top X%)
+  const rankPercent = totalUsers > 0 && rank > 0
+    ? Math.ceil((rank / totalUsers) * 100)
+    : null;
 
   return (
     <div className="relative min-h-screen bg-black overflow-hidden font-['Space_Grotesk']">
@@ -531,12 +522,6 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                   <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-cyan-500/20 to-transparent rounded-full blur-3xl" />
 
                   <div className="relative z-10">
-                    {/* Badge */}
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm mb-6">
-                      <Trophy className="w-4 h-4 text-yellow-400" />
-                      <span className="text-xs text-white/80 uppercase tracking-wider font-[450]">{tier} Member</span>
-                    </div>
-
                     {/* Points Display */}
                     <div className="mb-8">
                       <div className="text-sm text-white/40 uppercase tracking-widest mb-2 font-[350]">Total Points</div>
@@ -555,31 +540,15 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                       <div className="p-4 bg-white/5 rounded-xl border border-white/10">
                         <div className="text-white/40 text-xs uppercase tracking-wider mb-1 font-[350]">Rank</div>
                         <div className="text-2xl text-white font-[500]">
-                          {rank > 0 ? `#${rank.toLocaleString()}` : '-'}
+                          {rankPercent !== null ? `Top ${rankPercent}%` : '-'}
                         </div>
-                        {totalUsers > 0 && (
-                          <div className="text-white/30 text-xs mt-1">of {totalUsers.toLocaleString()}</div>
+                        {rank > 0 && (
+                          <div className="text-white/30 text-xs mt-1">#{rank.toLocaleString()} of {totalUsers.toLocaleString()}</div>
                         )}
                       </div>
                       <div className="p-4 bg-white/5 rounded-xl border border-white/10">
                         <div className="text-white/40 text-xs uppercase tracking-wider mb-1 font-[350]">Tasks</div>
                         <div className="text-2xl text-white font-[500]">{completedTasksCount}/{tasks.length}</div>
-                      </div>
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div className="mb-6">
-                      <div className="flex justify-between text-xs text-white/40 mb-2 font-[350]">
-                        <span>Level Progress</span>
-                        <span>{nextTierPoints ? `${totalPoints}/${nextTierPoints}` : 'Max Level'}</span>
-                      </div>
-                      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                        <motion.div
-                          className="h-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${progressPercent}%` }}
-                          transition={{ duration: 1, ease: "easeOut" }}
-                        />
                       </div>
                     </div>
 
@@ -595,10 +564,10 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                       </div>
                     </div>
 
-                    {/* Footer */}
+                    {/* Footer - TODO: Get actual join date from database */}
                     <div className="mt-6 pt-6 border-t border-white/10">
                       <div className="flex items-center justify-between text-xs text-white/40 font-[350]">
-                        <span>Member since Genesis</span>
+                        <span>Member since {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                         <span>{useSnagData ? 'Verified ✓' : 'Demo Mode'}</span>
                       </div>
                     </div>
