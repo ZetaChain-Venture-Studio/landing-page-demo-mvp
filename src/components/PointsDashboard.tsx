@@ -128,10 +128,14 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
         const status = ruleStatuses.get(waitlistRule.id);
         if (!status?.completed) {
           try {
+            console.log('[Dashboard] Auto-completing waitlist task:', waitlistRule.id);
             const success = await completeRule(waitlistRule.id);
             if (success) {
               setWaitlistCompleted(true);
+              // Wait a moment for Snag to process the points before refreshing
+              await new Promise(resolve => setTimeout(resolve, 1500));
               await refreshData();
+              console.log('[Dashboard] Refreshed data after completing waitlist');
             }
           } catch (err) {
             console.error('Failed to auto-complete waitlist:', err);

@@ -5,6 +5,16 @@ const SNAG_API_URL = process.env.SNAG_API_URL || 'https://admin.snagsolutions.io
 const SNAG_API_KEY = process.env.SNAG_API_KEY || '';
 const SNAG_WEBSITE_ID = process.env.NEXT_PUBLIC_SNAG_WEBSITE_ID || '';
 
+interface SnagAccountRaw {
+  id: string;
+  walletAddress: string;
+  points?: number;
+  balance?: number;
+  loyaltyBalance?: number;
+  externalIdentifier?: string;
+  createdAt: string;
+}
+
 interface SnagAccount {
   id: string;
   walletAddress: string;
@@ -96,11 +106,28 @@ class SnagSolutionsClient {
 
   async getAccount(walletAddress: string): Promise<SnagAccount | null> {
     try {
-      const accounts = await this.request<{ data: SnagAccount[] }>(
+      console.log('[Snag] Fetching account for wallet:', walletAddress);
+      const response = await this.request<{ data: SnagAccountRaw[] }>(
         `/loyalty/accounts?walletAddress=${walletAddress}&websiteId=${this.websiteId}`
       );
-      return accounts.data?.[0] || null;
-    } catch {
+      const rawAccount = response.data?.[0];
+      console.log('[Snag] Raw account response:', JSON.stringify(rawAccount));
+
+      if (!rawAccount) return null;
+
+      // Handle different point field names from Snag API
+      const points = rawAccount.points ?? rawAccount.balance ?? rawAccount.loyaltyBalance ?? 0;
+      console.log('[Snag] Resolved points:', points);
+
+      return {
+        id: rawAccount.id,
+        walletAddress: rawAccount.walletAddress,
+        points,
+        externalIdentifier: rawAccount.externalIdentifier,
+        createdAt: rawAccount.createdAt,
+      };
+    } catch (error) {
+      console.error('[Snag] Error fetching account:', error);
       return null;
     }
   }
@@ -185,7 +212,8 @@ class SnagSolutionsClient {
 
   async completeRule(userId: string, ruleId: string): Promise<boolean> {
     try {
-      await this.request('/loyalty/rules/complete', {
+      console.log('[Snag] Completing rule:', { userId, ruleId, websiteId: this.websiteId });
+      const response = await this.request<{ success?: boolean; message?: string }>('/loyalty/rules/complete', {
         method: 'POST',
         body: JSON.stringify({
           loyaltyRuleId: ruleId,
@@ -193,6 +221,7 @@ class SnagSolutionsClient {
           websiteId: this.websiteId,
         }),
       });
+      console.log('[Snag] Complete rule response:', JSON.stringify(response));
       return true;
     } catch (error) {
       console.error('[Snag] Failed to complete rule:', error);
