@@ -1,0 +1,76 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// User model - stores waitlist users
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  walletAddress   String?  @unique
+  snagUserId      String?  @unique
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  taskCompletions TaskCompletion[]
+  pointsHistory   PointsHistory[]
+
+  // Cached stats
+  totalPoints     Int      @default(0)
+  referralCount   Int      @default(0)
+
+  @@index([createdAt])
+  @@index([totalPoints])
+}
+
+// Task completion tracking
+model TaskCompletion {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  taskId      String   // Snag rule ID
+  taskName    String
+  taskType    String   // profile_completed, drip_x_follow, referred_user, etc.
+  pointsEarned Int
+
+  completedAt DateTime @default(now())
+
+  @@unique([userId, taskId])
+  @@index([completedAt])
+  @@index([taskType])
+}
+
+// Points history for tracking all point transactions
+model PointsHistory {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  amount      Int
+  type        String   // task_completion, prize_reveal, referral_bonus, etc.
+  description String
+
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([type])
+}
+
+// Admin stats cache - for quick dashboard loading
+model AdminStats {
+  id              String   @id @default("global")
+  totalUsers      Int      @default(0)
+  totalPoints     Int      @default(0)
+  totalTasks      Int      @default(0)
+  totalReferrals  Int      @default(0)
+  updatedAt       DateTime @updatedAt
+}

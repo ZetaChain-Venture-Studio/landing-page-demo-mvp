@@ -32,14 +32,14 @@ function LandingPageWithPrivy() {
 
   const [isNewSignup, setIsNewSignup] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('popai_new_signup') === 'true';
+      return localStorage.getItem('cloister_new_signup') === 'true';
     }
     return false;
   });
 
   useEffect(() => {
     if (animationDone && typeof window !== 'undefined') {
-      localStorage.removeItem('popai_new_signup');
+      localStorage.removeItem('cloister_new_signup');
     }
   }, [animationDone]);
 
@@ -53,7 +53,7 @@ function LandingPageWithPrivy() {
 
     setIsNewSignup(true);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('popai_new_signup', 'true');
+      localStorage.setItem('cloister_new_signup', 'true');
     }
 
     login({
@@ -185,7 +185,7 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick 
                 className="text-5xl md:text-6xl font-light tracking-tight mb-6"
                 style={{ color: colors.text }}
               >
-                Pop AI
+                Cloister.AI
               </motion.h1>
               <motion.div
                 initial={{ scaleX: 0 }}
@@ -224,7 +224,7 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick 
               P
             </div>
             <span className="text-lg font-medium tracking-tight" style={{ color: colors.text }}>
-              Pop AI
+              Cloister.AI
             </span>
           </motion.div>
 

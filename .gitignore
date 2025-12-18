@@ -43,3 +43,5 @@ next-env.d.ts
 
 # figma exports (reference assets only)
 /figma-export/
+
+/src/generated/prisma

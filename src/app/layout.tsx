@@ -3,8 +3,8 @@ import "./globals.css";
 import PrivyProvider from "@/providers/PrivyProvider";
 
 export const metadata: Metadata = {
-  title: "Pop AI - Join the Waitlist",
-  description: "Be the first to experience Pop AI. Join our exclusive waitlist today.",
+  title: "Cloister.AI - Join the Waitlist",
+  description: "The last AI you'll ever need. Join our exclusive waitlist today.",
 };
 
 export default function RootLayout({
