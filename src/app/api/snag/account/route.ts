@@ -47,16 +47,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('[Account API] Creating/getting account for:', walletAddress);
     const account = await snagClient.getOrCreateAccount(
       walletAddress,
       externalIdentifier
     );
 
+    if (!account) {
+      console.log('[Account API] Could not create account, returning null');
+      return NextResponse.json({ account: null });
+    }
+
+    console.log('[Account API] Returning account:', account.id, 'points:', account.points);
     return NextResponse.json({ account });
   } catch (error) {
     console.error('Error creating Snag account:', error);
     return NextResponse.json(
-      { error: 'Failed to create account' },
+      { error: 'Failed to create account', details: String(error) },
       { status: 500 }
     );
   }

@@ -146,21 +146,34 @@ class SnagSolutionsClient {
   async createAccount(
     walletAddress: string,
     externalIdentifier?: string
-  ): Promise<SnagAccount> {
-    return this.request<SnagAccount>('/users', {
-      method: 'POST',
-      body: JSON.stringify({
-        walletAddress,
-        externalIdentifier,
-        websiteId: this.websiteId,
-      }),
-    });
+  ): Promise<SnagAccount | null> {
+    try {
+      console.log('[Snag] Creating account via transaction entry for:', walletAddress);
+      // Create account by posting a 0-point transaction (this is the Snag-supported way)
+      await this.request('/loyalty/transaction_entries', {
+        method: 'POST',
+        body: JSON.stringify({
+          walletAddress,
+          websiteId: this.websiteId,
+          amount: 0,
+          description: 'Account initialization',
+          externalIdentifier,
+        }),
+      });
+      // Fetch the created account
+      const account = await this.getAccount(walletAddress);
+      console.log('[Snag] Created account:', account?.id);
+      return account;
+    } catch (error) {
+      console.error('[Snag] Failed to create account:', error);
+      return null;
+    }
   }
 
   async getOrCreateAccount(
     walletAddress: string,
     externalIdentifier?: string
-  ): Promise<SnagAccount> {
+  ): Promise<SnagAccount | null> {
     let account = await this.getAccount(walletAddress);
     if (!account) {
       account = await this.createAccount(walletAddress, externalIdentifier);
