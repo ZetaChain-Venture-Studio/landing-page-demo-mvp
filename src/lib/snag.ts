@@ -147,27 +147,38 @@ class SnagSolutionsClient {
     walletAddress: string,
     externalIdentifier?: string
   ): Promise<SnagAccount | null> {
-    try {
-      console.log('[Snag] Creating account via transaction entry for:', walletAddress);
-      // Create account by posting a 0-point transaction (this is the Snag-supported way)
-      await this.request('/loyalty/transaction_entries', {
-        method: 'POST',
-        body: JSON.stringify({
-          walletAddress,
-          websiteId: this.websiteId,
-          amount: 0,
-          description: 'Account initialization',
-          externalIdentifier,
-        }),
-      });
-      // Fetch the created account
-      const account = await this.getAccount(walletAddress);
-      console.log('[Snag] Created account:', account?.id);
-      return account;
-    } catch (error) {
-      console.error('[Snag] Failed to create account:', error);
-      return null;
+    // Try multiple endpoints to create account
+    const endpoints = [
+      '/loyalty/users',
+      '/users',
+      '/loyalty/accounts',
+    ];
+
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`[Snag] Trying to create account via ${endpoint} for:`, walletAddress);
+        await this.request(endpoint, {
+          method: 'POST',
+          body: JSON.stringify({
+            walletAddress,
+            websiteId: this.websiteId,
+            externalIdentifier,
+          }),
+        });
+        // Fetch the created account
+        const account = await this.getAccount(walletAddress);
+        if (account) {
+          console.log('[Snag] Created account via', endpoint, ':', account.id);
+          return account;
+        }
+      } catch (error) {
+        console.log(`[Snag] ${endpoint} failed:`, error);
+        // Continue to next endpoint
+      }
     }
+
+    console.error('[Snag] All account creation methods failed');
+    return null;
   }
 
   async getOrCreateAccount(
@@ -244,34 +255,17 @@ class SnagSolutionsClient {
 
   async completeRuleByWallet(walletAddress: string, ruleId: string): Promise<boolean> {
     try {
-      // First try to get or create account
-      let account = await this.getAccount(walletAddress);
-
-      if (!account) {
-        // Try to award 0 points to create the account
-        try {
-          await this.request('/loyalty/transaction_entries', {
-            method: 'POST',
-            body: JSON.stringify({
-              walletAddress,
-              websiteId: this.websiteId,
-              amount: 0,
-              description: 'Account initialization',
-            }),
-          });
-          // Fetch the created account
-          account = await this.getAccount(walletAddress);
-        } catch (createError) {
-          console.error('[Snag] Failed to create account:', createError);
-        }
-      }
+      // First check if we have an account
+      const account = await this.getAccount(walletAddress);
 
       if (account) {
+        // Use account ID to complete rule
         return this.completeRule(account.id, ruleId);
       }
 
-      // If we still don't have an account, try completing with wallet directly
-      await this.request('/loyalty/rules/complete', {
+      // No account - try completing with wallet directly (Snag might auto-create account)
+      console.log('[Snag] No account found, completing rule with wallet address directly');
+      const response = await this.request<{ success?: boolean; message?: string; userId?: string }>('/loyalty/rules/complete', {
         method: 'POST',
         body: JSON.stringify({
           loyaltyRuleId: ruleId,
@@ -279,6 +273,7 @@ class SnagSolutionsClient {
           websiteId: this.websiteId,
         }),
       });
+      console.log('[Snag] Complete rule by wallet response:', JSON.stringify(response));
       return true;
     } catch (error) {
       console.error('[Snag] Failed to complete rule by wallet:', error);
