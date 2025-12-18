@@ -33,12 +33,17 @@ export default function PrivyProvider({
         appId={appId}
         config={{
           appearance: {
-            theme: "dark",
-            accentColor: "#7C3AED",
+            theme: "light",
+            accentColor: "#8B9A7D", // Sage green to match warm minimalism
             logo: undefined,
           },
-          // Don't specify loginMethods - let dashboard settings control this
-          // loginMethods: ["email"],
+          loginMethods: [
+            "email",      // Normal email
+            "google",     // Gmail
+            "tiktok",     // TikTok
+            "twitter",    // X/Twitter (bonus)
+            "apple",      // Apple ID (bonus)
+          ],
           embeddedWallets: {
             ethereum: {
               createOnLogin: "all-users",
