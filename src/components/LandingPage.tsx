@@ -282,9 +282,9 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             className="text-4xl md:text-6xl lg:text-7xl font-light tracking-tight leading-[1.1] mb-6"
             style={{ color: palette.text }}
           >
-            AI That Never
+            One Memory.
             <br />
-            <span style={{ color: palette.accent }}>Forgets You</span>
+            <span style={{ color: palette.accent }}>Any AI.</span>
           </motion.h1>
 
           {/* Subtitle */}
@@ -295,9 +295,9 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             className="text-lg md:text-xl max-w-xl mx-auto mb-12 leading-relaxed"
             style={{ color: palette.textMuted }}
           >
-            ChatGPT forgets after 8K tokens. We remember everything.
+            Your context follows you across every AI model.
             <br />
-            Your entire history. Forever. Privately.
+            Switch models freely. Your history stays with you.
           </motion.p>
 
           {/* Email Form */}
@@ -349,7 +349,7 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             className="text-sm mb-20"
             style={{ color: palette.textLight }}
           >
-            Infinite memory · Zero data harvesting · 100% yours
+            Portable context · Any model · 100% private
           </motion.p>
 
           {/* Stats */}

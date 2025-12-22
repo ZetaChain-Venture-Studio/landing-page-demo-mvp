@@ -15,12 +15,12 @@ interface ShareModalProps {
 
 // Share message variants for variety
 const SHARE_MESSAGES = [
-  "Just found an AI that actually remembers everything. No more 8K token limits. This is the future:",
-  "ChatGPT forgets you after 8K tokens. Cloister.AI never forgets. Get early access:",
-  "An AI with unlimited context and 100% privacy? Yes please. Join the waitlist:",
-  "Finally, an AI that doesn't have amnesia. Unlimited memory, zero data harvesting:",
-  "Tired of AI forgetting your conversations? Cloister.AI remembers everything. Forever:",
-  "The AI revolution just got an upgrade. Infinite context, complete privacy:",
+  "One memory layer that works across ANY AI model. Switch between GPT, Claude, Gemini - your context follows you:",
+  "Why start fresh every time you switch AI models? Cloister.AI keeps your context portable across all of them:",
+  "Finally - use any AI model you want and your history follows you. No more context lock-in:",
+  "Your AI context shouldn't be trapped in one model. Cloister.AI makes it portable. Join early:",
+  "Switching from ChatGPT to Claude? Your conversations and context come with you. This changes everything:",
+  "One unified memory across every AI. No more repeating yourself when you switch models:",
 ];
 
 const SHARE_TITLE = "Cloister.AI - Early Access";
