@@ -7,19 +7,19 @@ import { usePrivy } from '@privy-io/react-auth';
 import { usePrivyConfig } from '@/providers/PrivyProvider';
 import PointsDashboard from './PointsDashboard';
 
-// Modern minimalism color palette
+// Light Steel color palette
 const colors = {
-  bg: '#fafaff',           // Ghost White - main background
-  bgAlt: '#eef0f2',        // Platinum - secondary background
-  text: '#1c1c1c',         // Carbon Black - main text
-  textMuted: '#4a4a4a',    // Darker muted for readability
-  textLight: '#7a7a7a',    // Light gray text
-  accent: '#1c1c1c',       // Carbon Black - accent (bold buttons)
-  accentLight: '#daddd8',  // Dust Grey - subtle accent
-  border: '#daddd8',       // Dust Grey - borders
-  borderLight: '#ecebe4',  // Parchment - light borders
-  parchment: '#ecebe4',    // Parchment - decorative
-  platinum: '#eef0f2',     // Platinum - cards
+  bg: '#f8f9fa',           // Bright Snow - main background
+  bgAlt: '#e9ecef',        // Platinum - secondary background
+  text: '#212529',         // Shadow Grey - main text
+  textMuted: '#495057',    // Iron Grey - muted text
+  textLight: '#6c757d',    // Slate Grey - light text
+  accent: '#343a40',       // Gunmetal - accent (bold buttons)
+  accentLight: '#ced4da',  // Pale Slate - subtle accent
+  border: '#dee2e6',       // Alabaster Grey - borders
+  borderLight: '#e9ecef',  // Platinum - light borders
+  steel: '#adb5bd',        // Pale Slate dark - decorative
+  platinum: '#e9ecef',     // Platinum - cards
 };
 
 // Inner component that uses Privy hooks

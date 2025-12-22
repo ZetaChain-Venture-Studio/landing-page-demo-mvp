@@ -4,16 +4,16 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
-// Modern minimalism color palette
+// Light Steel color palette
 const colors = {
-  bg: '#fafaff',           // Ghost White
-  bgAlt: '#eef0f2',        // Platinum
-  text: '#1c1c1c',         // Carbon Black
-  textMuted: '#4a4a4a',
-  textLight: '#7a7a7a',
-  accent: '#1c1c1c',       // Carbon Black
-  accentLight: '#daddd8',  // Dust Grey
-  border: '#daddd8',
+  bg: '#f8f9fa',           // Bright Snow
+  bgAlt: '#e9ecef',        // Platinum
+  text: '#212529',         // Shadow Grey
+  textMuted: '#495057',    // Iron Grey
+  textLight: '#6c757d',    // Slate Grey
+  accent: '#343a40',       // Gunmetal
+  accentLight: '#adb5bd',  // Pale Slate dark
+  border: '#dee2e6',       // Alabaster Grey
 };
 
 interface AdminStats {

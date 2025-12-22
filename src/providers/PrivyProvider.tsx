@@ -34,7 +34,7 @@ export default function PrivyProvider({
         config={{
           appearance: {
             theme: "light",
-            accentColor: "#8B9A7D", // Sage green to match warm minimalism
+            accentColor: "#343a40", // Gunmetal to match Light Steel palette
             logo: undefined,
           },
           loginMethods: [

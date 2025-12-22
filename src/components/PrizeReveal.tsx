@@ -3,16 +3,16 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Modern minimalism color palette
+// Light Steel color palette
 const colors = {
-  bg: '#fafaff',           // Ghost White
-  bgAlt: '#eef0f2',        // Platinum
-  text: '#1c1c1c',         // Carbon Black
-  textMuted: '#4a4a4a',
-  textLight: '#7a7a7a',
-  accent: '#1c1c1c',       // Carbon Black
-  accentLight: '#daddd8',  // Dust Grey
-  border: '#daddd8',
+  bg: '#f8f9fa',           // Bright Snow
+  bgAlt: '#e9ecef',        // Platinum
+  text: '#212529',         // Shadow Grey
+  textMuted: '#495057',    // Iron Grey
+  textLight: '#6c757d',    // Slate Grey
+  accent: '#343a40',       // Gunmetal
+  accentLight: '#ced4da',  // Pale Slate
+  border: '#dee2e6',       // Alabaster Grey
 };
 
 // Prize tiers with probabilities (should add up to 100)
@@ -193,7 +193,7 @@ export default function PrizeReveal({ onRevealComplete, disabled = false, reveal
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ backgroundColor: 'rgba(250, 249, 246, 0.95)' }}
+            style={{ backgroundColor: 'rgba(248, 249, 250, 0.95)' }}
             onClick={closeReveal}
           >
             <motion.div
