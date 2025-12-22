@@ -10,6 +10,26 @@ import PointsDashboard from './PointsDashboard';
 import LiveSignupCounter from './LiveSignupCounter';
 import RotatingAIName from './RotatingAIName';
 
+// Helper to get user's email from any login method
+function getUserEmail(user: ReturnType<typeof usePrivy>['user']): string {
+  if (!user) return '';
+  // Email login
+  if (user.email?.address) return user.email.address;
+  // Google login
+  if (user.google?.email) return user.google.email;
+  // Apple login
+  if (user.apple?.email) return user.apple.email;
+  // Twitter/X - no email, use username
+  if (user.twitter?.username) return `@${user.twitter.username}`;
+  // TikTok - no email, use username
+  if (user.tiktok?.username) return `@${user.tiktok.username}`;
+  // Fallback to any linked account email
+  for (const account of user.linkedAccounts || []) {
+    if ('email' in account && account.email) return account.email as string;
+  }
+  return '';
+}
+
 interface LandingPageProps {
   paletteId?: string;
   palette?: ColorPalette;
@@ -89,7 +109,7 @@ function LandingPageWithPrivy({ palette, paletteId }: { palette: ColorPalette; p
   }
 
   if (authenticated && walletCreated && !showAnimation && (animationDone || !isNewSignup)) {
-    return <PointsDashboard email={user?.email?.address || email} palette={palette} paletteId={paletteId} />;
+    return <PointsDashboard email={getUserEmail(user) || email} palette={palette} paletteId={paletteId} />;
   }
 
   if (authenticated && !walletCreated) {
