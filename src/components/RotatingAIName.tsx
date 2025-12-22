@@ -32,7 +32,7 @@ export default function RotatingAIName({ palette, paletteId = '3' }: RotatingAIN
   }, []);
 
   return (
-    <span className="inline-flex items-center justify-center" style={{ minWidth: '130px' }}>
+    <span className="inline-flex items-center justify-center" style={{ width: '160px' }}>
       <AnimatePresence mode="wait">
         <motion.span
           key={AI_MODELS[currentIndex]}
