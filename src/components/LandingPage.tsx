@@ -269,7 +269,7 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
               style={{ backgroundColor: palette.accent }}
             />
             <span className="text-xs uppercase tracking-widest" style={{ color: palette.textMuted }}>
-              Early Access
+              Limited Early Access
             </span>
           </motion.div>
 
@@ -281,9 +281,9 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             className="text-4xl md:text-6xl lg:text-7xl font-light tracking-tight leading-[1.1] mb-6"
             style={{ color: palette.text }}
           >
-            The Last AI
+            AI That Never
             <br />
-            <span style={{ color: palette.accent }}>You'll Ever Need</span>
+            <span style={{ color: palette.accent }}>Forgets You</span>
           </motion.h1>
 
           {/* Subtitle */}
@@ -294,9 +294,9 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             className="text-lg md:text-xl max-w-xl mx-auto mb-12 leading-relaxed"
             style={{ color: palette.textMuted }}
           >
-            Unlimited context. Complete privacy.
+            ChatGPT forgets after 8K tokens. We remember everything.
             <br />
-            Your data stays yours.
+            Your entire history. Forever. Privately.
           </motion.p>
 
           {/* Email Form */}
@@ -343,7 +343,7 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             className="text-sm mb-20"
             style={{ color: palette.textLight }}
           >
-            Zero data collection · Full ownership · Unlimited context
+            Infinite memory · Zero data harvesting · 100% yours
           </motion.p>
 
           {/* Stats */}
