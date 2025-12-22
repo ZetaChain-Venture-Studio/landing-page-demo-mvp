@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, Copy, Check, ExternalLink } from 'lucide-react';
+import { CheckCircle, Copy, Check, ExternalLink, Share2 } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSnag } from '@/hooks/useSnag';
 import { ColorPalette, lightSteel, isDarkPalette } from '@/lib/palettes';
 import PrizeReveal from './PrizeReveal';
+import ShareModal from './ShareModal';
 
 interface Task {
   id: string;
@@ -96,6 +97,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   const [copiedReferral, setCopiedReferral] = useState(false);
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
   const [showPrizeReveal, setShowPrizeReveal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [revealsRemaining, setRevealsRemaining] = useState(1);
   const [bonusPoints, setBonusPoints] = useState(0);
   const [waitlistCompleted, setWaitlistCompleted] = useState(false);
@@ -326,28 +328,41 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                         <p className="text-sm mb-3" style={{ color: palette.textMuted }}>{task.description}</p>
 
                         {isReferralTask && !task.completed ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              readOnly
-                              value={referralLink}
-                              className="flex-1 px-3 py-2 text-sm rounded-lg border"
-                              style={{
-                                backgroundColor: palette.bgAlt,
-                                borderColor: palette.border,
-                                color: palette.textMuted,
-                              }}
-                            />
+                          <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                readOnly
+                                value={referralLink}
+                                className="flex-1 px-3 py-2 text-sm rounded-lg border"
+                                style={{
+                                  backgroundColor: palette.bgAlt,
+                                  borderColor: palette.border,
+                                  color: palette.textMuted,
+                                }}
+                              />
+                              <button
+                                onClick={copyReferralLink}
+                                className="px-3 py-2 text-sm font-medium rounded-lg flex items-center gap-1"
+                                style={{
+                                  backgroundColor: palette.bgAlt,
+                                  border: `1px solid ${palette.border}`,
+                                  color: palette.textMuted
+                                }}
+                              >
+                                {copiedReferral ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                              </button>
+                            </div>
                             <button
-                              onClick={copyReferralLink}
-                              className="px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2"
+                              onClick={() => setShowShareModal(true)}
+                              className="w-full px-4 py-3 text-sm font-medium rounded-lg flex items-center justify-center gap-2"
                               style={{
                                 backgroundColor: palette.accent,
                                 color: isDark ? palette.bg : '#ffffff'
                               }}
                             >
-                              {copiedReferral ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                              {copiedReferral ? 'Copied' : 'Copy'}
+                              <Share2 className="w-4 h-4" />
+                              Share & Earn Points
                             </button>
                           </div>
                         ) : !task.completed ? (
@@ -514,6 +529,15 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        referralLink={referralLink}
+        palette={palette}
+        paletteId={paletteId}
+      />
     </div>
   );
 }
