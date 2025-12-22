@@ -1,5 +1,5 @@
 // Centralized color palettes for A/B testing
-// Access via routes: /1, /2, /3, /4, /5
+// Access via routes: /1, /2, /3, /4, /5, /6
 
 export interface ColorPalette {
   name: string;
@@ -73,22 +73,23 @@ export const lightSteel: ColorPalette = {
   highlight: '#adb5bd',    // Pale Slate dark
 };
 
-// Palette 4: Stormy Academic
-// Deep blues and teals with scholarly prestige
-export const stormyAcademic: ColorPalette = {
-  name: 'Stormy Academic',
-  description: 'Deep blues and teals with scholarly prestige',
-  bg: '#ffffff',           // White - clean canvas
-  bgAlt: '#d9d9d9',        // Dust Grey
-  text: '#353535',         // Graphite
-  textMuted: '#284b63',    // Yale Blue
-  textLight: '#3c6e71',    // Stormy Teal
-  accent: '#284b63',       // Yale Blue - primary accent
-  accentLight: '#3c6e71',  // Stormy Teal
-  border: '#d9d9d9',       // Dust Grey
-  borderLight: '#e8e8e8',  // Light grey
-  success: '#3c6e71',      // Stormy Teal
-  highlight: '#3c6e71',    // Stormy Teal
+// Palette 4: Royal Violet
+// Deep purple luxury with high contrast - regal and distinctive
+export const royalViolet: ColorPalette = {
+  name: 'Royal Violet',
+  description: 'Deep purple luxury - regal, distinctive, premium',
+  bg: '#0D0A14',           // Deep Void - near-black purple
+  bgAlt: '#1A1525',        // Midnight Grape
+  text: '#F5F0FF',         // Lavender White
+  textMuted: '#C4B8D9',    // Soft Mauve
+  textLight: '#8B7AA8',    // Dusty Violet
+  accent: '#9D4EDD',       // Electric Violet - bold accent
+  accentLight: '#2D1F42',  // Dark Plum
+  border: '#2D1F42',       // Dark Plum
+  borderLight: '#1A1525',  // Midnight Grape
+  success: '#7CB342',      // Lime success
+  highlight: '#E040FB',    // Magenta highlight
+  overlay: 'rgba(13, 10, 20, 0.95)',
 };
 
 // Palette 5: Aman Noir
@@ -111,13 +112,34 @@ export const amanNoir: ColorPalette = {
   overlay: 'rgba(12, 12, 12, 0.95)', // For modals
 };
 
+// Palette 6: Cyber Neon
+// INSANE cyberpunk palette - electric, bold, futuristic
+// Maximum attention for crypto audience
+export const cyberNeon: ColorPalette = {
+  name: 'Cyber Neon',
+  description: 'Cyberpunk insanity - electric neon on void black',
+  bg: '#0A0A0F',           // Void Black
+  bgAlt: '#12121A',        // Deep Space
+  text: '#00FFFF',         // Cyan - main text (yes, colored text!)
+  textMuted: '#00D4D4',    // Muted Cyan
+  textLight: '#0099AA',    // Dark Cyan
+  accent: '#FF00FF',       // Hot Magenta - primary accent
+  accentLight: '#1A0A1A',  // Dark Magenta bg
+  border: '#1A1A2E',       // Electric Border
+  borderLight: '#12121A',  // Deep Space
+  success: '#00FF88',      // Neon Green
+  highlight: '#FFFF00',    // Electric Yellow
+  overlay: 'rgba(10, 10, 15, 0.95)',
+};
+
 // All palettes indexed
 export const palettes: Record<string, ColorPalette> = {
   '1': modernMinimalism,
   '2': amanLuxury,
   '3': lightSteel,
-  '4': stormyAcademic,
+  '4': royalViolet,
   '5': amanNoir,
+  '6': cyberNeon,
 };
 
 export const getPalette = (id: string): ColorPalette => {
@@ -126,5 +148,5 @@ export const getPalette = (id: string): ColorPalette => {
 
 // Helper to determine if palette is dark mode
 export const isDarkPalette = (id: string): boolean => {
-  return id === '5'; // Aman Noir is dark
+  return ['4', '5', '6'].includes(id); // Royal Violet, Aman Noir, Cyber Neon are dark
 };
