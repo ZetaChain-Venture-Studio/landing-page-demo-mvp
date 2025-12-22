@@ -64,23 +64,6 @@ export default function ShareModal({ isOpen, onClose, referralLink, palette, pal
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   }, [referralLink]);
 
-  const shareNative = useCallback(async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: SHARE_TITLE,
-          text: SHARE_TEXT,
-          url: referralLink,
-        });
-      } catch (err) {
-        // User cancelled or error
-        console.log('Share cancelled');
-      }
-    }
-  }, [referralLink]);
-
-  const hasNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
-
   const shareOptions = [
     {
       name: 'X (Twitter)',
@@ -218,20 +201,6 @@ export default function ShareModal({ isOpen, onClose, referralLink, palette, pal
               ))}
             </div>
 
-            {/* Native share button (mobile) */}
-            {hasNativeShare && (
-              <button
-                onClick={shareNative}
-                className="w-full py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
-                style={{
-                  backgroundColor: colors.accent,
-                  color: isDark ? colors.bg : '#ffffff'
-                }}
-              >
-                <Share2 className="w-4 h-4" />
-                More Options
-              </button>
-            )}
           </motion.div>
         </motion.div>
       )}
