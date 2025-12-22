@@ -7,6 +7,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { usePrivyConfig } from '@/providers/PrivyProvider';
 import { ColorPalette, lightSteel, isDarkPalette } from '@/lib/palettes';
 import PointsDashboard from './PointsDashboard';
+import LiveSignupCounter from './LiveSignupCounter';
 
 interface LandingPageProps {
   paletteId?: string;
@@ -334,6 +335,11 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
               </button>
             </div>
           </motion.form>
+
+          {/* Live signup counter */}
+          <div className="flex justify-center mb-6">
+            <LiveSignupCounter palette={palette} paletteId={paletteId} />
+          </div>
 
           {/* Features */}
           <motion.p

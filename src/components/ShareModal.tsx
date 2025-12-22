@@ -13,9 +13,22 @@ interface ShareModalProps {
   paletteId?: string;
 }
 
-// Share message templates
-const SHARE_TEXT = "Join me on Cloister.AI - The Last AI You'll Ever Need. Unlimited context, complete privacy. Sign up with my link:";
+// Share message variants for variety
+const SHARE_MESSAGES = [
+  "Just found an AI that actually remembers everything. No more 8K token limits. This is the future:",
+  "ChatGPT forgets you after 8K tokens. Cloister.AI never forgets. Get early access:",
+  "An AI with unlimited context and 100% privacy? Yes please. Join the waitlist:",
+  "Finally, an AI that doesn't have amnesia. Unlimited memory, zero data harvesting:",
+  "Tired of AI forgetting your conversations? Cloister.AI remembers everything. Forever:",
+  "The AI revolution just got an upgrade. Infinite context, complete privacy:",
+];
+
 const SHARE_TITLE = "Cloister.AI - Early Access";
+
+// Get a random share message
+const getRandomShareMessage = () => {
+  return SHARE_MESSAGES[Math.floor(Math.random() * SHARE_MESSAGES.length)];
+};
 
 export default function ShareModal({ isOpen, onClose, referralLink, palette, paletteId = '3' }: ShareModalProps) {
   const colors = palette || lightSteel;
@@ -43,24 +56,28 @@ export default function ShareModal({ isOpen, onClose, referralLink, palette, pal
   }, [referralLink]);
 
   const shareToX = useCallback(() => {
-    const text = encodeURIComponent(`${SHARE_TEXT}\n\n${referralLink}`);
+    const message = getRandomShareMessage();
+    const text = encodeURIComponent(`${message}\n\n${referralLink}`);
     window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'width=550,height=420');
   }, [referralLink]);
 
   const shareToTelegram = useCallback(() => {
-    const text = encodeURIComponent(SHARE_TEXT);
+    const message = getRandomShareMessage();
+    const text = encodeURIComponent(message);
     const url = encodeURIComponent(referralLink);
     window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
   }, [referralLink]);
 
   const shareToWhatsApp = useCallback(() => {
-    const text = encodeURIComponent(`${SHARE_TEXT}\n\n${referralLink}`);
+    const message = getRandomShareMessage();
+    const text = encodeURIComponent(`${message}\n\n${referralLink}`);
     window.open(`https://wa.me/?text=${text}`, '_blank');
   }, [referralLink]);
 
   const shareToEmail = useCallback(() => {
+    const message = getRandomShareMessage();
     const subject = encodeURIComponent(SHARE_TITLE);
-    const body = encodeURIComponent(`${SHARE_TEXT}\n\n${referralLink}`);
+    const body = encodeURIComponent(`${message}\n\n${referralLink}`);
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   }, [referralLink]);
 
