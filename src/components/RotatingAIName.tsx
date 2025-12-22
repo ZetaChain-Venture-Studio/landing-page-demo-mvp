@@ -33,10 +33,10 @@ export default function RotatingAIName({ palette, paletteId = '3' }: RotatingAIN
 
   return (
     <span
-      className="inline-flex items-center justify-center"
+      className="inline-block relative"
       style={{
-        width: '180px',
-        height: '1.3em',
+        minWidth: '140px',
+        height: '1.4em',
       }}
     >
       <AnimatePresence mode="wait">
@@ -46,9 +46,9 @@ export default function RotatingAIName({ palette, paletteId = '3' }: RotatingAIN
           animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
           exit={{ y: -15, opacity: 0, filter: 'blur(6px)' }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
-          className="inline-flex items-center justify-center px-4 py-1 rounded-full font-medium"
+          className="absolute left-0 top-1/2 -translate-y-1/2 inline-flex items-center justify-center px-4 py-1 rounded-full font-medium whitespace-nowrap"
           style={{
-            backgroundColor: isDark ? colors.bgAlt : colors.bgAlt,
+            backgroundColor: colors.bgAlt,
             border: `1px solid ${colors.border}`,
             color: colors.accent,
           }}
