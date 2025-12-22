@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, Copy, Check, ExternalLink, Share2, Coins, User } from 'lucide-react';
+import { CheckCircle, Copy, Check, ExternalLink, Share2, Coins, User, ChevronDown, LogOut } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSnag } from '@/hooks/useSnag';
 import { ColorPalette, lightSteel, isDarkPalette } from '@/lib/palettes';
@@ -96,6 +96,8 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   } = useSnag(walletAddress);
 
   const [copiedReferral, setCopiedReferral] = useState(false);
+  const [copiedWallet, setCopiedWallet] = useState(false);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
   const [showPrizeReveal, setShowPrizeReveal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -260,6 +262,25 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     setStakingPoints(prev => prev + points);
   }, []);
 
+  const copyWalletAddress = useCallback(async () => {
+    if (walletAddress) {
+      try {
+        await navigator.clipboard.writeText(walletAddress);
+        setCopiedWallet(true);
+        setTimeout(() => setCopiedWallet(false), 2000);
+      } catch {
+        const textArea = document.createElement('textarea');
+        textArea.value = walletAddress;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        setCopiedWallet(true);
+        setTimeout(() => setCopiedWallet(false), 2000);
+      }
+    }
+  }, [walletAddress]);
+
   // Modal overlay color
   const overlayBg = palette.overlay || (isDark ? 'rgba(12, 12, 12, 0.95)' : 'rgba(248, 249, 250, 0.95)');
 
@@ -283,22 +304,85 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: isDark ? palette.bgAlt : palette.bg }}>
-              <User className="w-4 h-4" style={{ color: palette.textMuted }} />
-              <span className="text-sm hidden sm:inline" style={{ color: palette.text }}>{email}</span>
-            </div>
+          <div className="relative">
             <button
-              onClick={onLogout}
-              className="px-4 py-2 text-sm border rounded-lg transition-colors hover:opacity-80"
+              onClick={() => setShowAccountMenu(!showAccountMenu)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors hover:opacity-80"
               style={{
-                borderColor: palette.border,
-                color: palette.textMuted,
-                backgroundColor: isDark ? palette.bgAlt : 'transparent'
+                backgroundColor: isDark ? palette.bgAlt : palette.bg,
+                borderColor: palette.border
               }}
             >
-              {isTestMode ? 'Exit' : 'Sign out'}
+              <User className="w-4 h-4" style={{ color: palette.textMuted }} />
+              <span className="text-sm hidden sm:inline" style={{ color: palette.text }}>{email}</span>
+              <ChevronDown className="w-4 h-4" style={{ color: palette.textMuted }} />
             </button>
+
+            {/* Account Dropdown */}
+            <AnimatePresence>
+              {showAccountMenu && (
+                <>
+                  {/* Backdrop */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowAccountMenu(false)}
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-full mt-2 w-72 rounded-xl border shadow-lg z-50 overflow-hidden"
+                    style={{
+                      backgroundColor: palette.bg,
+                      borderColor: palette.border
+                    }}
+                  >
+                    {/* Email */}
+                    <div className="px-4 py-3 border-b" style={{ borderColor: palette.border }}>
+                      <p className="text-xs uppercase tracking-widest mb-1" style={{ color: palette.textLight }}>Email</p>
+                      <p className="text-sm truncate" style={{ color: palette.text }}>{email}</p>
+                    </div>
+
+                    {/* Wallet */}
+                    {walletAddress && (
+                      <div className="px-4 py-3 border-b" style={{ borderColor: palette.border }}>
+                        <p className="text-xs uppercase tracking-widest mb-1" style={{ color: palette.textLight }}>Wallet</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-mono truncate flex-1" style={{ color: palette.text }}>
+                            {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                          </p>
+                          <button
+                            onClick={copyWalletAddress}
+                            className="p-1.5 rounded-lg transition-colors hover:opacity-80"
+                            style={{ backgroundColor: palette.bgAlt }}
+                          >
+                            {copiedWallet ? (
+                              <Check className="w-4 h-4" style={{ color: palette.success }} />
+                            ) : (
+                              <Copy className="w-4 h-4" style={{ color: palette.textMuted }} />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sign out */}
+                    <button
+                      onClick={() => {
+                        setShowAccountMenu(false);
+                        onLogout();
+                      }}
+                      className="w-full px-4 py-3 flex items-center gap-2 transition-colors hover:opacity-80"
+                      style={{ color: palette.textMuted }}
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span className="text-sm">{isTestMode ? 'Exit' : 'Sign out'}</span>
+                    </button>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </div>
         </nav>
       </header>
