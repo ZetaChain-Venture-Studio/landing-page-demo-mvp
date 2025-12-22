@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, Copy, Check, ExternalLink, Share2 } from 'lucide-react';
+import { CheckCircle, Copy, Check, ExternalLink, Share2, Coins } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSnag } from '@/hooks/useSnag';
 import { ColorPalette, lightSteel, isDarkPalette } from '@/lib/palettes';
 import PrizeReveal from './PrizeReveal';
 import ShareModal from './ShareModal';
+import StakingModal from './StakingModal';
 
 interface Task {
   id: string;
@@ -98,8 +99,10 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
   const [showPrizeReveal, setShowPrizeReveal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showStakingModal, setShowStakingModal] = useState(false);
   const [revealsRemaining, setRevealsRemaining] = useState(1);
   const [bonusPoints, setBonusPoints] = useState(0);
+  const [stakingPoints, setStakingPoints] = useState(0);
   const [waitlistCompleted, setWaitlistCompleted] = useState(false);
 
   const referralLink = useMemo(() => {
@@ -183,7 +186,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     });
   }, [snagRules, ruleStatuses]);
 
-  const totalPoints = (snagAccount?.points || 0) + bonusPoints;
+  const totalPoints = (snagAccount?.points || 0) + bonusPoints + stakingPoints;
   const rank = snagRank?.position || 0;
   const totalUsers = snagRank?.total || 0;
   const rankPercent = totalUsers > 0 && rank > 0 ? Math.ceil((rank / totalUsers) * 100) : null;
@@ -236,6 +239,12 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   const handlePrizeReveal = useCallback((points: number) => {
     setBonusPoints(prev => prev + points);
     setRevealsRemaining(prev => Math.max(0, prev - 1));
+  }, []);
+
+  const handleStakeSuccess = useCallback((amount: string) => {
+    // 1 point per ZETA staked
+    const points = Math.floor(parseFloat(amount));
+    setStakingPoints(prev => prev + points);
   }, []);
 
   // Modal overlay color
@@ -392,6 +401,44 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                 );
               })}
 
+              {/* Staking Section */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+                className="p-5 rounded-xl border mt-6"
+                style={{ backgroundColor: palette.bg, borderColor: palette.border }}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Coins className="w-5 h-5" style={{ color: palette.accent }} />
+                      <h3 className="font-medium" style={{ color: palette.text }}>Stake ZETA</h3>
+                    </div>
+                    <p className="text-sm mb-3" style={{ color: palette.textMuted }}>
+                      Stake ZETA tokens to earn points. 1 point per ZETA staked.
+                    </p>
+                    <button
+                      onClick={() => setShowStakingModal(true)}
+                      className="px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2"
+                      style={{
+                        backgroundColor: palette.accent,
+                        color: isDark ? palette.bg : '#ffffff'
+                      }}
+                    >
+                      <Coins className="w-4 h-4" />
+                      Stake Now
+                    </button>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-lg font-medium" style={{ color: palette.accent }}>
+                      +1
+                    </span>
+                    <span className="text-sm ml-1" style={{ color: palette.textLight }}>pt/ZETA</span>
+                  </div>
+                </div>
+              </motion.div>
+
               {/* Prize Reveal Section */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -538,6 +585,18 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
         palette={palette}
         paletteId={paletteId}
       />
+
+      {/* Staking Modal */}
+      {walletAddress && (
+        <StakingModal
+          isOpen={showStakingModal}
+          onClose={() => setShowStakingModal(false)}
+          walletAddress={walletAddress}
+          palette={palette}
+          paletteId={paletteId}
+          onStakeSuccess={handleStakeSuccess}
+        />
+      )}
     </div>
   );
 }
