@@ -7,19 +7,20 @@ import { usePrivy } from '@privy-io/react-auth';
 import { usePrivyConfig } from '@/providers/PrivyProvider';
 import PointsDashboard from './PointsDashboard';
 
-// Modern minimalism color palette
+// Aman-inspired uber-luxury palette
+// Evokes: warm teak, natural stone, serene zen spaces, understated elegance
 const colors = {
-  bg: '#fafaff',           // Ghost White - main background
-  bgAlt: '#eef0f2',        // Platinum - secondary background
-  text: '#1c1c1c',         // Carbon Black - main text
-  textMuted: '#4a4a4a',    // Darker muted for readability
-  textLight: '#7a7a7a',    // Light gray text
-  accent: '#1c1c1c',       // Carbon Black - accent (bold buttons)
-  accentLight: '#daddd8',  // Dust Grey - subtle accent
-  border: '#daddd8',       // Dust Grey - borders
-  borderLight: '#ecebe4',  // Parchment - light borders
-  parchment: '#ecebe4',    // Parchment - decorative
-  platinum: '#eef0f2',     // Platinum - cards
+  bg: '#F7F5F0',           // Warm Linen - soft natural white
+  bgAlt: '#EDE9E1',        // Soft Sand - subtle warmth
+  text: '#2C2926',         // Charcoal Teak - rich warm black
+  textMuted: '#5C534A',    // Warm Stone - earthy sophistication
+  textLight: '#8A7F72',    // Desert Sand - muted earth
+  accent: '#6B5344',       // Burnished Bronze - warm luxury accent
+  accentLight: '#C4B8A8',  // River Stone - soft natural
+  border: '#D8D0C4',       // Sandstone - warm borders
+  borderLight: '#E8E3DA',  // Morning Mist - subtle dividers
+  gold: '#A69471',         // Aged Gold - luxury touch
+  stone: '#9C8E7C',        // Weathered Stone - natural accent
 };
 
 // Inner component that uses Privy hooks

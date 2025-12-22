@@ -7,18 +7,18 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useSnag } from '@/hooks/useSnag';
 import PrizeReveal from './PrizeReveal';
 
-// Modern minimalism color palette
+// Aman-inspired uber-luxury palette
 const colors = {
-  bg: '#fafaff',           // Ghost White
-  bgAlt: '#eef0f2',        // Platinum
-  text: '#1c1c1c',         // Carbon Black
-  textMuted: '#4a4a4a',    // Darker muted
-  textLight: '#7a7a7a',    // Light gray
-  accent: '#1c1c1c',       // Carbon Black
-  accentLight: '#daddd8',  // Dust Grey
-  border: '#daddd8',       // Dust Grey
-  success: '#2d8a4e',      // Green for success states
-  parchment: '#ecebe4',    // Parchment
+  bg: '#F7F5F0',           // Warm Linen
+  bgAlt: '#EDE9E1',        // Soft Sand
+  text: '#2C2926',         // Charcoal Teak
+  textMuted: '#5C534A',    // Warm Stone
+  textLight: '#8A7F72',    // Desert Sand
+  accent: '#6B5344',       // Burnished Bronze
+  accentLight: '#C4B8A8',  // River Stone
+  border: '#D8D0C4',       // Sandstone
+  success: '#5C7A5C',      // Sage success (warm green)
+  gold: '#A69471',         // Aged Gold
 };
 
 interface Task {

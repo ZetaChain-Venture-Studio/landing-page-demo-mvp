@@ -4,16 +4,16 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
-// Modern minimalism color palette
+// Aman-inspired uber-luxury palette
 const colors = {
-  bg: '#fafaff',           // Ghost White
-  bgAlt: '#eef0f2',        // Platinum
-  text: '#1c1c1c',         // Carbon Black
-  textMuted: '#4a4a4a',
-  textLight: '#7a7a7a',
-  accent: '#1c1c1c',       // Carbon Black
-  accentLight: '#daddd8',  // Dust Grey
-  border: '#daddd8',
+  bg: '#F7F5F0',           // Warm Linen
+  bgAlt: '#EDE9E1',        // Soft Sand
+  text: '#2C2926',         // Charcoal Teak
+  textMuted: '#5C534A',    // Warm Stone
+  textLight: '#8A7F72',    // Desert Sand
+  accent: '#6B5344',       // Burnished Bronze
+  accentLight: '#C4B8A8',  // River Stone
+  border: '#D8D0C4',       // Sandstone
 };
 
 interface AdminStats {
