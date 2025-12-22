@@ -2,6 +2,7 @@
 
 import { PrivyProvider as PrivyAuthProvider } from "@privy-io/react-auth";
 import { createContext, useContext } from "react";
+import { zetachain } from "viem/chains";
 
 // Context to check if Privy is available
 const PrivyConfigContext = createContext<{ isConfigured: boolean }>({ isConfigured: false });
@@ -49,6 +50,8 @@ export default function PrivyProvider({
               createOnLogin: "all-users",
             },
           },
+          supportedChains: [zetachain],
+          defaultChain: zetachain,
         }}
       >
         {children}

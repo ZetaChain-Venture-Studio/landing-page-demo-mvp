@@ -6,17 +6,8 @@ import { X, Coins, ArrowUpCircle, ArrowDownCircle, Loader2 } from 'lucide-react'
 import { ColorPalette, lightSteel, isDarkPalette } from '@/lib/palettes';
 import { useWallets } from '@privy-io/react-auth';
 import { encodeFunctionData, formatUnits, parseUnits, createPublicClient, http } from 'viem';
+import { zetachain } from 'viem/chains';
 import { stakingAbi, STAKING_PRECOMPILE_ADDRESS, VALIDATOR_ADDRESS } from '@/lib/stakingAbi';
-
-// ZetaChain Mainnet config
-const ZETACHAIN_MAINNET = {
-  id: 7000,
-  name: 'ZetaChain',
-  nativeCurrency: { name: 'ZETA', symbol: 'ZETA', decimals: 18 },
-  rpcUrls: {
-    default: { http: ['https://zetachain-evm.blockpi.network/v1/rpc/public'] },
-  },
-};
 
 interface StakingModalProps {
   isOpen: boolean;
@@ -59,7 +50,7 @@ export default function StakingModal({
     setIsLoadingData(true);
     try {
       const client = createPublicClient({
-        chain: ZETACHAIN_MAINNET as Parameters<typeof createPublicClient>[0]['chain'],
+        chain: zetachain,
         transport: http(),
       });
 
@@ -120,7 +111,7 @@ export default function StakingModal({
       if (!wallet) throw new Error('No wallet found');
 
       // Switch to ZetaChain if needed
-      await wallet.switchChain(ZETACHAIN_MAINNET.id);
+      await wallet.switchChain(zetachain.id);
 
       const provider = await wallet.getEthereumProvider();
 
@@ -183,7 +174,7 @@ export default function StakingModal({
       const wallet = wallets.find(w => w.walletClientType === 'privy');
       if (!wallet) throw new Error('No wallet found');
 
-      await wallet.switchChain(ZETACHAIN_MAINNET.id);
+      await wallet.switchChain(zetachain.id);
 
       const provider = await wallet.getEthereumProvider();
 
@@ -219,8 +210,8 @@ export default function StakingModal({
 
   const setMaxAmount = () => {
     if (activeTab === 'stake') {
-      // Leave some for gas
-      const max = Math.max(0, parseFloat(walletBalance) - 0.1);
+      // Leave small amount for gas (~0.01 ZETA)
+      const max = Math.max(0, parseFloat(walletBalance) - 0.01);
       setAmount(max.toFixed(4));
     } else {
       setAmount(stakedBalance);
