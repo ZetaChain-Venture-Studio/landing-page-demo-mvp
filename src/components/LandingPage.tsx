@@ -283,7 +283,7 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             className="text-4xl md:text-6xl lg:text-7xl font-light tracking-tight leading-[1.1] mb-6"
             style={{ color: palette.text }}
           >
-            Let <RotatingAIName color={palette.accent} />
+            Let <RotatingAIName palette={palette} paletteId={paletteId} />
             <br />
             <span style={{ color: palette.textMuted }}>Remember Everything</span>
           </motion.h1>
