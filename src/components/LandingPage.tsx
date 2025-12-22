@@ -8,6 +8,7 @@ import { usePrivyConfig } from '@/providers/PrivyProvider';
 import { ColorPalette, lightSteel, isDarkPalette } from '@/lib/palettes';
 import PointsDashboard from './PointsDashboard';
 import LiveSignupCounter from './LiveSignupCounter';
+import RotatingAIName from './RotatingAIName';
 
 interface LandingPageProps {
   paletteId?: string;
@@ -282,9 +283,9 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             className="text-4xl md:text-6xl lg:text-7xl font-light tracking-tight leading-[1.1] mb-6"
             style={{ color: palette.text }}
           >
-            One Memory.
+            Let <RotatingAIName color={palette.accent} />
             <br />
-            <span style={{ color: palette.accent }}>Any AI.</span>
+            <span style={{ color: palette.textMuted }}>Remember Everything</span>
           </motion.h1>
 
           {/* Subtitle */}
@@ -295,9 +296,9 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             className="text-lg md:text-xl max-w-xl mx-auto mb-12 leading-relaxed"
             style={{ color: palette.textMuted }}
           >
-            Your context follows you across every AI model.
+            Unlimited context that follows you across every AI.
             <br />
-            Switch models freely. Your history stays with you.
+            One memory. Any model. Always private.
           </motion.p>
 
           {/* Email Form */}
@@ -349,7 +350,7 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             className="text-sm mb-20"
             style={{ color: palette.textLight }}
           >
-            Portable context · Any model · 100% private
+            Unlimited context · Works with any AI · 100% private
           </motion.p>
 
           {/* Stats */}
