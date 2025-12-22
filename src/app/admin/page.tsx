@@ -4,16 +4,16 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
-// Warm minimalism color palette
+// Modern minimalism color palette
 const colors = {
-  bg: '#FAF9F6',
-  bgAlt: '#F5F4F0',
-  text: '#2D2D2D',
-  textMuted: '#6B6B6B',
-  textLight: '#9B9B9B',
-  accent: '#8B9A7D',
-  accentLight: '#A8B59D',
-  border: '#E5E4E0',
+  bg: '#fafaff',           // Ghost White
+  bgAlt: '#eef0f2',        // Platinum
+  text: '#1c1c1c',         // Carbon Black
+  textMuted: '#4a4a4a',
+  textLight: '#7a7a7a',
+  accent: '#1c1c1c',       // Carbon Black
+  accentLight: '#daddd8',  // Dust Grey
+  border: '#daddd8',
 };
 
 interface AdminStats {

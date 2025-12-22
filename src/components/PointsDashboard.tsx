@@ -7,17 +7,18 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useSnag } from '@/hooks/useSnag';
 import PrizeReveal from './PrizeReveal';
 
-// Warm minimalism color palette
+// Modern minimalism color palette
 const colors = {
-  bg: '#FAF9F6',
-  bgAlt: '#F5F4F0',
-  text: '#2D2D2D',
-  textMuted: '#6B6B6B',
-  textLight: '#9B9B9B',
-  accent: '#8B9A7D',
-  accentLight: '#A8B59D',
-  border: '#E5E4E0',
-  success: '#8B9A7D',
+  bg: '#fafaff',           // Ghost White
+  bgAlt: '#eef0f2',        // Platinum
+  text: '#1c1c1c',         // Carbon Black
+  textMuted: '#4a4a4a',    // Darker muted
+  textLight: '#7a7a7a',    // Light gray
+  accent: '#1c1c1c',       // Carbon Black
+  accentLight: '#daddd8',  // Dust Grey
+  border: '#daddd8',       // Dust Grey
+  success: '#2d8a4e',      // Green for success states
+  parchment: '#ecebe4',    // Parchment
 };
 
 interface Task {
