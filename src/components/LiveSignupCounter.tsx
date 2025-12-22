@@ -15,15 +15,16 @@ export default function LiveSignupCounter({ palette, paletteId = '3' }: LiveSign
   const isDark = isDarkPalette(paletteId);
 
   // Start with a random number between 10k-45k for hype
-  const [count] = useState(() => Math.floor(Math.random() * 35000) + 10000);
+  const [count, setCount] = useState(() => Math.floor(Math.random() * 35000) + 10000);
   const [isAnimating, setIsAnimating] = useState(false);
   const [increment, setIncrement] = useState(0);
 
   useEffect(() => {
-    // Show +N animation every 3-8 seconds (doesn't actually change the count, just for excitement)
+    // Increment every 3-8 seconds
     const interval = setInterval(() => {
       const newIncrement = Math.floor(Math.random() * 5) + 1; // +1 to +5
       setIncrement(newIncrement);
+      setCount(prev => prev + newIncrement);
       setIsAnimating(true);
 
       // Reset animation after a short delay
@@ -59,12 +60,16 @@ export default function LiveSignupCounter({ palette, paletteId = '3' }: LiveSign
       {/* Counter */}
       <div className="flex items-center gap-1.5">
         <Users className="w-3.5 h-3.5" style={{ color: colors.textMuted }} />
-        <span
+        <motion.span
+          key={count}
+          initial={{ y: -8, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.3 }}
           className="text-sm font-medium tabular-nums"
           style={{ color: colors.text }}
         >
           {count.toLocaleString()}
-        </span>
+        </motion.span>
         <span className="text-sm" style={{ color: colors.textMuted }}>
           joined today
         </span>
