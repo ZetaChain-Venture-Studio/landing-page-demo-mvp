@@ -14,23 +14,17 @@ export default function LiveSignupCounter({ palette, paletteId = '3' }: LiveSign
   const colors = palette || lightSteel;
   const isDark = isDarkPalette(paletteId);
 
-  // Start with a random number between 40-80
-  const [count, setCount] = useState(() => Math.floor(Math.random() * 40) + 40);
+  // Start with a random number between 10k-45k for hype
+  const [count] = useState(() => Math.floor(Math.random() * 35000) + 10000);
   const [isAnimating, setIsAnimating] = useState(false);
   const [increment, setIncrement] = useState(0);
 
   useEffect(() => {
-    // Increment randomly every 3-8 seconds
+    // Show +N animation every 3-8 seconds (doesn't actually change the count, just for excitement)
     const interval = setInterval(() => {
-      const newIncrement = Math.floor(Math.random() * 3) + 1; // 1-3 new signups
+      const newIncrement = Math.floor(Math.random() * 5) + 1; // +1 to +5
       setIncrement(newIncrement);
       setIsAnimating(true);
-
-      setCount(prev => {
-        // Keep it between 40-150 for realism
-        const newCount = prev + newIncrement;
-        return newCount > 150 ? Math.floor(Math.random() * 40) + 60 : newCount;
-      });
 
       // Reset animation after a short delay
       setTimeout(() => setIsAnimating(false), 2000);
@@ -65,15 +59,12 @@ export default function LiveSignupCounter({ palette, paletteId = '3' }: LiveSign
       {/* Counter */}
       <div className="flex items-center gap-1.5">
         <Users className="w-3.5 h-3.5" style={{ color: colors.textMuted }} />
-        <motion.span
-          key={count}
-          initial={{ y: -10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
+        <span
           className="text-sm font-medium tabular-nums"
           style={{ color: colors.text }}
         >
-          {count}
-        </motion.span>
+          {count.toLocaleString()}
+        </span>
         <span className="text-sm" style={{ color: colors.textMuted }}>
           joined today
         </span>
