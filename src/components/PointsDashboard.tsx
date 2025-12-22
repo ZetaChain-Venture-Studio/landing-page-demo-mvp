@@ -154,7 +154,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     if (snagRules.length === 0) {
       return [
         { id: 'waitlist', title: 'Join the Waitlist', description: 'Sign up for early access', points: 100, completed: true, action: 'Joined', claimType: 'auto' },
-        { id: 'follow_x', title: 'Follow us on X', description: 'Stay updated with news', points: 50, completed: false, action: 'Follow', ctaUrl: 'https://x.com/Cloister' },
+        { id: 'follow_x', title: 'Follow us on X', description: 'Stay updated with news', points: 50, completed: false, action: 'Follow', ctaUrl: 'https://x.com/anaborges' },
         { id: 'invite_friend', title: 'Invite a Friend', description: 'Share your referral link', points: 200, completed: false, action: 'Invite', type: 'referral' },
       ];
     }
@@ -254,10 +254,10 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                 color: isDark ? palette.bg : '#ffffff'
               }}
             >
-              C
+              a
             </div>
             <span className="text-lg font-medium" style={{ color: palette.text }}>
-              Cloister.AI
+              anuma.ai
             </span>
           </div>
 

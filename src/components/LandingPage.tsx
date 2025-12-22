@@ -27,14 +27,14 @@ function LandingPageWithPrivy({ palette, paletteId }: { palette: ColorPalette; p
 
   const [isNewSignup, setIsNewSignup] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('cloister_new_signup') === 'true';
+      return localStorage.getItem('anuma_new_signup') === 'true';
     }
     return false;
   });
 
   useEffect(() => {
     if (animationDone && typeof window !== 'undefined') {
-      localStorage.removeItem('cloister_new_signup');
+      localStorage.removeItem('anuma_new_signup');
     }
   }, [animationDone]);
 
@@ -48,7 +48,7 @@ function LandingPageWithPrivy({ palette, paletteId }: { palette: ColorPalette; p
 
     setIsNewSignup(true);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('cloister_new_signup', 'true');
+      localStorage.setItem('anuma_new_signup', 'true');
     }
 
     login({
@@ -192,7 +192,7 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
                 className="text-5xl md:text-6xl font-light tracking-tight mb-6"
                 style={{ color: palette.text }}
               >
-                Cloister.AI
+                anuma.ai
               </motion.h1>
               <motion.div
                 initial={{ scaleX: 0 }}
@@ -231,10 +231,10 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
                 color: isDark ? palette.bg : '#ffffff'
               }}
             >
-              C
+              a
             </div>
             <span className="text-lg font-medium tracking-tight" style={{ color: palette.text }}>
-              Cloister.AI
+              anuma.ai
             </span>
           </motion.div>
 

@@ -16,14 +16,14 @@ interface ShareModalProps {
 // Share message variants for variety
 const SHARE_MESSAGES = [
   "One memory layer that works across ANY AI model. Switch between GPT, Claude, Gemini - your context follows you:",
-  "Why start fresh every time you switch AI models? Cloister.AI keeps your context portable across all of them:",
+  "Why start fresh every time you switch AI models? anuma.ai keeps your context portable across all of them:",
   "Finally - use any AI model you want and your history follows you. No more context lock-in:",
-  "Your AI context shouldn't be trapped in one model. Cloister.AI makes it portable. Join early:",
+  "Your AI context shouldn't be trapped in one model. anuma.ai makes it portable. Join early:",
   "Switching from ChatGPT to Claude? Your conversations and context come with you. This changes everything:",
   "One unified memory across every AI. No more repeating yourself when you switch models:",
 ];
 
-const SHARE_TITLE = "Cloister.AI - Early Access";
+const SHARE_TITLE = "anuma.ai - Early Access";
 
 // Get a random share message
 const getRandomShareMessage = () => {

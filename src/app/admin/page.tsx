@@ -102,10 +102,10 @@ export default function AdminDashboard() {
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-medium"
                 style={{ backgroundColor: colors.accent }}
               >
-                C
+                a
               </div>
               <span className="text-lg font-medium tracking-tight" style={{ color: colors.text }}>
-                Cloister.AI
+                anuma.ai
               </span>
             </Link>
             <span className="text-sm px-2 py-1 rounded" style={{ backgroundColor: colors.bgAlt, color: colors.textMuted }}>
@@ -317,7 +317,7 @@ export default function AdminDashboard() {
       <footer className="px-8 py-6 mt-10" style={{ borderTop: `1px solid ${colors.border}` }}>
         <div className="max-w-6xl mx-auto text-center">
           <p className="text-xs" style={{ color: colors.textLight }}>
-            Cloister.AI Admin Dashboard
+            anuma.ai Admin Dashboard
           </p>
         </div>
       </footer>

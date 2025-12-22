@@ -3,7 +3,7 @@ import "./globals.css";
 import PrivyProvider from "@/providers/PrivyProvider";
 
 export const metadata: Metadata = {
-  title: "Cloister.AI - Join the Waitlist",
+  title: "anuma.ai - Join the Waitlist",
   description: "The last AI you'll ever need. Join our exclusive waitlist today.",
 };
 
