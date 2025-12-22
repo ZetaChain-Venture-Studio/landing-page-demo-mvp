@@ -2,18 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-// Modern minimalism color palette
-const colors = {
-  bg: '#fafaff',           // Ghost White
-  bgAlt: '#eef0f2',        // Platinum
-  text: '#1c1c1c',         // Carbon Black
-  textMuted: '#4a4a4a',
-  textLight: '#7a7a7a',
-  accent: '#1c1c1c',       // Carbon Black
-  accentLight: '#daddd8',  // Dust Grey
-  border: '#daddd8',
-};
+import { ColorPalette, lightSteel, isDarkPalette } from '@/lib/palettes';
 
 // Prize tiers with probabilities (should add up to 100)
 const PRIZE_TIERS = [
@@ -30,9 +19,20 @@ interface PrizeRevealProps {
   onRevealComplete?: (points: number) => void;
   disabled?: boolean;
   revealsRemaining?: number;
+  palette?: ColorPalette;
+  paletteId?: string;
 }
 
-export default function PrizeReveal({ onRevealComplete, disabled = false, revealsRemaining = 1 }: PrizeRevealProps) {
+export default function PrizeReveal({
+  onRevealComplete,
+  disabled = false,
+  revealsRemaining = 1,
+  palette,
+  paletteId = '3'
+}: PrizeRevealProps) {
+  const colors = palette || lightSteel;
+  const isDark = isDarkPalette(paletteId);
+
   const [isRevealing, setIsRevealing] = useState(false);
   const [revealPhase, setRevealPhase] = useState<'idle' | 'opening' | 'revealed'>('idle');
   const [wonPrize, setWonPrize] = useState<typeof PRIZE_TIERS[0] | null>(null);
@@ -82,6 +82,9 @@ export default function PrizeReveal({ onRevealComplete, disabled = false, reveal
     setWonPrize(null);
   };
 
+  // Modal overlay color
+  const overlayBg = colors.overlay || (isDark ? 'rgba(12, 12, 12, 0.95)' : 'rgba(248, 249, 250, 0.95)');
+
   return (
     <div className="flex flex-col items-center">
       {/* Reveal Button */}
@@ -115,7 +118,12 @@ export default function PrizeReveal({ onRevealComplete, disabled = false, reveal
                   className="w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center"
                   style={{ backgroundColor: colors.accent }}
                 >
-                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg
+                    className="w-8 h-8"
+                    fill="none"
+                    stroke={isDark ? colors.bg : '#ffffff'}
+                    viewBox="0 0 24 24"
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
                 </motion.div>
@@ -193,7 +201,7 @@ export default function PrizeReveal({ onRevealComplete, disabled = false, reveal
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ backgroundColor: 'rgba(250, 249, 246, 0.95)' }}
+            style={{ backgroundColor: overlayBg }}
             onClick={closeReveal}
           >
             <motion.div
@@ -270,7 +278,7 @@ export default function PrizeReveal({ onRevealComplete, disabled = false, reveal
                 className="mt-8 px-6 py-3 text-sm font-medium rounded-xl transition-all"
                 style={{
                   backgroundColor: colors.accent,
-                  color: 'white',
+                  color: isDark ? colors.bg : '#ffffff',
                 }}
               >
                 Continue

@@ -5,21 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, Copy, Check, ExternalLink } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSnag } from '@/hooks/useSnag';
+import { ColorPalette, lightSteel, isDarkPalette } from '@/lib/palettes';
 import PrizeReveal from './PrizeReveal';
-
-// Modern minimalism color palette
-const colors = {
-  bg: '#fafaff',           // Ghost White
-  bgAlt: '#eef0f2',        // Platinum
-  text: '#1c1c1c',         // Carbon Black
-  textMuted: '#4a4a4a',    // Darker muted
-  textLight: '#7a7a7a',    // Light gray
-  accent: '#1c1c1c',       // Carbon Black
-  accentLight: '#daddd8',  // Dust Grey
-  border: '#daddd8',       // Dust Grey
-  success: '#2d8a4e',      // Green for success states
-  parchment: '#ecebe4',    // Parchment
-};
 
 interface Task {
   id: string;
@@ -37,10 +24,12 @@ interface Task {
 interface PointsDashboardProps {
   email: string;
   testWallet?: string;
+  palette?: ColorPalette;
+  paletteId?: string;
 }
 
 // Inner component that uses Privy
-function PointsDashboardWithPrivy({ email }: { email: string }) {
+function PointsDashboardWithPrivy({ email, palette, paletteId }: { email: string; palette: ColorPalette; paletteId: string }) {
   const { logout, user } = usePrivy();
   const walletAddress = user?.wallet?.address;
   const userId = user?.id;
@@ -51,12 +40,14 @@ function PointsDashboardWithPrivy({ email }: { email: string }) {
       walletAddress={walletAddress}
       userId={userId}
       onLogout={logout}
+      palette={palette}
+      paletteId={paletteId}
     />
   );
 }
 
 // Test mode wrapper
-function PointsDashboardTestMode({ email, testWallet }: { email: string; testWallet: string }) {
+function PointsDashboardTestMode({ email, testWallet, palette, paletteId }: { email: string; testWallet: string; palette: ColorPalette; paletteId: string }) {
   return (
     <PointsDashboardContent
       email={email}
@@ -64,15 +55,19 @@ function PointsDashboardTestMode({ email, testWallet }: { email: string; testWal
       userId="test-user"
       onLogout={() => window.location.href = '/'}
       isTestMode
+      palette={palette}
+      paletteId={paletteId}
     />
   );
 }
 
-export default function PointsDashboard({ email, testWallet }: PointsDashboardProps) {
+export default function PointsDashboard({ email, testWallet, palette, paletteId = '3' }: PointsDashboardProps) {
+  const colors = palette || lightSteel;
+
   if (testWallet) {
-    return <PointsDashboardTestMode email={email} testWallet={testWallet} />;
+    return <PointsDashboardTestMode email={email} testWallet={testWallet} palette={colors} paletteId={paletteId} />;
   }
-  return <PointsDashboardWithPrivy email={email} />;
+  return <PointsDashboardWithPrivy email={email} palette={colors} paletteId={paletteId} />;
 }
 
 interface PointsDashboardContentProps {
@@ -81,9 +76,13 @@ interface PointsDashboardContentProps {
   userId?: string;
   onLogout: () => void;
   isTestMode?: boolean;
+  palette: ColorPalette;
+  paletteId: string;
 }
 
-function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTestMode }: PointsDashboardContentProps) {
+function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTestMode, palette, paletteId }: PointsDashboardContentProps) {
+  const isDark = isDarkPalette(paletteId);
+
   const {
     account: snagAccount,
     rank: snagRank,
@@ -133,7 +132,6 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
             const success = await completeRule(waitlistRule.id);
             if (success) {
               setWaitlistCompleted(true);
-              // Wait a moment for Snag to process the points before refreshing
               await new Promise(resolve => setTimeout(resolve, 1500));
               await refreshData();
               console.log('[Dashboard] Refreshed data after completing waitlist');
@@ -238,29 +236,39 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     setRevealsRemaining(prev => Math.max(0, prev - 1));
   }, []);
 
+  // Modal overlay color
+  const overlayBg = palette.overlay || (isDark ? 'rgba(12, 12, 12, 0.95)' : 'rgba(248, 249, 250, 0.95)');
+
   return (
-    <div className="min-h-screen font-['Inter',sans-serif]" style={{ backgroundColor: colors.bg }}>
+    <div className="min-h-screen font-['Inter',sans-serif]" style={{ backgroundColor: palette.bg }}>
       {/* Header */}
-      <header className="px-8 py-6 border-b" style={{ borderColor: colors.border }}>
+      <header className="px-8 py-6 border-b" style={{ borderColor: palette.border }}>
         <nav className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-medium"
-              style={{ backgroundColor: colors.accent }}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium"
+              style={{
+                backgroundColor: palette.accent,
+                color: isDark ? palette.bg : '#ffffff'
+              }}
             >
               C
             </div>
-            <span className="text-lg font-medium" style={{ color: colors.text }}>
+            <span className="text-lg font-medium" style={{ color: palette.text }}>
               Cloister.AI
             </span>
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="text-sm" style={{ color: colors.textMuted }}>{email}</span>
+            <span className="text-sm" style={{ color: palette.textMuted }}>{email}</span>
             <button
               onClick={onLogout}
-              className="px-4 py-2 text-sm border rounded-lg transition-colors hover:bg-gray-50"
-              style={{ borderColor: colors.border, color: colors.textMuted }}
+              className="px-4 py-2 text-sm border rounded-lg transition-colors"
+              style={{
+                borderColor: palette.border,
+                color: palette.textMuted,
+                backgroundColor: isDark ? palette.bgAlt : 'transparent'
+              }}
             >
               {isTestMode ? 'Exit' : 'Sign out'}
             </button>
@@ -277,10 +285,10 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
             animate={{ opacity: 1, y: 0 }}
             className="mb-12"
           >
-            <h1 className="text-4xl font-light tracking-tight mb-2" style={{ color: colors.text }}>
+            <h1 className="text-4xl font-light tracking-tight mb-2" style={{ color: palette.text }}>
               Welcome back
             </h1>
-            <p style={{ color: colors.textMuted }}>
+            <p style={{ color: palette.textMuted }}>
               Complete tasks to earn points and climb the leaderboard.
             </p>
           </motion.div>
@@ -288,7 +296,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Left: Tasks */}
             <div className="lg:col-span-2 space-y-4">
-              <h2 className="text-sm uppercase tracking-widest mb-4" style={{ color: colors.textLight }}>
+              <h2 className="text-sm uppercase tracking-widest mb-4" style={{ color: palette.textLight }}>
                 Tasks
               </h2>
 
@@ -303,19 +311,19 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                     transition={{ delay: index * 0.1 }}
                     className="p-5 rounded-xl border transition-all"
                     style={{
-                      backgroundColor: task.completed ? colors.bgAlt : colors.bg,
-                      borderColor: colors.border,
+                      backgroundColor: task.completed ? palette.bgAlt : palette.bg,
+                      borderColor: palette.border,
                     }}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium" style={{ color: colors.text }}>{task.title}</h3>
+                          <h3 className="font-medium" style={{ color: palette.text }}>{task.title}</h3>
                           {task.completed && (
-                            <CheckCircle className="w-4 h-4" style={{ color: colors.success }} />
+                            <CheckCircle className="w-4 h-4" style={{ color: palette.success }} />
                           )}
                         </div>
-                        <p className="text-sm mb-3" style={{ color: colors.textMuted }}>{task.description}</p>
+                        <p className="text-sm mb-3" style={{ color: palette.textMuted }}>{task.description}</p>
 
                         {isReferralTask && !task.completed ? (
                           <div className="flex items-center gap-2">
@@ -325,15 +333,18 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                               value={referralLink}
                               className="flex-1 px-3 py-2 text-sm rounded-lg border"
                               style={{
-                                backgroundColor: colors.bgAlt,
-                                borderColor: colors.border,
-                                color: colors.textMuted,
+                                backgroundColor: palette.bgAlt,
+                                borderColor: palette.border,
+                                color: palette.textMuted,
                               }}
                             />
                             <button
                               onClick={copyReferralLink}
-                              className="px-4 py-2 text-sm font-medium rounded-lg text-white flex items-center gap-2"
-                              style={{ backgroundColor: colors.accent }}
+                              className="px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2"
+                              style={{
+                                backgroundColor: palette.accent,
+                                color: isDark ? palette.bg : '#ffffff'
+                              }}
                             >
                               {copiedReferral ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                               {copiedReferral ? 'Copied' : 'Copy'}
@@ -343,8 +354,11 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                           <button
                             onClick={() => handleTaskClick(task)}
                             disabled={completingTaskId === task.id}
-                            className="px-4 py-2 text-sm font-medium rounded-lg text-white flex items-center gap-2 disabled:opacity-50"
-                            style={{ backgroundColor: colors.accent }}
+                            className="px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2 disabled:opacity-50"
+                            style={{
+                              backgroundColor: palette.accent,
+                              color: isDark ? palette.bg : '#ffffff'
+                            }}
                           >
                             {task.ctaUrl && <ExternalLink className="w-4 h-4" />}
                             {completingTaskId === task.id ? 'Processing...' : task.action}
@@ -353,10 +367,10 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                       </div>
 
                       <div className="text-right">
-                        <span className="text-lg font-medium" style={{ color: colors.accent }}>
+                        <span className="text-lg font-medium" style={{ color: palette.accent }}>
                           +{task.points}
                         </span>
-                        <span className="text-sm ml-1" style={{ color: colors.textLight }}>pts</span>
+                        <span className="text-sm ml-1" style={{ color: palette.textLight }}>pts</span>
                       </div>
                     </div>
                   </motion.div>
@@ -369,27 +383,30 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
                 className="p-6 rounded-xl border mt-6"
-                style={{ backgroundColor: colors.bgAlt, borderColor: colors.border }}
+                style={{ backgroundColor: palette.bgAlt, borderColor: palette.border }}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="font-medium" style={{ color: colors.text }}>Daily Reward</h3>
-                    <p className="text-sm" style={{ color: colors.textMuted }}>
+                    <h3 className="font-medium" style={{ color: palette.text }}>Daily Reward</h3>
+                    <p className="text-sm" style={{ color: palette.textMuted }}>
                       Reveal your bonus points
                     </p>
                   </div>
                   {revealsRemaining > 0 && (
                     <button
                       onClick={() => setShowPrizeReveal(true)}
-                      className="px-4 py-2 text-sm font-medium rounded-lg text-white"
-                      style={{ backgroundColor: colors.accent }}
+                      className="px-4 py-2 text-sm font-medium rounded-lg"
+                      style={{
+                        backgroundColor: palette.accent,
+                        color: isDark ? palette.bg : '#ffffff'
+                      }}
                     >
                       Reveal Prize
                     </button>
                   )}
                 </div>
                 {revealsRemaining <= 0 && (
-                  <p className="text-sm" style={{ color: colors.textLight }}>
+                  <p className="text-sm" style={{ color: palette.textLight }}>
                     Come back tomorrow for another chance!
                   </p>
                 )}
@@ -403,15 +420,15 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
               transition={{ delay: 0.2 }}
               className="lg:sticky lg:top-8 h-fit"
             >
-              <div className="p-6 rounded-2xl border" style={{ backgroundColor: colors.bg, borderColor: colors.border }}>
+              <div className="p-6 rounded-2xl border" style={{ backgroundColor: palette.bg, borderColor: palette.border }}>
                 {/* Points */}
-                <div className="mb-6 pb-6 border-b" style={{ borderColor: colors.border }}>
-                  <p className="text-sm uppercase tracking-widest mb-2" style={{ color: colors.textLight }}>
+                <div className="mb-6 pb-6 border-b" style={{ borderColor: palette.border }}>
+                  <p className="text-sm uppercase tracking-widest mb-2" style={{ color: palette.textLight }}>
                     Total Points
                   </p>
                   <motion.p
                     className="text-5xl font-light tracking-tight"
-                    style={{ color: colors.text }}
+                    style={{ color: palette.text }}
                     key={totalPoints}
                     initial={{ scale: 1.1 }}
                     animate={{ scale: 1 }}
@@ -423,14 +440,14 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                 {/* Stats */}
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div>
-                    <p className="text-xs uppercase tracking-widest mb-1" style={{ color: colors.textLight }}>Rank</p>
-                    <p className="text-xl font-medium" style={{ color: colors.text }}>
+                    <p className="text-xs uppercase tracking-widest mb-1" style={{ color: palette.textLight }}>Rank</p>
+                    <p className="text-xl font-medium" style={{ color: palette.text }}>
                       {rankPercent !== null ? `Top ${rankPercent}%` : '—'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-widest mb-1" style={{ color: colors.textLight }}>Tasks</p>
-                    <p className="text-xl font-medium" style={{ color: colors.text }}>
+                    <p className="text-xs uppercase tracking-widest mb-1" style={{ color: palette.textLight }}>Tasks</p>
+                    <p className="text-xl font-medium" style={{ color: palette.text }}>
                       {completedTasksCount}/{tasks.length}
                     </p>
                   </div>
@@ -438,9 +455,9 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
 
                 {/* Wallet */}
                 {walletAddress && (
-                  <div className="pt-4 border-t" style={{ borderColor: colors.border }}>
-                    <p className="text-xs uppercase tracking-widest mb-2" style={{ color: colors.textLight }}>Wallet</p>
-                    <p className="text-sm font-mono truncate" style={{ color: colors.textMuted }}>
+                  <div className="pt-4 border-t" style={{ borderColor: palette.border }}>
+                    <p className="text-xs uppercase tracking-widest mb-2" style={{ color: palette.textLight }}>Wallet</p>
+                    <p className="text-sm font-mono truncate" style={{ color: palette.textMuted }}>
                       {walletAddress}
                     </p>
                   </div>
@@ -459,27 +476,27 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ backgroundColor: 'rgba(250, 249, 246, 0.95)' }}
+            style={{ backgroundColor: overlayBg }}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               className="relative p-8 rounded-2xl max-w-sm w-full text-center"
-              style={{ backgroundColor: colors.bg, border: `1px solid ${colors.border}` }}
+              style={{ backgroundColor: palette.bg, border: `1px solid ${palette.border}` }}
             >
               <button
                 onClick={() => setShowPrizeReveal(false)}
-                className="absolute top-4 right-4 p-2 rounded-full transition-colors hover:bg-gray-100"
-                style={{ color: colors.textLight }}
+                className="absolute top-4 right-4 p-2 rounded-full transition-colors"
+                style={{ color: palette.textLight }}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
 
-              <h2 className="text-xl font-medium mb-2" style={{ color: colors.text }}>Daily Reward</h2>
-              <p className="text-sm mb-8" style={{ color: colors.textMuted }}>
+              <h2 className="text-xl font-medium mb-2" style={{ color: palette.text }}>Daily Reward</h2>
+              <p className="text-sm mb-8" style={{ color: palette.textMuted }}>
                 Tap to reveal your bonus points
               </p>
 
@@ -490,6 +507,8 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                 }}
                 revealsRemaining={revealsRemaining}
                 disabled={revealsRemaining <= 0}
+                palette={palette}
+                paletteId={paletteId}
               />
             </motion.div>
           </motion.div>
