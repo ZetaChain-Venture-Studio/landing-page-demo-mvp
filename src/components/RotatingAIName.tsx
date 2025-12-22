@@ -46,7 +46,7 @@ export default function RotatingAIName({ palette, paletteId = '3' }: RotatingAIN
           animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
           exit={{ y: -15, opacity: 0, filter: 'blur(6px)' }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
-          className="absolute left-0 top-1/2 -translate-y-1/2 inline-flex items-center justify-center px-4 py-1 rounded-full font-medium whitespace-nowrap"
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 inline-flex items-center justify-center px-4 py-1 rounded-full font-medium whitespace-nowrap"
           style={{
             backgroundColor: colors.bgAlt,
             border: `1px solid ${colors.border}`,
