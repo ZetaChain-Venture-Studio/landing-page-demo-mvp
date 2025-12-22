@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, Copy, Check, ExternalLink, Share2, Coins } from 'lucide-react';
+import { CheckCircle, Copy, Check, ExternalLink, Share2, Coins, User } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSnag } from '@/hooks/useSnag';
 import { ColorPalette, lightSteel, isDarkPalette } from '@/lib/palettes';
@@ -111,6 +111,19 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     }
     return '';
   }, [walletAddress]);
+
+  // Debug logging for Snag integration
+  useEffect(() => {
+    console.log('[PointsDashboard] Snag State:', {
+      walletAddress,
+      accountId: snagAccount?.id,
+      accountPoints: snagAccount?.points,
+      rulesCount: snagRules.length,
+      rules: snagRules.map(r => ({ id: r.id, name: r.name, points: r.points })),
+      rankPosition: snagRank?.position,
+      ruleStatusesCount: ruleStatuses.size,
+    });
+  }, [walletAddress, snagAccount, snagRules, snagRank, ruleStatuses]);
 
   useEffect(() => {
     if (walletAddress && !snagAccount) {
@@ -270,11 +283,14 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
-            <span className="text-sm" style={{ color: palette.textMuted }}>{email}</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: isDark ? palette.bgAlt : palette.bg }}>
+              <User className="w-4 h-4" style={{ color: palette.textMuted }} />
+              <span className="text-sm hidden sm:inline" style={{ color: palette.text }}>{email}</span>
+            </div>
             <button
               onClick={onLogout}
-              className="px-4 py-2 text-sm border rounded-lg transition-colors"
+              className="px-4 py-2 text-sm border rounded-lg transition-colors hover:opacity-80"
               style={{
                 borderColor: palette.border,
                 color: palette.textMuted,
@@ -500,7 +516,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs uppercase tracking-widest mb-1" style={{ color: palette.textLight }}>Rank</p>
                     <p className="text-xl font-medium" style={{ color: palette.text }}>
@@ -514,16 +530,6 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                     </p>
                   </div>
                 </div>
-
-                {/* Wallet */}
-                {walletAddress && (
-                  <div className="pt-4 border-t" style={{ borderColor: palette.border }}>
-                    <p className="text-xs uppercase tracking-widest mb-2" style={{ color: palette.textLight }}>Wallet</p>
-                    <p className="text-sm font-mono truncate" style={{ color: palette.textMuted }}>
-                      {walletAddress}
-                    </p>
-                  </div>
-                )}
               </div>
             </motion.div>
           </div>
