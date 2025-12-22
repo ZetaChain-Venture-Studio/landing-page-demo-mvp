@@ -283,9 +283,12 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             className="text-4xl md:text-6xl lg:text-7xl font-light tracking-tight leading-[1.1] mb-6"
             style={{ color: palette.text }}
           >
-            Let <RotatingAIName palette={palette} paletteId={paletteId} />
+            <span className="inline-flex items-center justify-center gap-3 flex-wrap">
+              <span>Let</span>
+              <RotatingAIName palette={palette} paletteId={paletteId} />
+            </span>
             <br />
-            <span style={{ color: palette.textMuted }}>Remember Everything</span>
+            Remember Everything
           </motion.h1>
 
           {/* Subtitle */}

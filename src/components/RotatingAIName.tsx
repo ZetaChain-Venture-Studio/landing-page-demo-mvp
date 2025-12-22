@@ -26,7 +26,7 @@ export default function RotatingAIName({ palette, paletteId = '3' }: RotatingAIN
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % AI_MODELS.length);
-    }, 1800); // 10% faster - 1.8 seconds
+    }, 1800);
 
     return () => clearInterval(interval);
   }, []);
@@ -35,8 +35,8 @@ export default function RotatingAIName({ palette, paletteId = '3' }: RotatingAIN
     <span
       className="inline-flex items-center justify-center"
       style={{
-        width: '220px', // Fixed width to prevent layout shift
-        height: '1.2em',
+        width: '180px',
+        height: '1.3em',
       }}
     >
       <AnimatePresence mode="wait">
@@ -46,10 +46,11 @@ export default function RotatingAIName({ palette, paletteId = '3' }: RotatingAIN
           animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
           exit={{ y: -15, opacity: 0, filter: 'blur(6px)' }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
-          className="inline-flex items-center justify-center px-4 py-1 rounded-lg font-medium"
+          className="inline-flex items-center justify-center px-4 py-1 rounded-full font-medium"
           style={{
-            backgroundColor: colors.accent,
-            color: isDark ? colors.bg : '#ffffff',
+            backgroundColor: isDark ? colors.bgAlt : colors.bgAlt,
+            border: `1px solid ${colors.border}`,
+            color: colors.accent,
           }}
         >
           {AI_MODELS[currentIndex]}
