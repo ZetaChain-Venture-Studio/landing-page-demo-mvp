@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { snagClient } from '@/lib/snag';
 
+// Snag rule ID for staking task
+const STAKING_RULE_ID = '6c275439-581a-4126-9467-4ec5ce813a69';
+
 // POST /api/snag/staking - Record a staking event and award points
 export async function POST(request: NextRequest) {
   try {
@@ -35,13 +38,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Award points for staking
-    // Note: If you have a specific staking rule ID in Snag, replace 'staking' with the actual rule ID
+    // Award points for staking via rule completion
     try {
+      // Complete the staking rule to award points
+      const success = await snagClient.completeRule(account.id, STAKING_RULE_ID);
+
+      if (!success) {
+        throw new Error('Failed to complete staking rule');
+      }
+
+      console.log('[Staking API] Rule completed, points awarded');
+
+      // Also try to award additional points based on amount staked
       const transaction = await snagClient.awardPoints(
         walletAddress,
         points,
-        'staking', // This should be your staking rule ID from Snag dashboard
+        STAKING_RULE_ID,
         `Staked ${amount} ZETA${txHash ? ` (tx: ${txHash.slice(0, 10)}...)` : ''}`
       );
 
