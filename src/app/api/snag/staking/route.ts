@@ -29,136 +29,78 @@ export async function POST(request: NextRequest) {
 
     console.log('[Staking API] Recording stake:', { walletAddress, amount, points, txHash });
 
-    // Ensure user has an account first
-    const account = await snagClient.getOrCreateAccount(walletAddress);
-
-    if (!account) {
-      return NextResponse.json(
-        { error: 'Failed to get or create Snag account' },
-        { status: 500 }
-      );
-    }
-
-    // Award points for staking via rule completion
+    // Try to get/create Snag account (but don't fail if it doesn't work)
+    let account = null;
     try {
-      // Complete the staking rule to award points
-      const success = await snagClient.completeRule(account.id, STAKING_RULE_ID);
-
-      if (!success) {
-        throw new Error('Failed to complete staking rule');
-      }
-
-      console.log('[Staking API] Rule completed, points awarded');
-
-      // Also try to award additional points based on amount staked
-      const transaction = await snagClient.awardPoints(
-        walletAddress,
-        points,
-        STAKING_RULE_ID,
-        `Staked ${amount} ZETA${txHash ? ` (tx: ${txHash.slice(0, 10)}...)` : ''}`
-      );
-
-      console.log('[Staking API] Points awarded:', transaction);
-
-      // Save to database
-      const db = getDb();
-      if (db) {
-        try {
-          // Find or create user
-          const user = await db.user.upsert({
-            where: { walletAddress },
-            create: {
-              email: `wallet_${walletAddress}@anuma.ai`,
-              walletAddress,
-              snagUserId: account.id,
-              totalPoints: points,
-            },
-            update: {
-              totalPoints: { increment: points },
-            },
-          });
-
-          // Record task completion
-          await db.taskCompletion.create({
-            data: {
-              userId: user.id,
-              taskId: STAKING_RULE_ID,
-              taskName: 'Stake ZETA',
-              taskType: 'staking',
-              pointsEarned: points,
-            },
-          });
-
-          // Record points history
-          await db.pointsHistory.create({
-            data: {
-              userId: user.id,
-              amount: points,
-              type: 'staking',
-              description: `Staked ${amount} ZETA${txHash ? ` (tx: ${txHash.slice(0, 10)}...)` : ''}`,
-            },
-          });
-
-          console.log('[Staking API] Saved to database for user:', user.id);
-        } catch (dbError) {
-          console.error('[Staking API] Database error:', dbError);
-          // Don't fail if DB save fails
-        }
-      }
-
-      return NextResponse.json({
-        success: true,
-        points,
-        transaction,
-        dbSaved: !!db,
-      });
-    } catch (awardError) {
-      // If awardPoints fails, still save to database
-      console.log('[Staking API] Snag awardPoints failed:', awardError);
-      console.log('[Staking API] Saving to database anyway...');
-
-      // Save to database even if Snag fails
-      const db = getDb();
-      let dbSaved = false;
-      if (db) {
-        try {
-          const user = await db.user.upsert({
-            where: { walletAddress },
-            create: {
-              email: `wallet_${walletAddress}@anuma.ai`,
-              walletAddress,
-              snagUserId: account?.id || null,
-              totalPoints: points,
-            },
-            update: {
-              totalPoints: { increment: points },
-            },
-          });
-
-          await db.pointsHistory.create({
-            data: {
-              userId: user.id,
-              amount: points,
-              type: 'staking',
-              description: `Staked ${amount} ZETA${txHash ? ` (tx: ${txHash.slice(0, 10)}...)` : ''}`,
-            },
-          });
-
-          dbSaved = true;
-          console.log('[Staking API] Saved to database (Snag failed):', user.id);
-        } catch (dbErr) {
-          console.error('[Staking API] Database error in catch:', dbErr);
-        }
-      }
-
-      return NextResponse.json({
-        success: true,
-        points,
-        snagIntegration: false,
-        dbSaved,
-        message: 'Points saved to database. Snag integration failed.',
-      });
+      account = await snagClient.getOrCreateAccount(walletAddress);
+      console.log('[Staking API] Snag account:', account?.id || 'FAILED TO CREATE');
+    } catch (snagErr) {
+      console.error('[Staking API] Snag account error:', snagErr);
     }
+
+    // ALWAYS save to database first
+    const db = getDb();
+    let dbSaved = false;
+    let dbUser = null;
+
+    if (db) {
+      try {
+        dbUser = await db.user.upsert({
+          where: { walletAddress },
+          create: {
+            email: `wallet_${walletAddress}@anuma.ai`,
+            walletAddress,
+            snagUserId: account?.id || null,
+            totalPoints: points,
+          },
+          update: {
+            totalPoints: { increment: points },
+            snagUserId: account?.id || undefined,
+          },
+        });
+
+        await db.pointsHistory.create({
+          data: {
+            userId: dbUser.id,
+            amount: points,
+            type: 'staking',
+            description: `Staked ${amount} ZETA${txHash ? ` (tx: ${txHash.slice(0, 10)}...)` : ''}`,
+          },
+        });
+
+        dbSaved = true;
+        console.log('[Staking API] Saved to database:', dbUser.id, 'total points:', dbUser.totalPoints + points);
+      } catch (dbError) {
+        console.error('[Staking API] Database error:', dbError);
+      }
+    }
+
+    // Now try Snag integration (optional - don't fail if it doesn't work)
+    let snagSuccess = false;
+    if (account) {
+      try {
+        await snagClient.completeRule(account.id, STAKING_RULE_ID);
+        await snagClient.awardPoints(
+          walletAddress,
+          points,
+          STAKING_RULE_ID,
+          `Staked ${amount} ZETA${txHash ? ` (tx: ${txHash.slice(0, 10)}...)` : ''}`
+        );
+        snagSuccess = true;
+        console.log('[Staking API] Snag points awarded');
+      } catch (snagError) {
+        console.error('[Staking API] Snag award error:', snagError);
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      points,
+      dbSaved,
+      snagSuccess,
+      userId: dbUser?.id,
+      totalPoints: dbUser ? dbUser.totalPoints + points : points,
+    });
   } catch (error) {
     console.error('[Staking API] Error:', error);
     return NextResponse.json(
