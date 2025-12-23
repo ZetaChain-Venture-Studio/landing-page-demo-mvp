@@ -76,6 +76,24 @@ function LandingPageWithPrivy({ palette, paletteId }: { palette: ColorPalette; p
     });
   };
 
+  // Save user to database when authenticated
+  useEffect(() => {
+    if (authenticated && walletCreated) {
+      const userEmail = getUserEmail(user) || email;
+      fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: userEmail,
+          walletAddress: walletCreated,
+        }),
+      })
+        .then(res => res.json())
+        .then(data => console.log('[LandingPage] User saved:', data))
+        .catch(err => console.error('[LandingPage] Failed to save user:', err));
+    }
+  }, [authenticated, walletCreated, user, email]);
+
   useEffect(() => {
     if (authenticated && walletCreated && isNewSignup && !showAnimation && !animationDone) {
       const delayTimer = setTimeout(() => {

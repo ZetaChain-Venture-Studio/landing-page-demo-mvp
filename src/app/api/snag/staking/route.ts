@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { snagClient } from '@/lib/snag';
+import { getDb } from '@/lib/db';
 
 // Snag rule ID for staking task
 const STAKING_RULE_ID = '6c275439-581a-4126-9467-4ec5ce813a69';
@@ -59,10 +60,57 @@ export async function POST(request: NextRequest) {
 
       console.log('[Staking API] Points awarded:', transaction);
 
+      // Save to database
+      const db = getDb();
+      if (db) {
+        try {
+          // Find or create user
+          const user = await db.user.upsert({
+            where: { walletAddress },
+            create: {
+              email: `wallet_${walletAddress}@anuma.ai`,
+              walletAddress,
+              snagUserId: account.id,
+              totalPoints: points,
+            },
+            update: {
+              totalPoints: { increment: points },
+            },
+          });
+
+          // Record task completion
+          await db.taskCompletion.create({
+            data: {
+              userId: user.id,
+              taskId: STAKING_RULE_ID,
+              taskName: 'Stake ZETA',
+              taskType: 'staking',
+              pointsEarned: points,
+            },
+          });
+
+          // Record points history
+          await db.pointsHistory.create({
+            data: {
+              userId: user.id,
+              amount: points,
+              type: 'staking',
+              description: `Staked ${amount} ZETA${txHash ? ` (tx: ${txHash.slice(0, 10)}...)` : ''}`,
+            },
+          });
+
+          console.log('[Staking API] Saved to database for user:', user.id);
+        } catch (dbError) {
+          console.error('[Staking API] Database error:', dbError);
+          // Don't fail if DB save fails
+        }
+      }
+
       return NextResponse.json({
         success: true,
         points,
         transaction,
+        dbSaved: !!db,
       });
     } catch (awardError) {
       // If awardPoints fails (rule might not exist), try using completeRule
