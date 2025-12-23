@@ -136,7 +136,25 @@ export default function StakingModal({
       setSuccess(`Staked ${amount} ZETA successfully!`);
       setAmount('');
 
-      // Callback for points
+      // Report staking to Snag for points
+      try {
+        const response = await fetch('/api/snag/staking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            walletAddress,
+            amount,
+            txHash,
+          }),
+        });
+        const result = await response.json();
+        console.log('Snag staking recorded:', result);
+      } catch (snagError) {
+        console.error('Failed to record staking in Snag:', snagError);
+        // Don't fail the transaction if Snag recording fails
+      }
+
+      // Callback for local points tracking
       if (onStakeSuccess) {
         onStakeSuccess(amount);
       }
