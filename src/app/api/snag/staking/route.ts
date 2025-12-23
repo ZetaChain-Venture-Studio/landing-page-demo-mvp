@@ -113,16 +113,50 @@ export async function POST(request: NextRequest) {
         dbSaved: !!db,
       });
     } catch (awardError) {
-      // If awardPoints fails (rule might not exist), try using completeRule
-      console.log('[Staking API] awardPoints failed, this is expected if no staking rule exists yet');
-      console.log('[Staking API] To enable Snag tracking, create an External Rule in Snag dashboard');
+      // If awardPoints fails, still save to database
+      console.log('[Staking API] Snag awardPoints failed:', awardError);
+      console.log('[Staking API] Saving to database anyway...');
 
-      // Return success anyway - points are tracked locally in the frontend
+      // Save to database even if Snag fails
+      const db = getDb();
+      let dbSaved = false;
+      if (db) {
+        try {
+          const user = await db.user.upsert({
+            where: { walletAddress },
+            create: {
+              email: `wallet_${walletAddress}@anuma.ai`,
+              walletAddress,
+              snagUserId: account?.id || null,
+              totalPoints: points,
+            },
+            update: {
+              totalPoints: { increment: points },
+            },
+          });
+
+          await db.pointsHistory.create({
+            data: {
+              userId: user.id,
+              amount: points,
+              type: 'staking',
+              description: `Staked ${amount} ZETA${txHash ? ` (tx: ${txHash.slice(0, 10)}...)` : ''}`,
+            },
+          });
+
+          dbSaved = true;
+          console.log('[Staking API] Saved to database (Snag failed):', user.id);
+        } catch (dbErr) {
+          console.error('[Staking API] Database error in catch:', dbErr);
+        }
+      }
+
       return NextResponse.json({
         success: true,
         points,
         snagIntegration: false,
-        message: 'Points tracked locally. Create a staking rule in Snag to enable backend tracking.',
+        dbSaved,
+        message: 'Points saved to database. Snag integration failed.',
       });
     }
   } catch (error) {

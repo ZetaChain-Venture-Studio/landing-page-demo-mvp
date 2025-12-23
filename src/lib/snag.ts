@@ -106,9 +106,11 @@ class SnagSolutionsClient {
 
   async getAccount(walletAddress: string): Promise<SnagAccount | null> {
     try {
-      console.log('[Snag] Fetching account for wallet:', walletAddress);
+      // Normalize wallet address to lowercase for consistent lookups
+      const normalizedWallet = walletAddress.toLowerCase();
+      console.log('[Snag] Fetching account for wallet:', normalizedWallet);
       const response = await this.request<{ data: SnagAccountRaw[] }>(
-        `/loyalty/accounts?walletAddress=${walletAddress}&websiteId=${this.websiteId}`
+        `/loyalty/accounts?walletAddress=${normalizedWallet}&websiteId=${this.websiteId}`
       );
       const rawAccount = response.data?.[0];
       console.log('[Snag] Raw account response:', JSON.stringify(rawAccount));
@@ -147,37 +149,60 @@ class SnagSolutionsClient {
     walletAddress: string,
     externalIdentifier?: string
   ): Promise<SnagAccount | null> {
-    // Try multiple endpoints to create account
-    const endpoints = [
-      '/loyalty/users',
-      '/users',
-      '/loyalty/accounts',
+    // Normalize wallet address to lowercase
+    const normalizedWallet = walletAddress.toLowerCase();
+
+    // Try multiple request formats
+    const attempts = [
+      {
+        endpoint: '/loyalty/users',
+        body: { walletAddress: normalizedWallet, websiteId: this.websiteId, externalIdentifier },
+      },
+      {
+        endpoint: '/loyalty/users',
+        body: { walletAddress: normalizedWallet, websiteId: this.websiteId },
+      },
+      {
+        endpoint: '/users',
+        body: { walletAddress: normalizedWallet, websiteId: this.websiteId },
+      },
+      {
+        endpoint: '/loyalty/accounts',
+        body: { walletAddress: normalizedWallet, websiteId: this.websiteId },
+      },
     ];
 
-    for (const endpoint of endpoints) {
+    for (const attempt of attempts) {
       try {
-        console.log(`[Snag] Trying to create account via ${endpoint} for:`, walletAddress);
-        await this.request(endpoint, {
+        console.log(`[Snag] Trying to create account via ${attempt.endpoint} for:`, normalizedWallet);
+        const response = await this.request<{ data?: SnagAccount; id?: string }>(attempt.endpoint, {
           method: 'POST',
-          body: JSON.stringify({
-            walletAddress,
-            websiteId: this.websiteId,
-            externalIdentifier,
-          }),
+          body: JSON.stringify(attempt.body),
         });
-        // Fetch the created account
-        const account = await this.getAccount(walletAddress);
+        console.log(`[Snag] ${attempt.endpoint} response:`, JSON.stringify(response));
+
+        // Some endpoints return the account directly
+        if (response?.id || response?.data?.id) {
+          const account = await this.getAccount(normalizedWallet);
+          if (account) {
+            console.log('[Snag] Created account via', attempt.endpoint, ':', account.id);
+            return account;
+          }
+        }
+
+        // Try to fetch the account even if response doesn't have ID
+        const account = await this.getAccount(normalizedWallet);
         if (account) {
-          console.log('[Snag] Created account via', endpoint, ':', account.id);
+          console.log('[Snag] Account found after creation via', attempt.endpoint, ':', account.id);
           return account;
         }
       } catch (error) {
-        console.log(`[Snag] ${endpoint} failed:`, error);
-        // Continue to next endpoint
+        console.log(`[Snag] ${attempt.endpoint} failed:`, error);
+        // Continue to next attempt
       }
     }
 
-    console.error('[Snag] All account creation methods failed');
+    console.error('[Snag] All account creation methods failed for:', normalizedWallet);
     return null;
   }
 

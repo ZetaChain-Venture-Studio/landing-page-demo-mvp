@@ -15,9 +15,17 @@ export async function GET(request: NextRequest) {
   try {
     console.log('[Snag Test] Testing for wallet:', walletAddress);
 
-    // 1. Get or create account
-    const account = await snagClient.getOrCreateAccount(walletAddress);
-    console.log('[Snag Test] Account:', account);
+    // 1. Get or create account (force creation attempt)
+    console.log('[Snag Test] Attempting to get/create account for:', walletAddress);
+    let account = await snagClient.getAccount(walletAddress);
+    let accountCreated = false;
+
+    if (!account) {
+      console.log('[Snag Test] Account not found, attempting to create...');
+      account = await snagClient.getOrCreateAccount(walletAddress);
+      accountCreated = true;
+    }
+    console.log('[Snag Test] Account result:', account, 'created:', accountCreated);
 
     // 2. Get all rule statuses if we have an account
     let ruleStatuses: unknown[] = [];
@@ -47,11 +55,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       wallet: walletAddress,
+      walletNormalized: walletAddress.toLowerCase(),
       account: account ? {
         id: account.id,
         points: account.points,
         createdAt: account.createdAt,
       } : null,
+      accountCreated,
       rank,
       rules: rules.map(r => ({
         id: r.id,
