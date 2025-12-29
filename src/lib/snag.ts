@@ -4,6 +4,8 @@
 const SNAG_API_URL = process.env.SNAG_API_URL || 'https://admin.snagsolutions.io/api';
 const SNAG_API_KEY = process.env.SNAG_API_KEY || '';
 const SNAG_WEBSITE_ID = process.env.NEXT_PUBLIC_SNAG_WEBSITE_ID || '';
+const SNAG_ORG_ID = process.env.SNAG_ORG_ID || '';
+const SNAG_CURRENCY_ID = process.env.SNAG_CURRENCY_ID || '';
 
 interface SnagAccountRaw {
   id: string;
@@ -70,11 +72,15 @@ class SnagSolutionsClient {
   private apiKey: string;
   private baseUrl: string;
   private websiteId: string;
+  private orgId: string;
+  private currencyId: string;
 
   constructor() {
     this.apiKey = SNAG_API_KEY;
     this.baseUrl = SNAG_API_URL;
     this.websiteId = SNAG_WEBSITE_ID;
+    this.orgId = SNAG_ORG_ID;
+    this.currencyId = SNAG_CURRENCY_ID;
   }
 
   private async request<T>(
@@ -152,23 +158,30 @@ class SnagSolutionsClient {
     // Normalize wallet address to lowercase
     const normalizedWallet = walletAddress.toLowerCase();
 
+    // Build base body with all possible fields
+    const baseBody: Record<string, string | undefined> = {
+      walletAddress: normalizedWallet,
+      websiteId: this.websiteId,
+    };
+
+    // Add optional fields if available
+    if (this.orgId) baseBody.organizationId = this.orgId;
+    if (this.currencyId) baseBody.loyaltyCurrencyId = this.currencyId;
+    if (externalIdentifier) baseBody.externalIdentifier = externalIdentifier;
+
     // Try multiple request formats
     const attempts = [
       {
         endpoint: '/loyalty/users',
-        body: { walletAddress: normalizedWallet, websiteId: this.websiteId, externalIdentifier },
-      },
-      {
-        endpoint: '/loyalty/users',
-        body: { walletAddress: normalizedWallet, websiteId: this.websiteId },
+        body: { ...baseBody },
       },
       {
         endpoint: '/users',
-        body: { walletAddress: normalizedWallet, websiteId: this.websiteId },
+        body: { ...baseBody },
       },
       {
         endpoint: '/loyalty/accounts',
-        body: { walletAddress: normalizedWallet, websiteId: this.websiteId },
+        body: { ...baseBody },
       },
     ];
 
