@@ -1,6 +1,6 @@
 import LandingPage from '@/components/LandingPage';
-import { royalViolet } from '@/lib/palettes';
+import { anumaSanctuary } from '@/lib/palettes';
 
 export default function Palette4Page() {
-  return <LandingPage paletteId="4" palette={royalViolet} />;
+  return <LandingPage paletteId="4" palette={anumaSanctuary} />;
 }

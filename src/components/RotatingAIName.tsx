@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ColorPalette, lightSteel, isDarkPalette } from '@/lib/palettes';
+import { ColorPalette, anumaSanctuary, isDarkPalette } from '@/lib/palettes';
 
 const AI_MODELS = [
   'ChatGPT',
@@ -19,7 +19,7 @@ interface RotatingAINameProps {
 }
 
 export default function RotatingAIName({ palette, paletteId = '3' }: RotatingAINameProps) {
-  const colors = palette || lightSteel;
+  const colors = palette || anumaSanctuary;
   const isDark = isDarkPalette(paletteId);
   const [currentIndex, setCurrentIndex] = useState(0);
 

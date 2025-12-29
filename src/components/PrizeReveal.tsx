@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ColorPalette, lightSteel, isDarkPalette } from '@/lib/palettes';
+import { ColorPalette, anumaSanctuary, isDarkPalette } from '@/lib/palettes';
 
 // Prize tiers with probabilities (should add up to 100)
 const PRIZE_TIERS = [
@@ -30,7 +30,7 @@ export default function PrizeReveal({
   palette,
   paletteId = '3'
 }: PrizeRevealProps) {
-  const colors = palette || lightSteel;
+  const colors = palette || anumaSanctuary;
   const isDark = isDarkPalette(paletteId);
 
   const [isRevealing, setIsRevealing] = useState(false);

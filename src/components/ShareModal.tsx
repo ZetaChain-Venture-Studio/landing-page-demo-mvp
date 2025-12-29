@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Copy, Check, Share2 } from 'lucide-react';
-import { ColorPalette, lightSteel, isDarkPalette } from '@/lib/palettes';
+import { ColorPalette, anumaSanctuary, isDarkPalette } from '@/lib/palettes';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -31,7 +31,7 @@ const getRandomShareMessage = () => {
 };
 
 export default function ShareModal({ isOpen, onClose, referralLink, palette, paletteId = '3' }: ShareModalProps) {
-  const colors = palette || lightSteel;
+  const colors = palette || anumaSanctuary;
   const isDark = isDarkPalette(paletteId);
   const [copied, setCopied] = useState(false);
 

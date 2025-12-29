@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, Copy, Check, ExternalLink, Share2, Coins, User, ChevronDown, LogOut } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSnag } from '@/hooks/useSnag';
-import { ColorPalette, lightSteel, isDarkPalette } from '@/lib/palettes';
+import { ColorPalette, anumaSanctuary, isDarkPalette } from '@/lib/palettes';
 import PrizeReveal from './PrizeReveal';
 import ShareModal from './ShareModal';
 import StakingModal from './StakingModal';
@@ -63,8 +63,8 @@ function PointsDashboardTestMode({ email, testWallet, palette, paletteId }: { em
   );
 }
 
-export default function PointsDashboard({ email, testWallet, palette, paletteId = '3' }: PointsDashboardProps) {
-  const colors = palette || lightSteel;
+export default function PointsDashboard({ email, testWallet, palette, paletteId = '2' }: PointsDashboardProps) {
+  const colors = palette || anumaSanctuary;
 
   if (testWallet) {
     return <PointsDashboardTestMode email={email} testWallet={testWallet} palette={colors} paletteId={paletteId} />;
@@ -167,13 +167,29 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     autoCompleteWaitlist();
   }, [snagAccount, snagRules, ruleStatuses, waitlistCompleted, completeRule, refreshData]);
 
+  // Social media links for Anuma
+  const socialLinks = {
+    x: 'https://x.com/anumaai',
+    instagram: 'https://www.instagram.com/anuma_ai/',
+    tiktok: 'https://www.tiktok.com/@anuma.ai',
+    youtube: 'https://www.youtube.com/@Anuma_AI',
+    reddit: 'https://www.reddit.com/r/Anuma_AI/',
+    linkedin: 'https://www.linkedin.com/company/anuma-ai',
+    telegram: 'https://t.me/AnumaAI',
+  };
+
   // Convert Snag rules to tasks
   const tasks: Task[] = useMemo(() => {
     if (snagRules.length === 0) {
       return [
-        { id: 'waitlist', title: 'Join the Waitlist', description: 'Sign up for early access', points: 100, completed: true, action: 'Joined', claimType: 'auto' },
-        { id: 'follow_x', title: 'Follow us on X', description: 'Stay updated with news', points: 50, completed: false, action: 'Follow', ctaUrl: 'https://x.com/anaborges' },
-        { id: 'invite_friend', title: 'Invite a Friend', description: 'Share your referral link', points: 200, completed: false, action: 'Invite', type: 'referral' },
+        { id: 'waitlist', title: 'Secure Your Presence', description: 'Connect and apply for membership', points: 400, completed: true, action: 'Secured', claimType: 'auto' },
+        { id: 'follow_x', title: 'Follow on X', description: 'Align with the pulse on X/Twitter', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.x },
+        { id: 'follow_instagram', title: 'Follow on Instagram', description: 'Join our visual journey', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.instagram },
+        { id: 'follow_tiktok', title: 'Follow on TikTok', description: 'Discover short-form insights', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.tiktok },
+        { id: 'follow_youtube', title: 'Subscribe on YouTube', description: 'Watch in-depth content', points: 100, completed: false, action: 'Subscribe', ctaUrl: socialLinks.youtube },
+        { id: 'follow_telegram', title: 'Join Telegram', description: 'Connect with the community', points: 100, completed: false, action: 'Join', ctaUrl: socialLinks.telegram },
+        { id: 'share', title: 'State Your Intent', description: 'Share the news of our opening', points: 300, completed: false, action: 'Share', type: 'share' },
+        { id: 'invite_friend', title: 'Extend an Invitation', description: 'Invite a fellow Architect to the estate', points: 250, completed: false, action: 'Invite', type: 'referral' },
       ];
     }
 
@@ -396,11 +412,11 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
             animate={{ opacity: 1, y: 0 }}
             className="mb-12"
           >
-            <h1 className="text-4xl font-light tracking-tight mb-2" style={{ color: palette.text }}>
-              Welcome back
+            <h1 className="text-4xl font-light tracking-tight mb-2 italic" style={{ color: palette.text, fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+              Securing Your Foundation
             </h1>
-            <p style={{ color: palette.textMuted }}>
-              Complete tasks to earn points and climb the leaderboard.
+            <p className="max-w-2xl" style={{ color: palette.textMuted }}>
+              We are building the ground you stand on. By participating in the pre-launch rituals, you earn Foundation Credits that will manifest as AI Credits upon the public opening of the sanctuary.
             </p>
           </motion.div>
 
@@ -408,7 +424,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
             {/* Left: Tasks */}
             <div className="lg:col-span-2 space-y-4">
               <h2 className="text-sm uppercase tracking-widest mb-4" style={{ color: palette.textLight }}>
-                Tasks
+                Foundation Rituals
               </h2>
 
               {tasks.map((task, index) => {
@@ -583,10 +599,10 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
               className="lg:sticky lg:top-8 h-fit"
             >
               <div className="p-6 rounded-2xl border" style={{ backgroundColor: palette.bg, borderColor: palette.border }}>
-                {/* Points */}
+                {/* Credits */}
                 <div className="mb-6 pb-6 border-b" style={{ borderColor: palette.border }}>
                   <p className="text-sm uppercase tracking-widest mb-2" style={{ color: palette.textLight }}>
-                    Total Points
+                    Foundation Credits
                   </p>
                   <motion.p
                     className="text-5xl font-light tracking-tight"

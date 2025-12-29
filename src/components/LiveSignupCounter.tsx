@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users } from 'lucide-react';
-import { ColorPalette, lightSteel, isDarkPalette } from '@/lib/palettes';
+import { ColorPalette, anumaSanctuary, isDarkPalette } from '@/lib/palettes';
 
 interface LiveSignupCounterProps {
   palette?: ColorPalette;
@@ -11,7 +11,7 @@ interface LiveSignupCounterProps {
 }
 
 export default function LiveSignupCounter({ palette, paletteId = '3' }: LiveSignupCounterProps) {
-  const colors = palette || lightSteel;
+  const colors = palette || anumaSanctuary;
   const isDark = isDarkPalette(paletteId);
 
   // Start with a random number between 10k-45k for hype

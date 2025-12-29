@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Coins, ArrowUpCircle, ArrowDownCircle, Loader2 } from 'lucide-react';
-import { ColorPalette, lightSteel, isDarkPalette } from '@/lib/palettes';
+import { ColorPalette, anumaSanctuary, isDarkPalette } from '@/lib/palettes';
 import { useWallets } from '@privy-io/react-auth';
 import { encodeFunctionData, formatUnits, parseUnits, createPublicClient, http } from 'viem';
 import { zetachain } from 'viem/chains';
@@ -26,7 +26,7 @@ export default function StakingModal({
   paletteId = '3',
   onStakeSuccess
 }: StakingModalProps) {
-  const colors = palette || lightSteel;
+  const colors = palette || anumaSanctuary;
   const isDark = isDarkPalette(paletteId);
   const { wallets } = useWallets();
 

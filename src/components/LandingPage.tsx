@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { usePrivyConfig } from '@/providers/PrivyProvider';
-import { ColorPalette, lightSteel, isDarkPalette } from '@/lib/palettes';
+import { ColorPalette, anumaSanctuary, isDarkPalette } from '@/lib/palettes';
 import PointsDashboard from './PointsDashboard';
 import LiveSignupCounter from './LiveSignupCounter';
 import RotatingAIName from './RotatingAIName';
@@ -177,9 +177,9 @@ function LandingPageFallback({ palette, paletteId }: { palette: ColorPalette; pa
   );
 }
 
-export default function LandingPage({ paletteId = '3', palette }: LandingPageProps) {
+export default function LandingPage({ paletteId = '2', palette }: LandingPageProps) {
   const { isConfigured } = usePrivyConfig();
-  const colors = palette || lightSteel;
+  const colors = palette || anumaSanctuary;
 
   return isConfigured
     ? <LandingPageWithPrivy palette={colors} paletteId={paletteId} />
@@ -318,12 +318,10 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-4xl md:text-6xl lg:text-7xl font-light tracking-tight leading-[1.1] mb-6"
-            style={{ color: palette.text }}
+            className="text-4xl md:text-6xl lg:text-7xl font-light tracking-tight leading-[1.1] mb-6 italic"
+            style={{ color: palette.text, fontFamily: "'Georgia', 'Times New Roman', serif" }}
           >
-            Let <RotatingAIName palette={palette} paletteId={paletteId} />
-            <br />
-            Remember Everything
+            Your mind finally has a home.
           </motion.h1>
 
           {/* Subtitle */}
@@ -331,12 +329,10 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="text-lg md:text-xl max-w-xl mx-auto mb-12 leading-relaxed"
+            className="text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed"
             style={{ color: palette.textMuted }}
           >
-            Unlimited context that follows you across every AI.
-            <br />
-            One memory. Any model. Always private.
+            Step out of digital exile and into the cognitive sanctuary. Reclaim your intelligence from fragmented silos and constant surveillance. Anuma is the unified memory layer where your data remains encrypted, sovereign, and entirely your own.
           </motion.p>
 
           {/* Email Form */}
@@ -369,7 +365,7 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
                   color: isDark ? palette.bg : '#ffffff'
                 }}
               >
-                Join Waitlist
+                Begin Your Inauguration
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -436,6 +432,78 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             </div>
           </motion.div>
         </div>
+
+        {/* Features Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.7 }}
+          className="mt-32 max-w-4xl mx-auto"
+        >
+          <h2 className="text-2xl md:text-3xl font-light text-center mb-4 italic" style={{ color: palette.text, fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+            One Memory. Every Model. Fully Private.
+          </h2>
+          <p className="text-center mb-12" style={{ color: palette.textMuted }}>
+            Anuma is a private-first AI client with a unified memory layer you own and control.
+          </p>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center p-6">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: palette.bgAlt }}>
+                <svg className="w-6 h-6" style={{ color: palette.accent }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
+                </svg>
+              </div>
+              <h3 className="font-medium mb-2" style={{ color: palette.text }}>Unified Memory</h3>
+              <p className="text-sm" style={{ color: palette.textMuted }}>
+                A structured, encrypted memory that travels across every model and every device for maximum personalization.
+              </p>
+            </div>
+
+            <div className="text-center p-6">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: palette.bgAlt }}>
+                <svg className="w-6 h-6" style={{ color: palette.accent }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                </svg>
+              </div>
+              <h3 className="font-medium mb-2" style={{ color: palette.text }}>Private by Design</h3>
+              <p className="text-sm" style={{ color: palette.textMuted }}>
+                Your memory is stored locally, encrypted end-to-end with your keys. Anuma never logs, stores, or trains on your data.
+              </p>
+            </div>
+
+            <div className="text-center p-6">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: palette.bgAlt }}>
+                <svg className="w-6 h-6" style={{ color: palette.accent }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" />
+                </svg>
+              </div>
+              <h3 className="font-medium mb-2" style={{ color: palette.text }}>User-Owned Data</h3>
+              <p className="text-sm" style={{ color: palette.textMuted }}>
+                Your memory is a digital asset secured by your wallet. Portable across apps. Verifiable using blockchain.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* The Foundation Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.8 }}
+          className="mt-24 mb-16 max-w-2xl mx-auto text-center p-8 rounded-2xl"
+          style={{ backgroundColor: palette.bgAlt, border: `1px solid ${palette.border}` }}
+        >
+          <h3 className="text-lg font-medium mb-4 italic" style={{ color: palette.text, fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+            The Foundation
+          </h3>
+          <p className="text-sm mb-4" style={{ color: palette.textMuted }}>
+            Your memory is a digital asset secured by your own wallet. We never log, store, or train on your data. Your Foundation is end-to-end encrypted and portable across every model and app.
+          </p>
+          <p className="text-xs uppercase tracking-widest" style={{ color: palette.textLight }}>
+            Powered by ZetaChain
+          </p>
+        </motion.div>
       </main>
 
       {/* Subtle decorative element */}
