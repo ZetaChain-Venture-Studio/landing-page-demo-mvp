@@ -35,7 +35,7 @@ export default function PrivyProvider({
         config={{
           appearance: {
             theme: "light",
-            accentColor: "#8B9A7D", // Sage green to match warm minimalism
+            accentColor: "#93653D", // Anuma copper/bronze
             logo: undefined,
           },
           loginMethods: [

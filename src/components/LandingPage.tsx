@@ -8,7 +8,6 @@ import { usePrivyConfig } from '@/providers/PrivyProvider';
 import { ColorPalette, anumaSanctuary, isDarkPalette } from '@/lib/palettes';
 import PointsDashboard from './PointsDashboard';
 import LiveSignupCounter from './LiveSignupCounter';
-import RotatingAIName from './RotatingAIName';
 
 // Helper to get user's email from any login method
 function getUserEmail(user: ReturnType<typeof usePrivy>['user']): string {
