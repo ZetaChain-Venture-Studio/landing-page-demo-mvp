@@ -226,10 +226,14 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
-                className="text-5xl md:text-6xl font-light tracking-tight mb-6"
-                style={{ color: palette.text }}
+                className="text-5xl md:text-6xl font-medium mb-6"
+                style={{
+                  color: palette.text,
+                  fontFamily: "'Inter', sans-serif",
+                  letterSpacing: '0.08em',
+                }}
               >
-                anuma.ai
+                ΛNUMΛ
               </motion.h1>
               <motion.div
                 initial={{ scaleX: 0 }}
@@ -259,19 +263,18 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6 }}
-            className="flex items-center gap-2"
+            className="flex items-center"
           >
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium"
+            {/* ANUMA Logo - Typography based with Greek Lambda for A */}
+            <span
+              className="text-2xl font-medium"
               style={{
-                backgroundColor: palette.accent,
-                color: isDark ? palette.bg : '#ffffff'
+                color: palette.text,
+                fontFamily: "'Inter', sans-serif",
+                letterSpacing: '0.08em',
               }}
             >
-              a
-            </div>
-            <span className="text-lg font-medium tracking-tight" style={{ color: palette.text }}>
-              anuma.ai
+              ΛNUMΛ
             </span>
           </motion.div>
 
@@ -317,8 +320,13 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-4xl md:text-6xl lg:text-7xl font-light tracking-tight leading-[1.1] mb-6 italic"
-            style={{ color: palette.text, fontFamily: "'Georgia', 'Times New Roman', serif" }}
+            className="text-5xl md:text-7xl lg:text-8xl font-light leading-[0.975] mb-6"
+            style={{
+              color: palette.text,
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+              fontStyle: 'italic',
+              letterSpacing: '-1.5px',
+            }}
           >
             Your mind finally has a home.
           </motion.h1>
@@ -439,7 +447,15 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
           transition={{ duration: 0.6, delay: 0.7 }}
           className="mt-32 max-w-4xl mx-auto"
         >
-          <h2 className="text-2xl md:text-3xl font-light text-center mb-4 italic" style={{ color: palette.text, fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+          <h2
+            className="text-2xl md:text-3xl font-light text-center mb-4"
+            style={{
+              color: palette.text,
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+              fontStyle: 'italic',
+              letterSpacing: '-0.5px',
+            }}
+          >
             One Memory. Every Model. Fully Private.
           </h2>
           <p className="text-center mb-12" style={{ color: palette.textMuted }}>
@@ -493,15 +509,28 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
           className="mt-24 mb-16 max-w-2xl mx-auto text-center p-8 rounded-2xl"
           style={{ backgroundColor: palette.bgAlt, border: `1px solid ${palette.border}` }}
         >
-          <h3 className="text-lg font-medium mb-4 italic" style={{ color: palette.text, fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+          <h3
+            className="text-lg font-medium mb-4"
+            style={{
+              color: palette.text,
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+              fontStyle: 'italic',
+            }}
+          >
             The Foundation
           </h3>
           <p className="text-sm mb-4" style={{ color: palette.textMuted }}>
             Your memory is a digital asset secured by your own wallet. We never log, store, or train on your data. Your Foundation is end-to-end encrypted and portable across every model and app.
           </p>
-          <p className="text-xs uppercase tracking-widest" style={{ color: palette.textLight }}>
+          <a
+            href="https://www.zetachain.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs uppercase tracking-widest hover:opacity-80 transition-opacity"
+            style={{ color: palette.textLight }}
+          >
             Powered by ZetaChain
-          </p>
+          </a>
         </motion.div>
       </main>
 

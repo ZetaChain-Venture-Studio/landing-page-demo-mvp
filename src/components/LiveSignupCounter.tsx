@@ -70,7 +70,7 @@ export default function LiveSignupCounter({ palette, paletteId = '3' }: LiveSign
         >
           {count.toLocaleString()}
         </motion.span>
-        <span className="text-sm" style={{ color: colors.textMuted }}>
+        <span className="text-xs uppercase tracking-widest" style={{ color: colors.textLight }}>
           joined today
         </span>
       </div>

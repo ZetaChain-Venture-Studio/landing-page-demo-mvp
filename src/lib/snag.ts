@@ -169,19 +169,39 @@ class SnagSolutionsClient {
     if (this.currencyId) baseBody.loyaltyCurrencyId = this.currencyId;
     if (externalIdentifier) baseBody.externalIdentifier = externalIdentifier;
 
-    // Try multiple request formats
+    // Try multiple request formats - Snag uses different endpoints
+    // Based on docs and error responses, try various combinations
     const attempts = [
       {
-        endpoint: '/loyalty/users',
+        // Try with organizationId in path (some Snag setups require this)
+        endpoint: `/loyalty/users`,
         body: { ...baseBody },
       },
       {
+        // Standard user creation endpoint
         endpoint: '/users',
-        body: { ...baseBody },
+        body: {
+          walletAddress: normalizedWallet,
+          organizationId: this.orgId || this.websiteId,
+        },
       },
       {
+        // Try direct account creation
         endpoint: '/loyalty/accounts',
-        body: { ...baseBody },
+        body: {
+          walletAddress: normalizedWallet,
+          organizationId: this.orgId,
+          websiteId: this.websiteId,
+        },
+      },
+      {
+        // Try completing a rule which might auto-create account
+        endpoint: '/loyalty/rules/complete',
+        body: {
+          walletAddress: normalizedWallet,
+          websiteId: this.websiteId,
+          loyaltyRuleId: 'b17b786f-1398-4b78-966a-10a68ae82cbc', // Join waitlist rule
+        },
       },
     ];
 
