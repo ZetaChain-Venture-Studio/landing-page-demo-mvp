@@ -44,6 +44,13 @@ function LandingPageWithPrivy({ palette, paletteId }: { palette: ColorPalette; p
 
   const walletCreated = user?.wallet?.address;
 
+  // Debug: Log on mount to verify component is loaded
+  useEffect(() => {
+    console.log('[DEBUG] LandingPageWithPrivy mounted');
+    console.log('[DEBUG] login function exists:', typeof login === 'function');
+    console.log('[DEBUG] Privy ready:', ready);
+  }, [login, ready]);
+
   const [isNewSignup, setIsNewSignup] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('anuma_new_signup') === 'true';
@@ -76,9 +83,14 @@ function LandingPageWithPrivy({ palette, paletteId }: { palette: ColorPalette; p
     }
 
     console.log('[DEBUG] Calling login() with email prefill');
-    login({
-      prefill: { type: 'email', value: email },
-    });
+    try {
+      login({
+        prefill: { type: 'email', value: email },
+      });
+      console.log('[DEBUG] login() called successfully');
+    } catch (error) {
+      console.error('[DEBUG] login() threw error:', error);
+    }
   };
 
   // Save user to database when authenticated
@@ -156,7 +168,12 @@ function LandingPageWithPrivy({ palette, paletteId }: { palette: ColorPalette; p
         console.log('[DEBUG] Sign in button clicked');
         setIsNewSignup(true);
         console.log('[DEBUG] Calling login()');
-        login();
+        try {
+          login();
+          console.log('[DEBUG] login() called successfully');
+        } catch (error) {
+          console.error('[DEBUG] login() threw error:', error);
+        }
       }}
       palette={palette}
       paletteId={paletteId}
