@@ -169,12 +169,9 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
 
   // Social media links for Anuma
   const socialLinks = {
-    x: 'https://x.com/anumaai',
+    x: 'https://x.com/anaborges___',
     instagram: 'https://www.instagram.com/anuma_ai/',
     tiktok: 'https://www.tiktok.com/@anuma.ai',
-    youtube: 'https://www.youtube.com/@Anuma_AI',
-    reddit: 'https://www.reddit.com/r/Anuma_AI/',
-    linkedin: 'https://www.linkedin.com/company/anuma-ai',
     telegram: 'https://t.me/AnumaAI',
   };
 
@@ -182,14 +179,13 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   const tasks: Task[] = useMemo(() => {
     if (snagRules.length === 0) {
       return [
-        { id: 'waitlist', title: 'Secure Your Presence', description: 'Connect and apply for membership', points: 400, completed: true, action: 'Secured', claimType: 'auto' },
-        { id: 'follow_x', title: 'Follow on X', description: 'Align with the pulse on X/Twitter', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.x },
+        { id: 'waitlist', title: 'Join the Waitlist', description: 'Connect your wallet and secure your spot', points: 400, completed: true, action: 'Completed', claimType: 'auto' },
+        { id: 'follow_x', title: 'Follow on X', description: 'Stay updated with our latest announcements', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.x },
         { id: 'follow_instagram', title: 'Follow on Instagram', description: 'Join our visual journey', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.instagram },
         { id: 'follow_tiktok', title: 'Follow on TikTok', description: 'Discover short-form insights', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.tiktok },
-        { id: 'follow_youtube', title: 'Subscribe on YouTube', description: 'Watch in-depth content', points: 100, completed: false, action: 'Subscribe', ctaUrl: socialLinks.youtube },
         { id: 'follow_telegram', title: 'Join Telegram', description: 'Connect with the community', points: 100, completed: false, action: 'Join', ctaUrl: socialLinks.telegram },
-        { id: 'share', title: 'State Your Intent', description: 'Share the news of our opening', points: 300, completed: false, action: 'Share', type: 'share' },
-        { id: 'invite_friend', title: 'Extend an Invitation', description: 'Invite a fellow Architect to the estate', points: 250, completed: false, action: 'Invite', type: 'referral' },
+        { id: 'share', title: 'Share Your Journey', description: 'Quote tweet our launch post', points: 300, completed: false, action: 'Share', type: 'share' },
+        { id: 'invite_friend', title: 'Invite a Friend', description: 'Earn points when your referral signs up', points: 250, completed: false, action: 'Invite', type: 'referral' },
       ];
     }
 
@@ -305,18 +301,17 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
       {/* Header */}
       <header className="px-8 py-6 border-b" style={{ borderColor: palette.border }}>
         <nav className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium"
+          <div className="flex items-center">
+            {/* ANUMA Logo - Typography based with Greek Lambda for A */}
+            <span
+              className="text-2xl font-medium"
               style={{
-                backgroundColor: palette.accent,
-                color: isDark ? palette.bg : '#ffffff'
+                color: palette.text,
+                fontFamily: "'Inter', sans-serif",
+                letterSpacing: '0.08em',
               }}
             >
-              a
-            </div>
-            <span className="text-lg font-medium" style={{ color: palette.text }}>
-              anuma.ai
+              ΛNUMΛ
             </span>
           </div>
 
@@ -412,7 +407,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
             animate={{ opacity: 1, y: 0 }}
             className="mb-12"
           >
-            <h1 className="text-4xl font-light tracking-tight mb-2 italic" style={{ color: palette.text, fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+            <h1 className="text-4xl font-light tracking-tight mb-2" style={{ color: palette.text, fontFamily: "'Cormorant Garamond', Georgia, serif", fontStyle: 'italic' }}>
               Securing Your Foundation
             </h1>
             <p className="max-w-2xl" style={{ color: palette.textMuted }}>
@@ -517,77 +512,73 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                 );
               })}
 
-              {/* Staking Section */}
+              {/* More Coming Soon Task */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.35 }}
-                className="p-5 rounded-xl border mt-6"
-                style={{ backgroundColor: palette.bg, borderColor: palette.border }}
+                className="p-5 rounded-xl border mt-4"
+                style={{ backgroundColor: palette.bgAlt, borderColor: palette.border, opacity: 0.7 }}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Coins className="w-5 h-5" style={{ color: palette.accent }} />
-                      <h3 className="font-medium" style={{ color: palette.text }}>Stake ZETA</h3>
-                    </div>
-                    <p className="text-sm mb-3" style={{ color: palette.textMuted }}>
-                      Stake ZETA tokens to earn points. 1 point per ZETA staked.
-                    </p>
-                    <button
-                      onClick={() => setShowStakingModal(true)}
-                      className="px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2"
-                      style={{
-                        backgroundColor: palette.accent,
-                        color: isDark ? palette.bg : '#ffffff'
-                      }}
-                    >
-                      <Coins className="w-4 h-4" />
-                      Stake Now
-                    </button>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: palette.border }}>
+                    <span style={{ color: palette.textLight }}>✨</span>
                   </div>
-                  <div className="text-right">
-                    <span className="text-lg font-medium" style={{ color: palette.accent }}>
-                      +1
-                    </span>
-                    <span className="text-sm ml-1" style={{ color: palette.textLight }}>pt/ZETA</span>
+                  <div>
+                    <h3 className="font-medium" style={{ color: palette.textMuted }}>More Ways to Earn</h3>
+                    <p className="text-sm" style={{ color: palette.textLight }}>Coming soon...</p>
                   </div>
                 </div>
               </motion.div>
 
-              {/* Prize Reveal Section */}
+              {/* Coming Soon Section */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="p-6 rounded-xl border mt-6"
-                style={{ backgroundColor: palette.bgAlt, borderColor: palette.border }}
+                className="mt-8"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="font-medium" style={{ color: palette.text }}>Daily Reward</h3>
-                    <p className="text-sm" style={{ color: palette.textMuted }}>
-                      Reveal your bonus points
-                    </p>
+                <h2 className="text-sm uppercase tracking-widest mb-4" style={{ color: palette.textLight }}>
+                  Coming Soon
+                </h2>
+                <div className="space-y-3">
+                  <div
+                    className="p-4 rounded-xl border flex items-center gap-3"
+                    style={{ backgroundColor: palette.bgAlt, borderColor: palette.border, opacity: 0.6 }}
+                  >
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: palette.border }}>
+                      <span className="text-sm">🔒</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-sm" style={{ color: palette.textMuted }}>Private AI Inference Session</p>
+                      <p className="text-xs" style={{ color: palette.textLight }}>Invite-only early access</p>
+                    </div>
                   </div>
-                  {revealsRemaining > 0 && (
-                    <button
-                      onClick={() => setShowPrizeReveal(true)}
-                      className="px-4 py-2 text-sm font-medium rounded-lg"
-                      style={{
-                        backgroundColor: palette.accent,
-                        color: isDark ? palette.bg : '#ffffff'
-                      }}
-                    >
-                      Reveal Prize
-                    </button>
-                  )}
+                  <div
+                    className="p-4 rounded-xl border flex items-center gap-3"
+                    style={{ backgroundColor: palette.bgAlt, borderColor: palette.border, opacity: 0.6 }}
+                  >
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: palette.border }}>
+                      <Coins className="w-4 h-4" style={{ color: palette.textLight }} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-sm" style={{ color: palette.textMuted }}>ZETA Staking Integration</p>
+                      <p className="text-xs" style={{ color: palette.textLight }}>Stake to earn bonus credits</p>
+                    </div>
+                  </div>
+                  <div
+                    className="p-4 rounded-xl border flex items-center gap-3"
+                    style={{ backgroundColor: palette.bgAlt, borderColor: palette.border, opacity: 0.6 }}
+                  >
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: palette.border }}>
+                      <span className="text-sm">🤖</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-sm" style={{ color: palette.textMuted }}>First AI Agent Creation</p>
+                      <p className="text-xs" style={{ color: palette.textLight }}>Build your own AI agent</p>
+                    </div>
+                  </div>
                 </div>
-                {revealsRemaining <= 0 && (
-                  <p className="text-sm" style={{ color: palette.textLight }}>
-                    Come back tomorrow for another chance!
-                  </p>
-                )}
               </motion.div>
             </div>
 
@@ -613,10 +604,13 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                   >
                     {totalPoints.toLocaleString()}
                   </motion.p>
+                  <p className="text-xs mt-2" style={{ color: palette.textLight }}>
+                    Credits count toward future rewards
+                  </p>
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 mb-6 pb-6 border-b" style={{ borderColor: palette.border }}>
                   <div>
                     <p className="text-xs uppercase tracking-widest mb-1" style={{ color: palette.textLight }}>Rank</p>
                     <p className="text-xl font-medium" style={{ color: palette.text }}>
@@ -627,6 +621,36 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                     <p className="text-xs uppercase tracking-widest mb-1" style={{ color: palette.textLight }}>Tasks</p>
                     <p className="text-xl font-medium" style={{ color: palette.text }}>
                       {completedTasksCount}/{tasks.length}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Early Access - Locked Feature */}
+                <div
+                  className="p-4 rounded-xl border relative overflow-hidden"
+                  style={{ backgroundColor: palette.bgAlt, borderColor: palette.border }}
+                >
+                  <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.03)' }}>
+                    <span className="text-4xl opacity-20">🔒</span>
+                  </div>
+                  <div className="relative z-10">
+                    <p className="font-medium text-sm mb-1" style={{ color: palette.textMuted }}>
+                      Get Early Access
+                    </p>
+                    <p className="text-xs mb-2" style={{ color: palette.textLight }}>
+                      Unlock at 100,000 credits
+                    </p>
+                    <div className="w-full h-2 rounded-full" style={{ backgroundColor: palette.border }}>
+                      <div
+                        className="h-2 rounded-full transition-all"
+                        style={{
+                          backgroundColor: palette.accent,
+                          width: `${Math.min((totalPoints / 100000) * 100, 100)}%`
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs mt-1 text-right" style={{ color: palette.textLight }}>
+                      {totalPoints.toLocaleString()} / 100,000
                     </p>
                   </div>
                 </div>
