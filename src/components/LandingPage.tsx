@@ -63,13 +63,19 @@ function LandingPageWithPrivy({ palette, paletteId }: { palette: ColorPalette; p
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    console.log('[DEBUG] Form submitted, email:', email);
+    if (!email) {
+      console.log('[DEBUG] No email, returning');
+      return;
+    }
 
+    console.log('[DEBUG] Setting isNewSignup to true');
     setIsNewSignup(true);
     if (typeof window !== 'undefined') {
       localStorage.setItem('anuma_new_signup', 'true');
     }
 
+    console.log('[DEBUG] Calling login() with email prefill');
     login({
       prefill: { type: 'email', value: email },
     });
@@ -147,7 +153,9 @@ function LandingPageWithPrivy({ palette, paletteId }: { palette: ColorPalette; p
       showAnimation={showAnimation}
       onSubmit={handleSubmit}
       onLoginClick={() => {
+        console.log('[DEBUG] Sign in button clicked');
         setIsNewSignup(true);
+        console.log('[DEBUG] Calling login()');
         login();
       }}
       palette={palette}
@@ -282,12 +290,16 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6 }}
-            onClick={onLoginClick}
-            className="px-4 py-2 text-sm transition-colors border rounded-lg"
+            onClick={() => {
+              console.log('[DEBUG] Sign in button onClick triggered');
+              onLoginClick();
+            }}
+            className="px-4 py-2 text-sm transition-colors border rounded-lg hover:bg-opacity-10 cursor-pointer"
             style={{
               color: palette.textMuted,
               borderColor: palette.border,
             }}
+            type="button"
           >
             Sign in
           </motion.button>
@@ -366,7 +378,8 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
               />
               <button
                 type="submit"
-                className="px-8 py-4 text-sm font-medium rounded-xl transition-all hover:opacity-90 flex items-center justify-center gap-2"
+                onClick={() => console.log('[DEBUG] Submit button clicked')}
+                className="px-8 py-4 text-sm font-medium rounded-xl transition-all hover:opacity-90 flex items-center justify-center gap-2 cursor-pointer"
                 style={{
                   backgroundColor: palette.accent,
                   color: isDark ? palette.bg : '#ffffff'
