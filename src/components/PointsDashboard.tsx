@@ -213,7 +213,13 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     });
   }, [snagRules, ruleStatuses]);
 
-  const totalPoints = (snagAccount?.points || 0) + bonusPoints + stakingPoints;
+  // Calculate points from completed tasks (fallback when Snag isn't working)
+  const completedTasksPoints = useMemo(() => {
+    return tasks.reduce((sum, task) => task.completed ? sum + task.points : sum, 0);
+  }, [tasks]);
+
+  // Use Snag points if available, otherwise use local calculation
+  const totalPoints = (snagAccount?.points || completedTasksPoints) + bonusPoints + stakingPoints;
   const rank = snagRank?.position || 0;
   const totalUsers = snagRank?.total || 0;
   const rankPercent = totalUsers > 0 && rank > 0 ? Math.ceil((rank / totalUsers) * 100) : null;
