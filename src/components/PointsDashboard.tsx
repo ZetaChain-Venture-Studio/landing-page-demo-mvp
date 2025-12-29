@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, Copy, Check, ExternalLink, Share2, Coins, User, ChevronDown, LogOut } from 'lucide-react';
+import { CheckCircle, Copy, Check, ExternalLink, Share2, User, ChevronDown, LogOut } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSnag } from '@/hooks/useSnag';
 import { ColorPalette, anumaSanctuary, isDarkPalette } from '@/lib/palettes';
@@ -169,7 +169,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
 
   // Social media links for Anuma
   const socialLinks = {
-    x: 'https://x.com/anaborges___',
+    x: 'https://x.com/anuma_ai',
     instagram: 'https://www.instagram.com/anuma_ai/',
     tiktok: 'https://www.tiktok.com/@anuma.ai',
     telegram: 'https://t.me/AnumaAI',
@@ -184,6 +184,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
         { id: 'follow_instagram', title: 'Follow on Instagram', description: 'Join our visual journey', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.instagram },
         { id: 'follow_tiktok', title: 'Follow on TikTok', description: 'Discover short-form insights', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.tiktok },
         { id: 'follow_telegram', title: 'Join Telegram', description: 'Connect with the community', points: 100, completed: false, action: 'Join', ctaUrl: socialLinks.telegram },
+        { id: 'stake_zeta', title: 'Stake and Earn', description: 'Stake ZETA to earn 1 point per ZETA staked', points: 1, completed: stakingPoints > 0, action: 'Stake', type: 'staking' },
         { id: 'share', title: 'Share Your Journey', description: 'Quote tweet our launch post', points: 300, completed: false, action: 'Share', type: 'share' },
         { id: 'invite_friend', title: 'Invite a Friend', description: 'Earn points when your referral signs up', points: 250, completed: false, action: 'Invite', type: 'referral' },
       ];
@@ -211,7 +212,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
         ctaUrl,
       };
     });
-  }, [snagRules, ruleStatuses]);
+  }, [snagRules, ruleStatuses, stakingPoints, socialLinks.x, socialLinks.instagram, socialLinks.tiktok, socialLinks.telegram]);
 
   // Calculate points from completed tasks (fallback when Snag isn't working)
   const completedTasksPoints = useMemo(() => {
@@ -249,6 +250,11 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
 
     if (task.type === 'referral') {
       await copyReferralLink();
+      return;
+    }
+
+    if (task.type === 'staking') {
+      setShowStakingModal(true);
       return;
     }
 
@@ -536,56 +542,6 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                   </div>
                 </div>
               </motion.div>
-
-              {/* Coming Soon Section */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="mt-8"
-              >
-                <h2 className="text-sm uppercase tracking-widest mb-4" style={{ color: palette.textLight }}>
-                  Coming Soon
-                </h2>
-                <div className="space-y-3">
-                  <div
-                    className="p-4 rounded-xl border flex items-center gap-3"
-                    style={{ backgroundColor: palette.bgAlt, borderColor: palette.border, opacity: 0.6 }}
-                  >
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: palette.border }}>
-                      <span className="text-sm">🔒</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm" style={{ color: palette.textMuted }}>Private AI Inference Session</p>
-                      <p className="text-xs" style={{ color: palette.textLight }}>Invite-only early access</p>
-                    </div>
-                  </div>
-                  <div
-                    className="p-4 rounded-xl border flex items-center gap-3"
-                    style={{ backgroundColor: palette.bgAlt, borderColor: palette.border, opacity: 0.6 }}
-                  >
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: palette.border }}>
-                      <Coins className="w-4 h-4" style={{ color: palette.textLight }} />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm" style={{ color: palette.textMuted }}>ZETA Staking Integration</p>
-                      <p className="text-xs" style={{ color: palette.textLight }}>Stake to earn bonus credits</p>
-                    </div>
-                  </div>
-                  <div
-                    className="p-4 rounded-xl border flex items-center gap-3"
-                    style={{ backgroundColor: palette.bgAlt, borderColor: palette.border, opacity: 0.6 }}
-                  >
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: palette.border }}>
-                      <span className="text-sm">🤖</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm" style={{ color: palette.textMuted }}>First AI Agent Creation</p>
-                      <p className="text-xs" style={{ color: palette.textLight }}>Build your own AI agent</p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
             </div>
 
             {/* Right: Stats Card */}
@@ -633,15 +589,12 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
 
                 {/* Early Access - Locked Feature */}
                 <div
-                  className="p-4 rounded-xl border relative overflow-hidden"
+                  className="p-4 rounded-xl border"
                   style={{ backgroundColor: palette.bgAlt, borderColor: palette.border }}
                 >
-                  <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.03)' }}>
-                    <span className="text-4xl opacity-20">🔒</span>
-                  </div>
-                  <div className="relative z-10">
-                    <p className="font-medium text-sm mb-1" style={{ color: palette.textMuted }}>
-                      Get Early Access
+                  <div>
+                    <p className="font-medium text-sm mb-1 flex items-center gap-2" style={{ color: palette.textMuted }}>
+                      <span>🔒</span> Get Early Access
                     </p>
                     <p className="text-xs mb-2" style={{ color: palette.textLight }}>
                       Unlock at 100,000 credits
