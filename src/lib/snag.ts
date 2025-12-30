@@ -158,9 +158,9 @@ class SnagSolutionsClient {
       },
       {
         // Method 3: Complete waitlist rule (auto-creates account)
-        endpoint: '/loyalty/rules/complete',
+        // Rule ID goes in URL path, not body
+        endpoint: '/loyalty/rules/b17b786f-1398-4b78-966a-10a68ae82cbc/complete',
         body: {
-          loyaltyRuleId: 'b17b786f-1398-4b78-966a-10a68ae82cbc', // Join waitlist rule
           walletAddress: normalizedWallet,
           websiteId: this.websiteId,
         },
@@ -254,10 +254,10 @@ class SnagSolutionsClient {
   async completeRule(userId: string, ruleId: string): Promise<boolean> {
     try {
       console.log('[Snag] Completing rule:', { userId, ruleId });
-      await this.request('/loyalty/rules/complete', {
+      // Rule ID goes in URL path per Snag API
+      await this.request(`/loyalty/rules/${ruleId}/complete`, {
         method: 'POST',
         body: JSON.stringify({
-          loyaltyRuleId: ruleId,
           userId,
           websiteId: this.websiteId,
         }),
@@ -280,10 +280,10 @@ class SnagSolutionsClient {
 
       // Try completing with wallet directly
       console.log('[Snag] Completing rule with wallet address');
-      await this.request('/loyalty/rules/complete', {
+      // Rule ID goes in URL path per Snag API
+      await this.request(`/loyalty/rules/${ruleId}/complete`, {
         method: 'POST',
         body: JSON.stringify({
-          loyaltyRuleId: ruleId,
           walletAddress: walletAddress.toLowerCase(),
           websiteId: this.websiteId,
         }),
