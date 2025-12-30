@@ -340,7 +340,7 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
               style={{ backgroundColor: palette.accent }}
             />
             <span className="text-xs uppercase tracking-widest" style={{ color: palette.textMuted }}>
-              Limited Early Access
+              Early Membership
             </span>
           </motion.div>
 
@@ -436,7 +436,7 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
                 12,847
               </div>
               <div className="text-xs uppercase tracking-widest" style={{ color: palette.textLight }}>
-                On Waitlist
+                Pending Applications
               </div>
             </div>
 

@@ -184,9 +184,9 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
         { id: 'follow_instagram', title: 'Follow on Instagram', description: 'Join our visual journey', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.instagram },
         { id: 'follow_tiktok', title: 'Follow on TikTok', description: 'Discover short-form insights', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.tiktok },
         { id: 'follow_telegram', title: 'Join Telegram', description: 'Connect with the community', points: 100, completed: false, action: 'Join', ctaUrl: socialLinks.telegram },
-        { id: 'stake_zeta', title: 'Stake and Earn', description: 'Stake ZETA to earn 1 point per ZETA staked', points: 1, completed: stakingPoints > 0, action: 'Stake', type: 'staking' },
         { id: 'share', title: 'Share Your Journey', description: 'Quote tweet our launch post', points: 300, completed: false, action: 'Share', type: 'share' },
-        { id: 'invite_friend', title: 'Invite a Friend', description: 'Earn points when your referral signs up', points: 250, completed: false, action: 'Invite', type: 'referral' },
+        { id: 'invite_friend', title: 'Extend an Invitation', description: 'Earn Credits when your referral signs up', points: 250, completed: false, action: 'Invite', type: 'referral' },
+        { id: 'stake_zeta', title: 'Anchor the Foundation', description: 'Earn 1 Credit for each ZETA token you stake to the Foundation', points: 1, completed: stakingPoints > 0, action: 'Stake', type: 'staking' },
       ];
     }
 
@@ -420,10 +420,10 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
             className="mb-12"
           >
             <h1 className="text-4xl font-light tracking-tight mb-2" style={{ color: palette.text, fontFamily: "'Cormorant Garamond', Georgia, serif", fontStyle: 'italic' }}>
-              Securing Your Foundation
+              Building Your Foundation
             </h1>
             <p className="max-w-2xl" style={{ color: palette.textMuted }}>
-              We are building the ground you stand on. By participating in the pre-launch rituals, you earn Foundation Credits that will manifest as AI Credits upon the public opening of the sanctuary.
+              By participating in the pre-launch rituals, you earn Foundation Credits that will manifest as AI Credits upon the public opening of the sanctuary. Your Foundation Credits represent your early stake in Anuma.
             </p>
           </motion.div>
 
@@ -494,7 +494,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                               }}
                             >
                               <Share2 className="w-4 h-4" />
-                              Share & Earn Points
+                              Share & Earn Credits
                             </button>
                           </div>
                         ) : !task.completed ? (
@@ -517,7 +517,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                         <span className="text-lg font-medium" style={{ color: palette.accent }}>
                           +{task.points}
                         </span>
-                        <span className="text-sm ml-1" style={{ color: palette.textLight }}>pts</span>
+                        <span className="text-sm ml-1" style={{ color: palette.textLight }}>Credits</span>
                       </div>
                     </div>
                   </motion.div>
@@ -593,23 +593,23 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                   style={{ backgroundColor: palette.bgAlt, borderColor: palette.border }}
                 >
                   <div>
-                    <p className="font-medium text-sm mb-1 flex items-center gap-2" style={{ color: palette.textMuted }}>
-                      <span>🔒</span> Get Early Access
+                    <p className="font-medium text-sm mb-1 flex items-center gap-2" style={{ color: totalPoints >= 10000 ? palette.success : palette.textMuted }}>
+                      <span>{totalPoints >= 10000 ? '✓' : '🔒'}</span> {totalPoints >= 10000 ? 'Eligibility Confirmed' : 'Seeking Inauguration'}
                     </p>
                     <p className="text-xs mb-2" style={{ color: palette.textLight }}>
-                      Unlock at 100,000 credits
+                      Priority eligibility at 10,000 credits
                     </p>
                     <div className="w-full h-2 rounded-full" style={{ backgroundColor: palette.border }}>
                       <div
                         className="h-2 rounded-full transition-all"
                         style={{
-                          backgroundColor: palette.accent,
-                          width: `${Math.min((totalPoints / 100000) * 100, 100)}%`
+                          backgroundColor: totalPoints >= 10000 ? palette.success : palette.accent,
+                          width: `${Math.min((totalPoints / 10000) * 100, 100)}%`
                         }}
                       />
                     </div>
                     <p className="text-xs mt-1 text-right" style={{ color: palette.textLight }}>
-                      {totalPoints.toLocaleString()} / 100,000
+                      {totalPoints.toLocaleString()} / 10,000
                     </p>
                   </div>
                 </div>

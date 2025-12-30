@@ -13,14 +13,14 @@ interface ShareModalProps {
   paletteId?: string;
 }
 
-// Share message variants for variety
+// Share message variants for variety (includes @anuma_ai handle)
 const SHARE_MESSAGES = [
-  "One memory layer that works across ANY AI model. Switch between GPT, Claude, Gemini - your context follows you:",
-  "Why start fresh every time you switch AI models? anuma.ai keeps your context portable across all of them:",
-  "Finally - use any AI model you want and your history follows you. No more context lock-in:",
-  "Your AI context shouldn't be trapped in one model. anuma.ai makes it portable. Join early:",
-  "Switching from ChatGPT to Claude? Your conversations and context come with you. This changes everything:",
-  "One unified memory across every AI. No more repeating yourself when you switch models:",
+  "One memory layer that works across ANY AI model. Switch between GPT, Claude, Gemini - your context follows you. @anuma_ai",
+  "Why start fresh every time you switch AI models? @anuma_ai keeps your context portable across all of them.",
+  "Finally - use any AI model you want and your history follows you. No more context lock-in. @anuma_ai",
+  "Your AI context shouldn't be trapped in one model. @anuma_ai makes it portable. Join early:",
+  "Switching from ChatGPT to Claude? Your conversations and context come with you. This changes everything. @anuma_ai",
+  "One unified memory across every AI. No more repeating yourself when you switch models. @anuma_ai",
 ];
 
 const SHARE_TITLE = "anuma.ai - Early Access";
@@ -168,7 +168,7 @@ export default function ShareModal({ isOpen, onClose, referralLink, palette, pal
                 Share & Earn
               </h2>
               <p className="text-sm" style={{ color: colors.textMuted }}>
-                Invite friends and earn 200 points per signup
+                Invite friends and earn 250 Credits per signup
               </p>
             </div>
 
