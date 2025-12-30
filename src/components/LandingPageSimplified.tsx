@@ -12,17 +12,11 @@ import LiveSignupCounter from './LiveSignupCounter';
 // Helper to get user's email from any login method
 function getUserEmail(user: ReturnType<typeof usePrivy>['user']): string {
   if (!user) return '';
-  // Email login
   if (user.email?.address) return user.email.address;
-  // Google login
   if (user.google?.email) return user.google.email;
-  // Apple login
   if (user.apple?.email) return user.apple.email;
-  // Twitter/X - no email, use username
   if (user.twitter?.username) return `@${user.twitter.username}`;
-  // TikTok - no email, use username
   if (user.tiktok?.username) return `@${user.tiktok.username}`;
-  // Fallback to any linked account email
   for (const account of user.linkedAccounts || []) {
     if ('email' in account && account.email) return account.email as string;
   }
@@ -34,22 +28,14 @@ interface LandingPageProps {
   palette?: ColorPalette;
 }
 
-// Inner component that uses Privy hooks
+// Inner component that uses Privy hooks - SIMPLIFIED: No email input, opens Privy directly
 function LandingPageWithPrivy({ palette, paletteId }: { palette: ColorPalette; paletteId: string }) {
-  const [email, setEmail] = useState('');
   const [showAnimation, setShowAnimation] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [animationDone, setAnimationDone] = useState(false);
   const { login, authenticated, ready, user } = usePrivy();
 
   const walletCreated = user?.wallet?.address;
-
-  // Debug: Log on mount to verify component is loaded
-  useEffect(() => {
-    console.log('[DEBUG] LandingPageWithPrivy mounted');
-    console.log('[DEBUG] login function exists:', typeof login === 'function');
-    console.log('[DEBUG] Privy ready:', ready);
-  }, [login, ready]);
 
   const [isNewSignup, setIsNewSignup] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -64,39 +50,10 @@ function LandingPageWithPrivy({ palette, paletteId }: { palette: ColorPalette; p
     }
   }, [animationDone]);
 
-  useEffect(() => {
-    console.log('[DEBUG] State:', { ready, authenticated, walletCreated, isNewSignup, showAnimation, animationDone });
-  }, [ready, authenticated, walletCreated, isNewSignup, showAnimation, animationDone]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('[DEBUG] Form submitted, email:', email);
-    if (!email) {
-      console.log('[DEBUG] No email, returning');
-      return;
-    }
-
-    console.log('[DEBUG] Setting isNewSignup to true');
-    setIsNewSignup(true);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('anuma_new_signup', 'true');
-    }
-
-    console.log('[DEBUG] Calling login() with email prefill');
-    try {
-      login({
-        prefill: { type: 'email', value: email },
-      });
-      console.log('[DEBUG] login() called successfully');
-    } catch (error) {
-      console.error('[DEBUG] login() threw error:', error);
-    }
-  };
-
   // Save user to database when authenticated
   useEffect(() => {
     if (authenticated && walletCreated) {
-      const userEmail = getUserEmail(user) || email;
+      const userEmail = getUserEmail(user);
       fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -109,7 +66,7 @@ function LandingPageWithPrivy({ palette, paletteId }: { palette: ColorPalette; p
         .then(data => console.log('[LandingPage] User saved:', data))
         .catch(err => console.error('[LandingPage] Failed to save user:', err));
     }
-  }, [authenticated, walletCreated, user, email]);
+  }, [authenticated, walletCreated, user]);
 
   useEffect(() => {
     if (authenticated && walletCreated && isNewSignup && !showAnimation && !animationDone) {
@@ -144,7 +101,7 @@ function LandingPageWithPrivy({ palette, paletteId }: { palette: ColorPalette; p
   }
 
   if (authenticated && walletCreated && !showAnimation && (animationDone || !isNewSignup)) {
-    return <PointsDashboard email={getUserEmail(user) || email} palette={palette} paletteId={paletteId} />;
+    return <PointsDashboard email={getUserEmail(user)} palette={palette} paletteId={paletteId} />;
   }
 
   if (authenticated && !walletCreated) {
@@ -160,20 +117,13 @@ function LandingPageWithPrivy({ palette, paletteId }: { palette: ColorPalette; p
 
   return (
     <LandingPageUI
-      email={email}
-      setEmail={setEmail}
       showAnimation={showAnimation}
-      onSubmit={handleSubmit}
       onLoginClick={() => {
-        console.log('[DEBUG] Sign in button clicked');
         setIsNewSignup(true);
-        console.log('[DEBUG] Calling login()');
-        try {
-          login();
-          console.log('[DEBUG] login() called successfully');
-        } catch (error) {
-          console.error('[DEBUG] login() threw error:', error);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('anuma_new_signup', 'true');
         }
+        login();
       }}
       palette={palette}
       paletteId={paletteId}
@@ -183,17 +133,9 @@ function LandingPageWithPrivy({ palette, paletteId }: { palette: ColorPalette; p
 
 // Fallback when Privy is not configured
 function LandingPageFallback({ palette, paletteId }: { palette: ColorPalette; paletteId: string }) {
-  const [email, setEmail] = useState('');
-
   return (
     <LandingPageUI
-      email={email}
-      setEmail={setEmail}
       showAnimation={false}
-      onSubmit={(e) => {
-        e.preventDefault();
-        alert('Please configure Privy.');
-      }}
       onLoginClick={() => alert('Please configure Privy.')}
       palette={palette}
       paletteId={paletteId}
@@ -201,7 +143,7 @@ function LandingPageFallback({ palette, paletteId }: { palette: ColorPalette; pa
   );
 }
 
-export default function LandingPage({ paletteId = '2', palette }: LandingPageProps) {
+export default function LandingPageSimplified({ paletteId = '2', palette }: LandingPageProps) {
   const { isConfigured } = usePrivyConfig();
   const colors = palette || anumaSanctuary;
 
@@ -210,18 +152,15 @@ export default function LandingPage({ paletteId = '2', palette }: LandingPagePro
     : <LandingPageFallback palette={colors} paletteId={paletteId} />;
 }
 
-// UI Component
+// UI Component - SIMPLIFIED: Single CTA button instead of email form
 interface LandingPageUIProps {
-  email: string;
-  setEmail: (email: string) => void;
   showAnimation: boolean;
-  onSubmit: (e: React.FormEvent) => void;
   onLoginClick: () => void;
   palette: ColorPalette;
   paletteId: string;
 }
 
-function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick, palette, paletteId }: LandingPageUIProps) {
+function LandingPageUI({ showAnimation, onLoginClick, palette, paletteId }: LandingPageUIProps) {
   const isDark = isDarkPalette(paletteId);
 
   return (
@@ -290,7 +229,6 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             transition={{ duration: 0.6 }}
             className="flex items-center"
           >
-            {/* ANUMA Logo - Typography based with Greek Lambda for A */}
             <span
               className="text-2xl font-medium"
               style={{
@@ -307,10 +245,7 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6 }}
-            onClick={() => {
-              console.log('[DEBUG] Sign in button onClick triggered');
-              onLoginClick();
-            }}
+            onClick={onLoginClick}
             className="px-4 py-2 text-sm transition-colors border rounded-lg hover:bg-opacity-10 cursor-pointer"
             style={{
               color: palette.textMuted,
@@ -340,7 +275,7 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
               style={{ backgroundColor: palette.accent }}
             />
             <span className="text-xs uppercase tracking-widest" style={{ color: palette.textMuted }}>
-              Limited Early Access
+              Early Membership
             </span>
           </motion.div>
 
@@ -371,42 +306,26 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             Anuma is a single, private interface for every AI model, powered by your own unified memory.
           </motion.p>
 
-          {/* Email Form */}
-          <motion.form
+          {/* CTA Button - Opens Privy directly */}
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            onSubmit={onSubmit}
             className="max-w-md mx-auto mb-8"
           >
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                required
-                className="flex-1 px-5 py-4 text-base rounded-xl border transition-all focus:outline-none"
-                style={{
-                  backgroundColor: palette.bgAlt,
-                  borderColor: palette.border,
-                  color: palette.text,
-                }}
-              />
-              <button
-                type="submit"
-                onClick={() => console.log('[DEBUG] Submit button clicked')}
-                className="px-8 py-4 text-sm font-medium rounded-xl transition-all hover:opacity-90 flex items-center justify-center gap-2 cursor-pointer"
-                style={{
-                  backgroundColor: palette.accent,
-                  color: isDark ? palette.bg : '#ffffff'
-                }}
-              >
-                Begin Your Inauguration
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </motion.form>
+            <button
+              type="button"
+              onClick={onLoginClick}
+              className="w-full sm:w-auto px-10 py-4 text-sm font-medium rounded-xl transition-all hover:opacity-90 flex items-center justify-center gap-2 cursor-pointer mx-auto"
+              style={{
+                backgroundColor: palette.accent,
+                color: isDark ? palette.bg : '#ffffff'
+              }}
+            >
+              Begin Your Inauguration
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </motion.div>
 
           {/* Live signup counter */}
           <div className="flex justify-center mb-6">
@@ -436,7 +355,7 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
                 12,847
               </div>
               <div className="text-xs uppercase tracking-widest" style={{ color: palette.textLight }}>
-                On Waitlist
+                Pending Applications
               </div>
             </div>
 
