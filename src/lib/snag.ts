@@ -5,55 +5,47 @@ const SNAG_API_URL = process.env.SNAG_API_URL || 'https://admin.snagsolutions.io
 const SNAG_API_KEY = process.env.SNAG_API_KEY || '';
 const SNAG_WEBSITE_ID = process.env.NEXT_PUBLIC_SNAG_WEBSITE_ID || '';
 const SNAG_ORG_ID = process.env.SNAG_ORG_ID || '';
-const SNAG_CURRENCY_ID = process.env.SNAG_CURRENCY_ID || '';
 
-interface SnagAccountRaw {
-  id: string;
-  walletAddress: string;
-  points?: number;
-  balance?: number;
-  loyaltyBalance?: number;
-  externalIdentifier?: string;
-  createdAt: string;
-}
-
-interface SnagAccount {
+export interface SnagAccount {
   id: string;
   walletAddress: string;
   points: number;
   externalIdentifier?: string;
-  createdAt: string;
+  createdAt?: string;
 }
 
-interface SnagRule {
+export interface SnagRule {
   id: string;
   name: string;
   description: string;
   type: string;
-  amount: string | number; // Snag returns amount as string
-  points?: number; // Computed from amount
+  amount: string | number;
+  points?: number;
   imageUrl?: string;
   isActive: boolean;
   completionLimit?: number;
   claimType?: 'manual' | 'auto';
+  hideInUi?: boolean;
   metadata?: {
     cta?: {
       label?: string;
       href?: string;
     };
+    twitterAccountUrl?: string;
+    referrerReward?: number;
     checkText?: string;
     requirePostLink?: boolean;
   };
 }
 
-interface SnagRuleStatus {
+export interface SnagRuleStatus {
   loyaltyRuleId: string;
   completed: boolean;
   completedAt?: string;
   completionCount: number;
 }
 
-interface SnagTransaction {
+export interface SnagTransaction {
   id: string;
   amount: number;
   description?: string;
@@ -61,7 +53,7 @@ interface SnagTransaction {
   createdAt: string;
 }
 
-interface SnagLeaderboardEntry {
+export interface SnagLeaderboardEntry {
   rank: number;
   walletAddress: string;
   points: number;
@@ -73,14 +65,12 @@ class SnagSolutionsClient {
   private baseUrl: string;
   private websiteId: string;
   private orgId: string;
-  private currencyId: string;
 
   constructor() {
     this.apiKey = SNAG_API_KEY;
     this.baseUrl = SNAG_API_URL;
     this.websiteId = SNAG_WEBSITE_ID;
     this.orgId = SNAG_ORG_ID;
-    this.currencyId = SNAG_CURRENCY_ID;
   }
 
   private async request<T>(
@@ -112,41 +102,30 @@ class SnagSolutionsClient {
 
   async getAccount(walletAddress: string): Promise<SnagAccount | null> {
     try {
-      // Normalize wallet address to lowercase for consistent lookups
       const normalizedWallet = walletAddress.toLowerCase();
       console.log('[Snag] Fetching account for wallet:', normalizedWallet);
-      const response = await this.request<{ data: SnagAccountRaw[] }>(
+
+      const response = await this.request<{ data: SnagAccount[] }>(
         `/loyalty/accounts?walletAddress=${normalizedWallet}&websiteId=${this.websiteId}`
       );
-      const rawAccount = response.data?.[0];
-      console.log('[Snag] Raw account response:', JSON.stringify(rawAccount));
 
-      if (!rawAccount) return null;
+      const account = response.data?.[0];
+      if (!account) return null;
 
-      // Handle different point field names from Snag API
-      const points = rawAccount.points ?? rawAccount.balance ?? rawAccount.loyaltyBalance ?? 0;
-      console.log('[Snag] Resolved points:', points);
+      // Handle different point field names
+      const accountData = account as unknown as Record<string, unknown>;
+      const points = accountData.points ?? accountData.balance ?? accountData.loyaltyBalance ?? 0;
+
+      console.log('[Snag] Found account:', account.id, 'points:', points);
 
       return {
-        id: rawAccount.id,
-        walletAddress: rawAccount.walletAddress,
-        points,
-        externalIdentifier: rawAccount.externalIdentifier,
-        createdAt: rawAccount.createdAt,
+        id: account.id,
+        walletAddress: account.walletAddress || normalizedWallet,
+        points: Number(points),
+        createdAt: account.createdAt,
       };
     } catch (error) {
       console.error('[Snag] Error fetching account:', error);
-      return null;
-    }
-  }
-
-  async getAccountByExternalId(externalId: string): Promise<SnagAccount | null> {
-    try {
-      const accounts = await this.request<{ data: SnagAccount[] }>(
-        `/loyalty/accounts?externalIdentifier=${externalId}&websiteId=${this.websiteId}`
-      );
-      return accounts.data?.[0] || null;
-    } catch {
       return null;
     }
   }
@@ -155,83 +134,55 @@ class SnagSolutionsClient {
     walletAddress: string,
     externalIdentifier?: string
   ): Promise<SnagAccount | null> {
-    // Normalize wallet address to lowercase
     const normalizedWallet = walletAddress.toLowerCase();
 
-    // Build base body with all possible fields
-    const baseBody: Record<string, string | undefined> = {
-      walletAddress: normalizedWallet,
-      websiteId: this.websiteId,
-    };
-
-    // Add optional fields if available
-    if (this.orgId) baseBody.organizationId = this.orgId;
-    if (this.currencyId) baseBody.loyaltyCurrencyId = this.currencyId;
-    if (externalIdentifier) baseBody.externalIdentifier = externalIdentifier;
-
-    // Try multiple request formats - Snag uses different endpoints
-    // Based on docs and error responses, try various combinations
+    // Try multiple methods to create account
     const attempts = [
       {
-        // Try with organizationId in path (some Snag setups require this)
-        endpoint: `/loyalty/users`,
-        body: { ...baseBody },
-      },
-      {
-        // Standard user creation endpoint
-        endpoint: '/users',
-        body: {
-          walletAddress: normalizedWallet,
-          organizationId: this.orgId || this.websiteId,
-        },
-      },
-      {
-        // Try direct account creation
-        endpoint: '/loyalty/accounts',
+        // Method 1: Create user metadata (per Snag docs)
+        endpoint: '/users/metadatas',
         body: {
           walletAddress: normalizedWallet,
           organizationId: this.orgId,
-          websiteId: this.websiteId,
         },
       },
       {
-        // Try completing a rule which might auto-create account
-        endpoint: '/loyalty/rules/complete',
+        // Method 2: Loyalty users endpoint
+        endpoint: '/loyalty/users',
         body: {
           walletAddress: normalizedWallet,
           websiteId: this.websiteId,
+          organizationId: this.orgId,
+          externalIdentifier,
+        },
+      },
+      {
+        // Method 3: Complete waitlist rule (auto-creates account)
+        endpoint: '/loyalty/rules/complete',
+        body: {
           loyaltyRuleId: 'b17b786f-1398-4b78-966a-10a68ae82cbc', // Join waitlist rule
+          walletAddress: normalizedWallet,
+          websiteId: this.websiteId,
         },
       },
     ];
 
     for (const attempt of attempts) {
       try {
-        console.log(`[Snag] Trying to create account via ${attempt.endpoint} for:`, normalizedWallet);
-        const response = await this.request<{ data?: SnagAccount; id?: string }>(attempt.endpoint, {
+        console.log(`[Snag] Trying ${attempt.endpoint} for:`, normalizedWallet);
+        await this.request(attempt.endpoint, {
           method: 'POST',
           body: JSON.stringify(attempt.body),
         });
-        console.log(`[Snag] ${attempt.endpoint} response:`, JSON.stringify(response));
 
-        // Some endpoints return the account directly
-        if (response?.id || response?.data?.id) {
-          const account = await this.getAccount(normalizedWallet);
-          if (account) {
-            console.log('[Snag] Created account via', attempt.endpoint, ':', account.id);
-            return account;
-          }
-        }
-
-        // Try to fetch the account even if response doesn't have ID
+        // Check if account was created
         const account = await this.getAccount(normalizedWallet);
         if (account) {
-          console.log('[Snag] Account found after creation via', attempt.endpoint, ':', account.id);
+          console.log('[Snag] Account created via', attempt.endpoint);
           return account;
         }
       } catch (error) {
         console.log(`[Snag] ${attempt.endpoint} failed:`, error);
-        // Continue to next attempt
       }
     }
 
@@ -251,33 +202,39 @@ class SnagSolutionsClient {
   }
 
   async getAccountRank(walletAddress: string): Promise<{ position: number; total: number }> {
-    const account = await this.getAccount(walletAddress);
-    if (!account) {
+    try {
+      const account = await this.getAccount(walletAddress);
+      if (!account) return { position: 0, total: 0 };
+
+      const response = await this.request<{ rank: number; totalUsers: number }>(
+        `/loyalty/accounts/${account.id}/rank?websiteId=${this.websiteId}`
+      );
+
+      return {
+        position: response.rank || 0,
+        total: response.totalUsers || 0,
+      };
+    } catch (error) {
+      console.error('[Snag] Error getting rank:', error);
       return { position: 0, total: 0 };
     }
-
-    return this.request<{ position: number; total: number }>(
-      `/loyalty/accounts/${account.id}/rank?websiteId=${this.websiteId}`
-    );
   }
 
   // ============ RULES / TASKS ============
 
   async getRules(): Promise<SnagRule[]> {
-    const response = await this.request<{ data: SnagRule[] }>(
-      `/loyalty/rules?websiteId=${this.websiteId}&isActive=true`
-    );
-    return response.data || [];
-  }
-
-  async getRuleStatus(userId: string, ruleId: string): Promise<SnagRuleStatus | null> {
     try {
-      const response = await this.request<{ data: SnagRuleStatus[] }>(
-        `/loyalty/rules/status?userId=${userId}&loyaltyRuleId=${ruleId}&websiteId=${this.websiteId}`
+      const response = await this.request<{ data: SnagRule[] }>(
+        `/loyalty/rules?websiteId=${this.websiteId}&isActive=true`
       );
-      return response.data?.[0] || null;
-    } catch {
-      return null;
+
+      return (response.data || []).map((rule) => ({
+        ...rule,
+        points: Number(rule.amount) || 0,
+      }));
+    } catch (error) {
+      console.error('[Snag] Error fetching rules:', error);
+      return [];
     }
   }
 
@@ -286,16 +243,18 @@ class SnagSolutionsClient {
       const response = await this.request<{ data: SnagRuleStatus[] }>(
         `/loyalty/rules/status?userId=${userId}&websiteId=${this.websiteId}`
       );
+
       return response.data || [];
-    } catch {
+    } catch (error) {
+      console.error('[Snag] Error fetching rule statuses:', error);
       return [];
     }
   }
 
   async completeRule(userId: string, ruleId: string): Promise<boolean> {
     try {
-      console.log('[Snag] Completing rule:', { userId, ruleId, websiteId: this.websiteId });
-      const response = await this.request<{ success?: boolean; message?: string }>('/loyalty/rules/complete', {
+      console.log('[Snag] Completing rule:', { userId, ruleId });
+      await this.request('/loyalty/rules/complete', {
         method: 'POST',
         body: JSON.stringify({
           loyaltyRuleId: ruleId,
@@ -303,7 +262,7 @@ class SnagSolutionsClient {
           websiteId: this.websiteId,
         }),
       });
-      console.log('[Snag] Complete rule response:', JSON.stringify(response));
+      console.log('[Snag] Rule completed successfully');
       return true;
     } catch (error) {
       console.error('[Snag] Failed to complete rule:', error);
@@ -313,25 +272,22 @@ class SnagSolutionsClient {
 
   async completeRuleByWallet(walletAddress: string, ruleId: string): Promise<boolean> {
     try {
-      // First check if we have an account
       const account = await this.getAccount(walletAddress);
 
       if (account) {
-        // Use account ID to complete rule
         return this.completeRule(account.id, ruleId);
       }
 
-      // No account - try completing with wallet directly (Snag might auto-create account)
-      console.log('[Snag] No account found, completing rule with wallet address directly');
-      const response = await this.request<{ success?: boolean; message?: string; userId?: string }>('/loyalty/rules/complete', {
+      // Try completing with wallet directly
+      console.log('[Snag] Completing rule with wallet address');
+      await this.request('/loyalty/rules/complete', {
         method: 'POST',
         body: JSON.stringify({
           loyaltyRuleId: ruleId,
-          walletAddress,
+          walletAddress: walletAddress.toLowerCase(),
           websiteId: this.websiteId,
         }),
       });
-      console.log('[Snag] Complete rule by wallet response:', JSON.stringify(response));
       return true;
     } catch (error) {
       console.error('[Snag] Failed to complete rule by wallet:', error);
@@ -346,44 +302,54 @@ class SnagSolutionsClient {
     amount: number,
     ruleId: string,
     description?: string
-  ): Promise<SnagTransaction> {
-    return this.request<SnagTransaction>('/loyalty/transactions', {
-      method: 'POST',
-      body: JSON.stringify({
-        walletAddress,
-        amount,
-        loyaltyRuleId: ruleId,
-        description,
-        websiteId: this.websiteId,
-      }),
-    });
+  ): Promise<SnagTransaction | null> {
+    try {
+      const response = await this.request<SnagTransaction>('/loyalty/transactions', {
+        method: 'POST',
+        body: JSON.stringify({
+          walletAddress: walletAddress.toLowerCase(),
+          amount,
+          loyaltyRuleId: ruleId,
+          description,
+          websiteId: this.websiteId,
+        }),
+      });
+
+      return response;
+    } catch (error) {
+      console.error('[Snag] Error awarding points:', error);
+      return null;
+    }
   }
 
   async getTransactions(walletAddress: string): Promise<SnagTransaction[]> {
-    const response = await this.request<{ data: SnagTransaction[] }>(
-      `/loyalty/transaction_entries?walletAddress=${walletAddress}&websiteId=${this.websiteId}`
-    );
-    return response.data || [];
+    try {
+      const response = await this.request<{ data: SnagTransaction[] }>(
+        `/loyalty/transaction_entries?walletAddress=${walletAddress.toLowerCase()}&websiteId=${this.websiteId}`
+      );
+
+      return response.data || [];
+    } catch (error) {
+      console.error('[Snag] Error fetching transactions:', error);
+      return [];
+    }
   }
 
   // ============ LEADERBOARD ============
 
   async getLeaderboard(limit = 100, offset = 0): Promise<SnagLeaderboardEntry[]> {
-    const response = await this.request<{ data: SnagLeaderboardEntry[] }>(
-      `/loyalty/leaderboard?websiteId=${this.websiteId}&limit=${limit}&offset=${offset}`
-    );
-    return response.data || [];
+    try {
+      const response = await this.request<{ data: SnagLeaderboardEntry[] }>(
+        `/loyalty/leaderboard?websiteId=${this.websiteId}&limit=${limit}&offset=${offset}`
+      );
+
+      return response.data || [];
+    } catch (error) {
+      console.error('[Snag] Error fetching leaderboard:', error);
+      return [];
+    }
   }
 }
 
 // Export singleton instance
 export const snagClient = new SnagSolutionsClient();
-
-// Export types
-export type {
-  SnagAccount,
-  SnagRule,
-  SnagRuleStatus,
-  SnagTransaction,
-  SnagLeaderboardEntry,
-};
