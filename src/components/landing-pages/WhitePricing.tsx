@@ -1,67 +1,127 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { usePrivy } from '@privy-io/react-auth';
 
-// Design Landing Page (2) - White centered with $25 pricing
+// Design Landing Page (2) - White centered with conversation flow and $25 pricing
+
+const MODELS = [
+  { name: 'GPT-4', symbol: '◆' },
+  { name: 'Claude', symbol: '●' },
+  { name: 'Gemini', symbol: '■' },
+  { name: 'Llama', symbol: '▲' },
+];
+
+const CONVERSATION = [
+  { role: 'user', text: 'Help me plan a marketing campaign for sustainable fashion', context: [] },
+  { role: 'ai', text: 'I can help with that. What\'s your target audience and budget range?', context: ['sustainable fashion', 'marketing campaign'] },
+  { role: 'user', text: 'Gen Z, $50k budget, launching in 3 months', context: [] },
+  { role: 'ai', text: 'Perfect. With your timeline and budget, I\'d recommend focusing on TikTok and Instagram Reels...', context: ['Gen Z', '$50k budget', '3 month timeline', 'sustainable fashion'] },
+];
 
 function ModelSwitcher() {
-  const [activeModel, setActiveModel] = useState('GPT-4');
-  const models = ['GPT-4', 'Claude', 'Gemini', 'Llama'];
+  const [activeModel, setActiveModel] = useState(0);
+  const [messageIndex, setMessageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (messageIndex < CONVERSATION.length - 1) {
+        setMessageIndex(prev => prev + 1);
+      } else {
+        setActiveModel(prev => (prev + 1) % MODELS.length);
+        setTimeout(() => {
+          setMessageIndex(0);
+        }, 2000);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [messageIndex]);
+
+  const displayedMessages = CONVERSATION.slice(0, messageIndex + 1);
+  const lastMessage = CONVERSATION[messageIndex];
+  const contextItems = lastMessage.role === 'ai' ? lastMessage.context : [];
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="flex justify-center gap-2 mb-6 flex-wrap">
-        {models.map((model) => (
+      {/* Model selector */}
+      <div className="flex justify-center gap-2 mb-8 flex-wrap">
+        {MODELS.map((model, index) => (
           <button
-            key={model}
-            onClick={() => setActiveModel(model)}
-            className={`px-5 py-2.5 text-sm border-2 transition-all ${
-              activeModel === model
-                ? 'bg-black text-white border-black'
-                : 'border-black/10 text-black/40 hover:border-black/30'
+            key={model.name}
+            onClick={() => setActiveModel(index)}
+            className={`px-4 py-2 text-sm transition-all ${
+              activeModel === index
+                ? 'bg-black text-white'
+                : 'bg-white border border-black/10 hover:border-black/30'
             }`}
           >
-            {model}
+            <span className="mr-2">{model.symbol}</span>
+            {model.name}
           </button>
         ))}
       </div>
-      <div className="text-center text-sm text-black/40">
-        Click to switch models. Context transfers instantly.
+
+      {/* Conversation */}
+      <div className="border border-black/10 bg-white">
+        <div className="border-b border-black/10 p-4 text-sm text-black/40">
+          Currently using: <span className="text-black">{MODELS[activeModel].name}</span>
+        </div>
+
+        <div className="p-6 space-y-4 min-h-[300px]">
+          {displayedMessages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`${msg.role === 'user' ? 'text-black/60' : 'text-black'}`}
+            >
+              <div className="text-xs text-black/40 mb-1">
+                {msg.role === 'user' ? 'You' : MODELS[activeModel].name}
+              </div>
+              <div className="text-sm leading-relaxed">
+                {msg.text}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Context bar */}
+        {contextItems.length > 0 && (
+          <div className="border-t border-black/10 p-4 bg-black/[0.02]">
+            <div className="text-xs text-black/40 mb-2">Shared context</div>
+            <div className="flex flex-wrap gap-2">
+              {contextItems.map((item, idx) => (
+                <span
+                  key={idx}
+                  className="px-2 py-1 bg-white border border-black/10 text-xs"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="text-center text-sm text-black/30 mt-4">
+        Context flows seamlessly as you switch models
       </div>
     </div>
   );
 }
 
 function WaitlistForm() {
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setSubmitted(true);
-    }
-  };
+  const { login, authenticated } = usePrivy();
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="your@email.com"
-        className="flex-1 px-5 py-3 border-2 border-black/10 text-black placeholder:text-black/30 focus:outline-none focus:border-black/40 transition-colors text-center sm:text-left"
-        disabled={submitted}
-      />
+    <div className="flex justify-center">
       <button
-        type="submit"
-        className="px-8 py-3 bg-black text-white hover:bg-black/80 transition-colors disabled:opacity-50"
-        disabled={submitted}
+        onClick={login}
+        className="px-8 py-3 bg-black text-white hover:bg-black/80 transition-colors"
       >
-        {submitted ? 'Done!' : 'Join'}
+        {authenticated ? 'Joined!' : 'Join Waitlist'}
       </button>
-    </form>
+    </div>
   );
 }
 
