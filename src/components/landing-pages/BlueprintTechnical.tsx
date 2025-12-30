@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { usePrivy } from '@privy-io/react-auth';
 
 // Design - ANUMA Landing Page Design - Blueprint/technical beige style
 
@@ -281,21 +281,20 @@ function TechnicalDiagram() {
   );
 }
 
+function WaitlistButton() {
+  const { login, authenticated } = usePrivy();
+
+  return (
+    <button
+      onClick={login}
+      className="px-8 py-4 bg-[#2a2a2a] text-[#E5DDD5] font-mono text-sm hover:bg-[#1a1a1a] transition-colors"
+    >
+      {authenticated ? 'JOINED' : 'JOIN WAITLIST'}
+    </button>
+  );
+}
+
 export default function BlueprintTechnical() {
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setSubmitted(true);
-      setTimeout(() => {
-        setSubmitted(false);
-        setEmail('');
-      }, 3000);
-    }
-  };
-
   return (
     <div className="relative min-h-screen bg-[#E5DDD5] overflow-hidden">
       <BlueprintBackground />
@@ -337,34 +336,9 @@ export default function BlueprintTechnical() {
             <TechnicalDiagram />
           </div>
 
-          {/* Waitlist form */}
+          {/* Waitlist button */}
           <div className="max-w-md mx-auto">
-            <form onSubmit={handleSubmit} className="relative">
-              <div className="relative">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="enter@email.address"
-                  required
-                  className="w-full px-6 py-4 bg-transparent border border-[#3a3a3a] text-[#2a2a2a] placeholder:text-[#8a8a8a] font-mono text-sm focus:outline-none focus:border-[#2a2a2a] transition-colors"
-                  disabled={submitted}
-                />
-                <button
-                  type="submit"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 px-6 py-2 bg-[#2a2a2a] text-[#E5DDD5] font-mono text-sm hover:bg-[#1a1a1a] transition-colors disabled:opacity-50"
-                  disabled={submitted}
-                >
-                  {submitted ? 'JOINED' : 'JOIN'}
-                </button>
-              </div>
-            </form>
-
-            {submitted && (
-              <p className="mt-4 text-sm font-mono text-[#4a4a4a]">
-                ✓ You&apos;re on the list
-              </p>
-            )}
+            <WaitlistButton />
 
             <p className="mt-4 text-xs font-mono text-[#6a6a6a] opacity-60">
               Early access • Limited spots

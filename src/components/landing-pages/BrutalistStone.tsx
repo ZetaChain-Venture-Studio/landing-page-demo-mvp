@@ -1,39 +1,20 @@
 "use client";
 
-import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { usePrivy } from '@privy-io/react-auth';
 
 // Landing Page Design - Brutalist stone boxes
 
-function WaitlistForm() {
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setSubmitted(true);
-    }
-  };
+function WaitlistButton() {
+  const { login, authenticated } = usePrivy();
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="email@example.com"
-        className="flex-1 px-6 py-4 bg-white border border-black text-black placeholder:text-neutral-400 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-black transition-all"
-        disabled={submitted}
-      />
-      <button
-        type="submit"
-        className="px-8 py-4 bg-black text-white font-mono text-sm hover:bg-neutral-800 transition-colors disabled:opacity-50 uppercase tracking-wider"
-        disabled={submitted}
-      >
-        {submitted ? 'Added!' : 'Join Waitlist'}
-      </button>
-    </form>
+    <button
+      onClick={login}
+      className="px-8 py-4 bg-black text-white font-mono text-sm hover:bg-neutral-800 transition-colors uppercase tracking-wider"
+    >
+      {authenticated ? 'Joined!' : 'Join Waitlist'}
+    </button>
   );
 }
 
@@ -85,7 +66,7 @@ export default function BrutalistStone() {
                 </p>
               </div>
 
-              <WaitlistForm />
+              <WaitlistButton />
             </motion.div>
 
             {/* Features Grid */}

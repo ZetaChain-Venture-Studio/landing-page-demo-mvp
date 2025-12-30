@@ -1,71 +1,180 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { usePrivy } from '@privy-io/react-auth';
 
-// Design Landing Page (1) - Dark minimal
+// Design Landing Page (1) - Dark minimal with typing animation
+
+const MODELS = [
+  { id: 'gpt4', name: 'GPT-4', company: 'OpenAI' },
+  { id: 'claude', name: 'Claude', company: 'Anthropic' },
+  { id: 'gemini', name: 'Gemini', company: 'Google' },
+  { id: 'llama', name: 'Llama', company: 'Meta' },
+];
+
+const CONVERSATION = [
+  {
+    role: 'user',
+    text: "I'm building an e-commerce app for selling vintage watches. Budget is $15k and launch date is March 2025.",
+    isContext: true,
+  },
+  {
+    role: 'user',
+    text: "Should I use Next.js or plain React?",
+  },
+];
+
+const MODEL_RESPONSES = [
+  "Given your March 2025 deadline and $15k budget, I'd recommend Next.js. The built-in SSR will help with SEO for your vintage watch listings, and the API routes can handle your backend needs without additional infrastructure costs.",
+  "For your vintage watch e-commerce project, Next.js would be ideal. With your timeline, you'll benefit from its built-in features. The $15k budget is sufficient, and you'll have better SEO out of the box for your product pages.",
+  "Considering your e-commerce requirements and budget constraints, Next.js is the better choice. You'll launch faster with its integrated features, and vintage watches benefit from the SEO advantages it provides.",
+  "Next.js aligns well with your vintage watch marketplace goals. The framework's features will help you stay within the $15k budget and meet your March deadline while providing good performance for product listings.",
+];
 
 function ModelSwitcher() {
-  const [activeModel, setActiveModel] = useState('GPT-4');
-  const models = ['GPT-4', 'Claude', 'Gemini', 'Llama'];
+  const [activeModel, setActiveModel] = useState(0);
+  const [displayedText, setDisplayedText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  // Auto-rotate models
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveModel((prev) => (prev + 1) % MODELS.length);
+      setProgress(0);
+    }, 7000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Progress bar
+  useEffect(() => {
+    setProgress(0);
+    const progressInterval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) return 100;
+        return prev + (100 / 7000) * 50;
+      });
+    }, 50);
+    return () => clearInterval(progressInterval);
+  }, [activeModel]);
+
+  // Typing animation
+  useEffect(() => {
+    const fullText = MODEL_RESPONSES[activeModel];
+    setDisplayedText('');
+    setIsTyping(true);
+
+    let currentIndex = 0;
+    const typingInterval = setInterval(() => {
+      if (currentIndex <= fullText.length) {
+        setDisplayedText(fullText.slice(0, currentIndex));
+        currentIndex++;
+      } else {
+        setIsTyping(false);
+        clearInterval(typingInterval);
+      }
+    }, 15);
+
+    return () => clearInterval(typingInterval);
+  }, [activeModel]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex gap-3 flex-wrap">
-        {models.map((model) => (
-          <button
-            key={model}
-            onClick={() => setActiveModel(model)}
-            className={`px-4 py-2 text-sm border transition-colors ${
-              activeModel === model
-                ? 'bg-white text-black border-white'
-                : 'border-[#333] text-[#888] hover:border-[#555] hover:text-white'
-            }`}
-          >
-            {model}
-          </button>
-        ))}
+    <div className="border border-[#222222] rounded-lg overflow-hidden bg-[#0a0a0a]">
+      {/* Model selector header */}
+      <div className="flex items-center justify-between p-6 border-b border-[#222222]">
+        <span className="text-sm text-[#808080]">Select model</span>
+        <div className="flex gap-2">
+          {MODELS.map((model, index) => (
+            <button
+              key={model.id}
+              onClick={() => setActiveModel(index)}
+              className={`px-4 py-2 rounded text-sm transition-colors ${
+                activeModel === index
+                  ? 'bg-white text-black'
+                  : 'bg-[#1a1a1a] text-[#808080] hover:text-white hover:bg-[#252525]'
+              }`}
+            >
+              {model.name}
+            </button>
+          ))}
+        </div>
       </div>
-      <div className="p-6 border border-[#222] bg-[#111]">
-        <p className="text-xs text-[#666] mb-3">CURRENTLY USING</p>
-        <p className="text-xl text-white mb-2">{activeModel}</p>
-        <p className="text-sm text-[#808080]">
-          Your conversation context persists when you switch models.
-        </p>
+
+      {/* Conversation */}
+      <div className="p-6 space-y-6">
+        {/* Context message */}
+        <div className="p-4 bg-[#0d0d0d] border border-white/20 rounded-lg">
+          <div className="flex gap-3 mb-3">
+            <div className="text-white text-sm shrink-0">You</div>
+            <div className="flex-1 text-white text-sm leading-relaxed">
+              {CONVERSATION[0].text}
+            </div>
+          </div>
+          <div className="ml-14 inline-block px-2 py-1 bg-[#1a1a1a] border border-white/30 rounded text-xs text-white animate-pulse">
+            Context stored
+          </div>
+        </div>
+
+        {/* Follow-up question */}
+        <div className="flex gap-3">
+          <div className="text-[#808080] text-sm shrink-0">You</div>
+          <div className="flex-1 text-[#b3b3b3] text-sm">
+            {CONVERSATION[1].text}
+          </div>
+        </div>
+
+        {/* Model response using context */}
+        <div className="flex gap-3">
+          <div className="text-[#808080] text-sm shrink-0">{MODELS[activeModel].name}</div>
+          <div className="flex-1">
+            <div className="text-white text-sm leading-relaxed mb-3">
+              {displayedText}
+              {isTyping && <span className="inline-block w-1 h-4 bg-white ml-1 animate-pulse"></span>}
+            </div>
+            <div className="flex gap-2 text-xs flex-wrap">
+              <span className="px-2 py-1 bg-[#1a1a1a] border border-[#333333] rounded text-[#808080]">
+                Referenced: e-commerce app
+              </span>
+              <span className="px-2 py-1 bg-[#1a1a1a] border border-[#333333] rounded text-[#808080]">
+                Referenced: $15k budget
+              </span>
+              <span className="px-2 py-1 bg-[#1a1a1a] border border-[#333333] rounded text-[#808080]">
+                Referenced: March 2025
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer showing context preservation */}
+      <div className="px-6 py-4 bg-[#0d0d0d] border-t border-[#222222]">
+        <div className="flex items-center justify-between text-xs mb-3">
+          <span className="text-[#666666]">All models have access to full conversation history</span>
+          <span className="text-[#666666]">2 messages in context</span>
+        </div>
+        {/* Progress bar */}
+        <div className="w-full h-1 bg-[#1a1a1a] rounded-full overflow-hidden">
+          <div
+            className="h-full bg-white transition-all duration-75 ease-linear"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
       </div>
     </div>
   );
 }
 
-function WaitlistForm() {
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setSubmitted(true);
-    }
-  };
+function WaitlistButton() {
+  const { login, authenticated } = usePrivy();
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Enter your email"
-        className="flex-1 px-4 py-3 bg-transparent border border-[#333] text-white placeholder:text-[#666] focus:outline-none focus:border-[#555] transition-colors"
-        disabled={submitted}
-      />
-      <button
-        type="submit"
-        className="px-6 py-3 bg-white text-black hover:bg-[#eee] transition-colors disabled:opacity-50"
-        disabled={submitted}
-      >
-        {submitted ? 'JOINED!' : 'Join Waitlist'}
-      </button>
-    </form>
+    <button
+      onClick={login}
+      className="px-6 py-3 bg-white text-black hover:bg-[#eee] transition-colors"
+    >
+      {authenticated ? 'Joined!' : 'Join Waitlist'}
+    </button>
   );
 }
 
@@ -95,7 +204,7 @@ export default function DarkMinimal() {
             ANUMA gives you access to GPT-4, Claude, Gemini, and Llama in one place. Switch between models instantly while keeping your conversation context. Everything stored locally in your browser.
           </p>
 
-          <WaitlistForm />
+          <WaitlistButton />
         </motion.div>
 
         {/* Model Switcher Demo */}

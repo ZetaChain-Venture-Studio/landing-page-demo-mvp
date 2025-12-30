@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePrivy } from '@privy-io/react-auth';
 
 // Design - ANUMA Landing Page Design (3) - Interactive onboarding with context panel
 
@@ -38,6 +39,18 @@ function TypedMessage({ text, speed = 50 }: { text: string; speed?: number }) {
 }
 
 function ContextPanel({ context, flash }: { context: ContextData; flash: boolean }) {
+  // Constant flicker effect for context items to show they're actively being used
+  const [flickerIndex, setFlickerIndex] = useState(0);
+
+  useEffect(() => {
+    if (Object.keys(context).length > 0) {
+      const interval = setInterval(() => {
+        setFlickerIndex(prev => (prev + 1) % 3);
+      }, 1500);
+      return () => clearInterval(interval);
+    }
+  }, [context]);
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -72,9 +85,13 @@ function ContextPanel({ context, flash }: { context: ContextData; flash: boolean
                 <div className="text-xs text-black/50 mb-1 tracking-wide">NAME</div>
                 <motion.div
                   initial={{ x: -10, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-lg text-black"
+                  animate={{
+                    x: 0,
+                    opacity: 1,
+                    backgroundColor: flickerIndex === 0 || flash ? 'rgba(34, 197, 94, 0.15)' : 'transparent'
+                  }}
+                  transition={{ delay: 0.2, duration: 0.3 }}
+                  className="text-lg text-black px-2 py-1 -mx-2"
                 >
                   {context.name}
                 </motion.div>
@@ -92,9 +109,13 @@ function ContextPanel({ context, flash }: { context: ContextData; flash: boolean
                 <div className="text-xs text-black/50 mb-1 tracking-wide">WORKING ON</div>
                 <motion.div
                   initial={{ x: -10, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-lg text-black"
+                  animate={{
+                    x: 0,
+                    opacity: 1,
+                    backgroundColor: flickerIndex === 1 || flash ? 'rgba(34, 197, 94, 0.15)' : 'transparent'
+                  }}
+                  transition={{ delay: 0.2, duration: 0.3 }}
+                  className="text-lg text-black px-2 py-1 -mx-2"
                 >
                   {context.workingOn}
                 </motion.div>
@@ -112,9 +133,13 @@ function ContextPanel({ context, flash }: { context: ContextData; flash: boolean
                 <div className="text-xs text-black/50 mb-1 tracking-wide">NEEDS HELP WITH</div>
                 <motion.div
                   initial={{ x: -10, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-lg text-black"
+                  animate={{
+                    x: 0,
+                    opacity: 1,
+                    backgroundColor: flickerIndex === 2 || flash ? 'rgba(34, 197, 94, 0.15)' : 'transparent'
+                  }}
+                  transition={{ delay: 0.2, duration: 0.3 }}
+                  className="text-lg text-black px-2 py-1 -mx-2"
                 >
                   {context.needsHelp}
                 </motion.div>
@@ -123,7 +148,7 @@ function ContextPanel({ context, flash }: { context: ContextData; flash: boolean
           </AnimatePresence>
         </div>
 
-        {/* Connection indicator */}
+        {/* Connection indicator with constant pulse */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -134,9 +159,10 @@ function ContextPanel({ context, flash }: { context: ContextData; flash: boolean
             <motion.div
               animate={{
                 backgroundColor: flash ? 'rgb(34, 197, 94)' : 'rgba(34, 197, 94, 0.5)',
-                scale: flash ? [1, 1.2, 1] : 1
+                scale: [1, 1.2, 1],
+                opacity: [0.7, 1, 0.7]
               }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 1.5, repeat: Infinity }}
               className="w-2 h-2 bg-green-500 rounded-full"
             />
             <span className="text-xs text-black/40">Context preserved</span>
@@ -154,11 +180,11 @@ export default function InteractiveOnboarding() {
   const [context, setContext] = useState<ContextData>({});
   const [isTyping, setIsTyping] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const [email, setEmail] = useState('');
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [messageIdCounter, setMessageIdCounter] = useState(0);
   const [flashContext, setFlashContext] = useState(false);
   const [showContextPanel, setShowContextPanel] = useState(false);
+  const { login, authenticated } = usePrivy();
 
   useEffect(() => {
     setMessages([{
@@ -300,19 +326,36 @@ export default function InteractiveOnboarding() {
     }, 500);
   };
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim()) return;
-
-    const currentId = messageIdCounter;
-    setMessages([{
-      role: 'system',
-      content: `Thanks ${context.name}! We'll reach out to ${email} soon. Get ready to experience AI without limits.`,
-      id: currentId
-    }]);
-    setMessageIdCounter(prev => prev + 1);
-    setStep(5);
+  const handleJoinWaitlist = () => {
+    login();
+    // Move to success step after Privy login
+    setTimeout(() => {
+      if (authenticated) {
+        const currentId = messageIdCounter;
+        setMessages([{
+          role: 'system',
+          content: `Thanks ${context.name}! You're now on the waitlist. Get ready to experience AI without limits.`,
+          id: currentId
+        }]);
+        setMessageIdCounter(prev => prev + 1);
+        setStep(5);
+      }
+    }, 1000);
   };
+
+  // Watch for authentication changes
+  useEffect(() => {
+    if (authenticated && step === 4) {
+      const currentId = messageIdCounter;
+      setMessages([{
+        role: 'system',
+        content: `Thanks ${context.name}! You're now on the waitlist. Get ready to experience AI without limits.`,
+        id: currentId
+      }]);
+      setMessageIdCounter(prev => prev + 1);
+      setStep(5);
+    }
+  }, [authenticated, step, context.name, messageIdCounter]);
 
   return (
     <div className="min-h-screen bg-white text-black flex items-center justify-center p-6 overflow-hidden">
@@ -484,7 +527,7 @@ export default function InteractiveOnboarding() {
               </motion.form>
             )}
 
-            {/* Email signup */}
+            {/* Waitlist signup with Privy */}
             {step === 4 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -496,19 +539,9 @@ export default function InteractiveOnboarding() {
                   <p className="text-black/60">Join the waitlist for early access.</p>
                 </div>
 
-                <form onSubmit={handleEmailSubmit} className="max-w-md mx-auto space-y-4">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    required
-                    autoFocus
-                    className="w-full bg-transparent border-b-2 border-black/10 text-black text-xl py-4 px-0 placeholder:text-black/30 focus:outline-none focus:border-black/60 transition-colors text-center"
-                  />
-
+                <div className="max-w-md mx-auto space-y-4">
                   <motion.button
-                    type="submit"
+                    onClick={handleJoinWaitlist}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="w-full bg-black text-white py-4 text-lg tracking-wide hover:bg-black/90 transition-colors"
@@ -523,7 +556,7 @@ export default function InteractiveOnboarding() {
                     <span>•</span>
                     <span>Local storage</span>
                   </div>
-                </form>
+                </div>
               </motion.div>
             )}
 

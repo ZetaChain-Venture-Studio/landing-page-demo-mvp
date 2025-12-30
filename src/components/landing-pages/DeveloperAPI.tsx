@@ -2,118 +2,162 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { usePrivy } from '@privy-io/react-auth';
 
 // Design Landing Page (3) - Developer API dark
 
 function CodeExample() {
   return (
-    <div className="bg-[#111] border border-white/10 p-6 font-mono text-sm">
-      <div className="text-white/40 mb-4"># Switch models with one parameter</div>
-      <pre className="text-green-400">
-{`const response = await anuma.chat({
-  model: "gpt-4", // or "claude", "gemini"
-  thread_id: "thread_abc123",
-  message: "Continue our conversation..."
-});`}
-      </pre>
+    <div className="bg-[#111] border border-white/10 rounded-lg overflow-hidden font-mono text-sm">
+      <div className="border-b border-white/10 px-4 py-2 text-xs text-white/40 flex items-center justify-between">
+        <span>example.js</span>
+        <span className="text-[10px]">JavaScript</span>
+      </div>
+      <div className="p-4 overflow-x-auto">
+        <pre className="text-white/80">
+{`import { ANUMA } from '@anuma/sdk';
+
+const anuma = new ANUMA({
+  apiKey: process.env.ANUMA_API_KEY
+});
+
+// Start with Claude for creative writing
+const thread = await anuma.chat({
+  model: 'claude',
+  message: 'Write a product tagline'
+});
+
+// Switch to GPT-4 for technical analysis
+await anuma.chat({
+  threadId: thread.id,
+  model: 'gpt-4',
+  message: 'Now analyze conversion metrics'
+});
+
+// Context preserved across models ✓`}</pre>
+      </div>
     </div>
   );
 }
+
+const MODELS = ['gpt-4', 'claude', 'gemini', 'llama'];
+
+const SAMPLE_REQUEST = {
+  threadId: 'thread_a7f3d9c2',
+  model: 'gpt-4',
+  message: 'Explain quantum computing simply',
+};
+
+const RESPONSES: Record<string, string> = {
+  'gpt-4': 'Quantum computing uses quantum mechanics principles like superposition and entanglement to process information. Unlike classical bits that are 0 or 1, quantum bits (qubits) can be both simultaneously...',
+  'claude': 'Think of quantum computing like this: regular computers are like a person checking one path through a maze at a time. Quantum computers can check multiple paths simultaneously, making them exponentially faster for certain problems...',
+  'gemini': 'Quantum computers leverage quantum mechanical phenomena to perform computations. They use qubits which can exist in multiple states at once (superposition), allowing parallel processing of information...',
+  'llama': 'Quantum computing is a fundamentally different approach to computation that exploits quantum mechanical properties. Instead of binary bits, it uses qubits that can represent multiple states simultaneously through superposition...',
+};
 
 function ApiDemo() {
-  const [activeModel, setActiveModel] = useState('gpt-4');
-  const [response, setResponse] = useState('');
+  const [selectedModel, setSelectedModel] = useState('gpt-4');
+  const [isLoading, setIsLoading] = useState(false);
+  const [response, setResponse] = useState(RESPONSES['gpt-4']);
 
-  const models = ['gpt-4', 'claude', 'gemini'];
+  const handleModelChange = (model: string) => {
+    setIsLoading(true);
+    setSelectedModel(model);
 
-  const handleRun = () => {
-    setResponse(`Response from ${activeModel}: Your context from the previous model has been preserved. Continuing the conversation seamlessly...`);
+    setTimeout(() => {
+      setResponse(RESPONSES[model]);
+      setIsLoading(false);
+    }, 600);
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex gap-3">
-        {models.map((model) => (
-          <button
-            key={model}
-            onClick={() => setActiveModel(model)}
-            className={`px-4 py-2 text-sm font-mono border transition-colors ${
-              activeModel === model
-                ? 'bg-white text-black border-white'
-                : 'border-white/20 text-white/60 hover:border-white/40'
-            }`}
-          >
-            {model}
-          </button>
-        ))}
-      </div>
-
-      <div className="bg-[#111] border border-white/10 p-4 font-mono text-sm">
-        <div className="flex justify-between items-center mb-4">
-          <span className="text-white/40">Request</span>
-          <button
-            onClick={handleRun}
-            className="px-3 py-1 bg-green-500 text-black text-xs hover:bg-green-400 transition-colors"
-          >
-            RUN
-          </button>
-        </div>
-        <pre className="text-white/80">
+    <div className="grid md:grid-cols-2 gap-6">
+      {/* Request */}
+      <div>
+        <div className="text-xs text-white/40 mb-3 font-mono">REQUEST</div>
+        <div className="bg-[#111] border border-white/10 rounded-lg overflow-hidden font-mono text-xs">
+          <div className="border-b border-white/10 px-4 py-2 text-[10px] text-white/40">
+            POST /v1/chat
+          </div>
+          <div className="p-4">
+            <pre className="text-white/70">
 {`{
-  "model": "${activeModel}",
-  "thread_id": "thread_demo",
-  "message": "What were we discussing?"
+  "threadId": "${SAMPLE_REQUEST.threadId}",
+  "model": "`}<span className="text-green-400">{selectedModel}</span>{`",
+  "message": "${SAMPLE_REQUEST.message}"
 }`}
-        </pre>
+            </pre>
+          </div>
+        </div>
+
+        {/* Model selector */}
+        <div className="mt-4">
+          <div className="text-xs text-white/40 mb-2 font-mono">SWITCH MODEL</div>
+          <div className="grid grid-cols-2 gap-2">
+            {MODELS.map((model) => (
+              <button
+                key={model}
+                onClick={() => handleModelChange(model)}
+                className={`px-4 py-2 text-xs font-mono border transition-colors ${
+                  selectedModel === model
+                    ? 'bg-white/10 border-white/30 text-white'
+                    : 'bg-white/5 border-white/10 text-white/50 hover:border-white/20'
+                }`}
+              >
+                {model}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {response && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-[#111] border border-green-500/30 p-4 font-mono text-sm"
-        >
-          <div className="text-green-400/60 mb-2">Response</div>
-          <p className="text-white/80">{response}</p>
-        </motion.div>
-      )}
+      {/* Response */}
+      <div>
+        <div className="text-xs text-white/40 mb-3 font-mono">RESPONSE</div>
+        <div className="bg-[#111] border border-white/10 rounded-lg overflow-hidden font-mono text-xs">
+          <div className="border-b border-white/10 px-4 py-2 text-[10px] text-white/40 flex items-center justify-between">
+            <span>200 OK</span>
+            {isLoading && (
+              <span className="text-green-400">● Streaming...</span>
+            )}
+          </div>
+          <div className="p-4 min-h-[200px]">
+            <pre className="text-white/70 whitespace-pre-wrap">
+{`{
+  "id": "msg_k9d8fj2l",
+  "model": "${selectedModel}",
+  "threadId": "${SAMPLE_REQUEST.threadId}",
+  "content": "${isLoading ? 'Loading...' : response}",
+  "contextPreserved": true
+}`}
+            </pre>
+          </div>
+        </div>
+
+        <div className="mt-4 p-3 bg-green-400/10 border border-green-400/20 text-xs text-green-400">
+          ✓ Context from previous messages maintained across model switch
+        </div>
+      </div>
     </div>
   );
 }
 
-function WaitlistForm() {
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setSubmitted(true);
-    }
-  };
+function WaitlistButton({ children = 'Request Access' }: { children?: React.ReactNode }) {
+  const { login, authenticated } = usePrivy();
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="developer@company.com"
-        className="flex-1 px-4 py-3 bg-transparent border border-white/20 text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 transition-colors"
-        disabled={submitted}
-      />
-      <button
-        type="submit"
-        className="px-6 py-3 bg-white text-black hover:bg-white/90 transition-colors disabled:opacity-50"
-        disabled={submitted}
-      >
-        {submitted ? 'Requested!' : 'Request Access'}
-      </button>
-    </form>
+    <button
+      onClick={login}
+      className="px-6 py-3 bg-white text-black hover:bg-white/90 transition-colors"
+    >
+      {authenticated ? 'Joined!' : children}
+    </button>
   );
 }
 
 export default function DeveloperAPI() {
+  const { login, authenticated } = usePrivy();
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* Hero */}
@@ -140,8 +184,11 @@ export default function DeveloperAPI() {
               </p>
 
               <div className="flex gap-3">
-                <button className="px-6 py-3 bg-white text-black hover:bg-white/90 transition-colors">
-                  Get API Key
+                <button
+                  onClick={login}
+                  className="px-6 py-3 bg-white text-black hover:bg-white/90 transition-colors"
+                >
+                  {authenticated ? 'Joined!' : 'Get API Key'}
                 </button>
                 <button className="px-6 py-3 border border-white/20 hover:border-white/40 transition-colors">
                   View Docs
@@ -233,7 +280,7 @@ export default function DeveloperAPI() {
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-4xl mb-6 tracking-tight">Join the private beta</h2>
           <p className="text-white/50 mb-8">Limited API keys available for early adopters</p>
-          <WaitlistForm />
+          <WaitlistButton />
         </div>
       </div>
 
