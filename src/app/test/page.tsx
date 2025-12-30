@@ -1,6 +1,6 @@
 "use client";
 
-import { PrivyProvider } from '@/providers/PrivyProvider';
+import PrivyProvider from '@/providers/PrivyProvider';
 import LandingPageSimplified from '@/components/LandingPageSimplified';
 import { anumaSanctuary } from '@/lib/palettes';
 
