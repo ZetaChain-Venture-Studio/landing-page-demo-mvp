@@ -368,7 +368,7 @@ function LandingPageUI({ email, setEmail, showAnimation, onSubmit, onLoginClick,
             className="text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed"
             style={{ color: palette.textMuted }}
           >
-            Step out of digital exile and into the cognitive sanctuary. Reclaim your intelligence from fragmented silos and constant surveillance. Anuma is the unified memory layer where your data remains encrypted, sovereign, and entirely your own.
+            Anuma is a single, private interface for every AI model, powered by your own unified memory.
           </motion.p>
 
           {/* Email Form */}
