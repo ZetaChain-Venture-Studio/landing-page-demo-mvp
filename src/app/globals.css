@@ -26,10 +26,10 @@ html {
   font-size: var(--font-size);
 }
 
-/* Custom selection color */
+/* Custom selection color - dark text for readability */
 ::selection {
   background-color: rgb(139, 92, 246, 0.3);
-  color: #fafafa;
+  color: #1c1917;
 }
 
 /* Input autofill styling */
