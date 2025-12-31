@@ -1,5 +1,5 @@
-import Web3Hero from '@/components/landing-pages/Web3Hero';
+import MinimalMono from '@/components/landing-pages/MinimalMono';
 
 export default function Page1() {
-  return <Web3Hero />;
+  return <MinimalMono />;
 }

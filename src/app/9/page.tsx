@@ -1,5 +1,5 @@
-import InteractiveSplit from '@/components/landing-pages/InteractiveSplit';
+import CreamAnimated from '@/components/landing-pages/CreamAnimated';
 
 export default function Page9() {
-  return <InteractiveSplit />;
+  return <CreamAnimated />;
 }

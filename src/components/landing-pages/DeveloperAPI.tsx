@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { usePrivy } from '@privy-io/react-auth';
 
-// Design Landing Page (3) - Developer API dark
+// Design Landing Page (3) - Developer SDK dark
 
 function CodeExample() {
   return (
@@ -170,17 +170,17 @@ export default function DeveloperAPI() {
               transition={{ duration: 0.8 }}
             >
               <div className="inline-block px-2 py-1 border border-white/20 text-xs mb-6 tracking-widest text-white/60">
-                DEVELOPER API
+                DEVELOPER SDK
               </div>
 
               <h1 className="text-5xl md:text-6xl mb-6 tracking-tight">
-                One API for
+                One SDK for
                 <br />
                 every AI model
               </h1>
 
               <p className="text-xl text-white/50 mb-8 leading-relaxed">
-                Switch between GPT-4, Claude, Gemini, and Llama with a single parameter. Context persists. No vendor lock-in.
+                Switch between <span className="text-green-400">GPT-4</span>, <span className="text-orange-400">Claude</span>, <span className="text-blue-400">Gemini</span>, and <span className="text-purple-400">Llama</span> with a single parameter. <span className="text-white font-medium">Context persists</span>. No vendor lock-in.
               </p>
 
               <div className="flex gap-3">
@@ -188,7 +188,7 @@ export default function DeveloperAPI() {
                   onClick={login}
                   className="px-6 py-3 bg-white text-black hover:bg-white/90 transition-colors"
                 >
-                  {authenticated ? 'Joined!' : 'Get API Key'}
+                  {authenticated ? 'Joined!' : 'Get SDK Access'}
                 </button>
                 <button className="px-6 py-3 border border-white/20 hover:border-white/40 transition-colors">
                   View Docs
@@ -211,7 +211,7 @@ export default function DeveloperAPI() {
       <div className="border-b border-white/10">
         <div className="max-w-6xl mx-auto px-6 py-20">
           <div className="text-xs uppercase tracking-widest text-white/40 mb-8">
-            LIVE API CONSOLE
+            LIVE SDK CONSOLE
           </div>
           <ApiDemo />
         </div>
@@ -225,7 +225,7 @@ export default function DeveloperAPI() {
               <div className="text-sm text-white/40 mb-4 font-mono">01</div>
               <h3 className="text-2xl mb-3 tracking-tight">Unified interface</h3>
               <p className="text-white/50 leading-relaxed">
-                Same API endpoint. Switch models by changing one parameter. No need to learn different SDKs.
+                Same SDK method. Switch models by changing one parameter. No need to integrate different providers.
               </p>
               <div className="mt-4 p-3 bg-white/5 border border-white/10 font-mono text-xs text-white/60">
                 model: &quot;gpt-4&quot; | &quot;claude&quot; | &quot;gemini&quot;
@@ -234,9 +234,9 @@ export default function DeveloperAPI() {
 
             <div>
               <div className="text-sm text-white/40 mb-4 font-mono">02</div>
-              <h3 className="text-2xl mb-3 tracking-tight">Context persistence</h3>
+              <h3 className="text-2xl mb-3 tracking-tight"><span className="text-white">Context</span> persistence</h3>
               <p className="text-white/50 leading-relaxed">
-                Conversation threads maintain full context across model switches. Automatic memory management.
+                <span className="text-white font-medium">ANUMA</span> threads maintain full context across model switches. Automatic memory management.
               </p>
               <div className="mt-4 p-3 bg-white/5 border border-white/10 font-mono text-xs text-white/60">
                 thread_id: &quot;thread_abc123&quot;
@@ -262,7 +262,7 @@ export default function DeveloperAPI() {
         <div className="max-w-6xl mx-auto px-6 py-20">
           <div className="max-w-3xl mx-auto text-center">
             <div className="text-xs uppercase tracking-widest text-white/40 mb-6">
-              SIMPLE PRICING
+              SDK PRICING
             </div>
             <div className="text-7xl mb-4">$25</div>
             <p className="text-xl text-white/50 mb-8">
@@ -279,7 +279,7 @@ export default function DeveloperAPI() {
       <div className="max-w-6xl mx-auto px-6 py-20">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-4xl mb-6 tracking-tight">Join the private beta</h2>
-          <p className="text-white/50 mb-8">Limited API keys available for early adopters</p>
+          <p className="text-white/50 mb-8">Limited SDK access available for early adopters</p>
           <WaitlistButton />
         </div>
       </div>

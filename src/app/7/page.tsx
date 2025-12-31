@@ -1,5 +1,5 @@
-import BrutalistStone from '@/components/landing-pages/BrutalistStone';
+import InteractiveSplit from '@/components/landing-pages/InteractiveSplit';
 
 export default function Page7() {
-  return <BrutalistStone />;
+  return <InteractiveSplit />;
 }

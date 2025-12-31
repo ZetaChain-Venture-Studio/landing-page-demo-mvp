@@ -1,5 +1,5 @@
-import DeveloperAPI from '@/components/landing-pages/DeveloperAPI';
+import BlueprintTechnical from '@/components/landing-pages/BlueprintTechnical';
 
 export default function Page6() {
-  return <DeveloperAPI />;
+  return <BlueprintTechnical />;
 }

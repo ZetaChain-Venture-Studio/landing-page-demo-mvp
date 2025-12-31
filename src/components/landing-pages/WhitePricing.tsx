@@ -146,7 +146,7 @@ export default function WhitePricing() {
             across every AI model
           </h1>
 
-          <p className="text-xl text-black/40 mb-16 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xl text-black/70 mb-16 max-w-2xl mx-auto leading-relaxed">
             Switch between GPT-4, Claude, Gemini, and Llama mid-conversation. Your context and memories follow you. Stored locally, always private.
           </p>
 
@@ -174,7 +174,7 @@ export default function WhitePricing() {
           >
             <div className="text-5xl mb-6">∞</div>
             <h2 className="text-3xl mb-4 tracking-tight">Unified context</h2>
-            <p className="text-lg text-black/40 leading-relaxed">
+            <p className="text-lg text-black/70 leading-relaxed">
               Start a conversation with Claude, continue with GPT-4, finish with Gemini. Your full history and context transfers instantly between models.
             </p>
           </motion.div>
@@ -189,7 +189,7 @@ export default function WhitePricing() {
           >
             <div className="text-5xl mb-6">⊙</div>
             <h2 className="text-3xl mb-4 tracking-tight">Private by design</h2>
-            <p className="text-lg text-black/40 leading-relaxed">
+            <p className="text-lg text-black/70 leading-relaxed">
               All your conversations and memories are stored in your browser. Never uploaded, never synced. Complete control over your data.
             </p>
           </motion.div>
@@ -203,7 +203,7 @@ export default function WhitePricing() {
             className="max-w-xl mx-auto text-center pt-12 border-t border-black/10"
           >
             <div className="text-7xl mb-4">$25</div>
-            <p className="text-lg text-black/40 leading-relaxed">
+            <p className="text-lg text-black/70 leading-relaxed">
               One subscription. Every major AI model included.
               <br />
               (No more paying for ChatGPT Plus + Claude Pro + Gemini Advanced)

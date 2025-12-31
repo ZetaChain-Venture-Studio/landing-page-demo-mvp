@@ -43,7 +43,7 @@ function ModelSwitcher() {
     const interval = setInterval(() => {
       setActiveModel((prev) => (prev + 1) % MODELS.length);
       setProgress(0);
-    }, 7000);
+    }, 10000);  // Slower model switching for better readability
     return () => clearInterval(interval);
   }, []);
 
@@ -53,7 +53,7 @@ function ModelSwitcher() {
     const progressInterval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) return 100;
-        return prev + (100 / 7000) * 50;
+        return prev + (100 / 10000) * 50;  // Match slower interval
       });
     }, 50);
     return () => clearInterval(progressInterval);
@@ -183,8 +183,20 @@ export default function DarkMinimal() {
     <div className="min-h-screen bg-[#0d0d0d] text-white">
       {/* Header */}
       <header className="border-b border-[#222222]">
-        <div className="max-w-5xl mx-auto px-6 py-6">
-          <span className="text-sm">ANUMA</span>
+        <div className="max-w-5xl mx-auto px-6 py-6 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <span className="text-base font-medium">ANUMA</span>
+            <div className="relative group">
+              <span className="text-[#808080] cursor-help hover:text-white transition-colors">ⓘ</span>
+              <div className="absolute left-0 top-full mt-2 w-64 p-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-xs text-[#b3b3b3] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                <strong className="text-white block mb-1">ANUMA</strong>
+                One interface for GPT-4, Claude, Gemini & Llama. Switch models instantly while keeping full context.
+              </div>
+            </div>
+          </div>
+          <a href="#waitlist" className="text-sm text-[#808080] hover:text-white transition-colors">
+            Join Waitlist
+          </a>
         </div>
       </header>
 
@@ -196,15 +208,13 @@ export default function DarkMinimal() {
           transition={{ duration: 0.8 }}
           className="max-w-3xl"
         >
-          <h1 className="text-5xl md:text-7xl mb-8 leading-[1.1]">
+          <h1 className="text-6xl md:text-8xl mb-8 leading-[1.1]">
             Stop paying for multiple AI subscriptions
           </h1>
 
-          <p className="text-xl text-[#b3b3b3] mb-12 leading-relaxed max-w-2xl">
+          <p className="text-2xl text-[#b3b3b3] mb-12 leading-relaxed max-w-2xl">
             ANUMA gives you access to GPT-4, Claude, Gemini, and Llama in one place. Switch between models instantly while keeping your conversation context. Everything stored locally in your browser.
           </p>
-
-          <WaitlistButton />
         </motion.div>
 
         {/* Model Switcher Demo */}
@@ -212,10 +222,15 @@ export default function DarkMinimal() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="mt-32 mb-16"
+          className="mt-20 mb-12"
         >
           <ModelSwitcher />
         </motion.div>
+
+        {/* Waitlist below demo */}
+        <div id="waitlist" className="text-center mb-16">
+          <WaitlistButton />
+        </div>
 
         {/* Simple feature list */}
         <div className="border-t border-[#222222] pt-16 mt-32">

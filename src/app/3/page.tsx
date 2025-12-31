@@ -1,5 +1,5 @@
-import MinimalMono from '@/components/landing-pages/MinimalMono';
+import WhitePricing from '@/components/landing-pages/WhitePricing';
 
 export default function Page3() {
-  return <MinimalMono />;
+  return <WhitePricing />;
 }

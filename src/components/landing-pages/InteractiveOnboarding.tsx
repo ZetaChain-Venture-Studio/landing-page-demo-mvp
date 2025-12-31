@@ -286,8 +286,8 @@ Keep your response concise (2-3 sentences max), friendly, and directly address t
           id: 2
         }]);
         setMessageIdCounter(3);
-      }, 2000);
-    }, 1500);
+      }, 4000);  // Increased from 2000 to give users time to read
+    }, 2000);  // Increased from 1500
 
     return () => clearTimeout(timer);
   }, []);

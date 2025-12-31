@@ -333,11 +333,16 @@ export default function InteractiveSplit() {
                   <p>
                     ANUMA preserves your conversation as you switch between AI models. No repeating yourself. No lost context.
                   </p>
-                  <div className="flex flex-wrap gap-x-6 gap-y-2 pt-2 text-sm text-black/40">
-                    <div className="flex items-center gap-2">
-                      <div className="w-1 h-1 bg-black/40 rounded-full" />
-                      <span>Try it now →</span>
-                    </div>
+                  <div className="flex flex-wrap gap-x-6 gap-y-2 pt-4">
+                    <button
+                      onClick={() => {
+                        const demoSection = document.querySelector('.border-2.border-black\\/10');
+                        demoSection?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="text-sm text-black border border-black/20 px-4 py-2 hover:bg-black hover:text-white transition-colors"
+                    >
+                      Try it now →
+                    </button>
                   </div>
                 </div>
               </div>

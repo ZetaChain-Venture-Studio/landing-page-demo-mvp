@@ -1,5 +1,5 @@
-import WhitePricing from '@/components/landing-pages/WhitePricing';
+import BrutalistStone from '@/components/landing-pages/BrutalistStone';
 
 export default function Page5() {
-  return <WhitePricing />;
+  return <BrutalistStone />;
 }

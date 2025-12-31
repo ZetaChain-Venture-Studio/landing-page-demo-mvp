@@ -1,5 +1,5 @@
-import DarkMinimal from '@/components/landing-pages/DarkMinimal';
+import DeveloperAPI from '@/components/landing-pages/DeveloperAPI';
 
 export default function Page4() {
-  return <DarkMinimal />;
+  return <DeveloperAPI />;
 }
