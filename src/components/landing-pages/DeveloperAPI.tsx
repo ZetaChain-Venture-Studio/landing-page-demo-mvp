@@ -53,26 +53,35 @@ const MODEL_API_IDS: Record<string, string> = {
   'llama': 'meta-llama/llama-3.1-70b-instruct',
 };
 
-const SAMPLE_REQUEST = {
-  threadId: 'thread_a7f3d9c2',
-  model: 'gpt-4',
-  message: 'Explain quantum computing simply',
-};
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+  model?: string;
+}
 
-const FALLBACK_RESPONSES: Record<string, string> = {
-  'gpt-4': 'Quantum computing uses quantum mechanics principles like superposition and entanglement to process information. Unlike classical bits that are 0 or 1, quantum bits (qubits) can be both simultaneously...',
-  'claude': 'Think of quantum computing like this: regular computers are like a person checking one path through a maze at a time. Quantum computers can check multiple paths simultaneously, making them exponentially faster for certain problems...',
-  'gemini': 'Quantum computers leverage quantum mechanical phenomena to perform computations. They use qubits which can exist in multiple states at once (superposition), allowing parallel processing of information...',
-  'llama': 'Quantum computing is a fundamentally different approach to computation that exploits quantum mechanical properties. Instead of binary bits, it uses qubits that can represent multiple states simultaneously through superposition...',
-};
-
-function ApiDemo() {
+function InteractiveSDKDemo() {
   const [selectedModel, setSelectedModel] = useState('gpt-4');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [response, setResponse] = useState(FALLBACK_RESPONSES['gpt-4']);
+  const [streamingContent, setStreamingContent] = useState('');
   const abortControllerRef = useRef<AbortController | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const fetchRealResponse = async (model: string) => {
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputValue.trim() || isLoading) return;
+
+    const userMessage = inputValue.trim();
+    setInputValue('');
+    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setIsLoading(true);
+    setStreamingContent('');
+
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -80,20 +89,21 @@ function ApiDemo() {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    setIsLoading(true);
-    setResponse('');
+    // Build conversation history for context
+    const conversationHistory = [
+      { role: 'system' as const, content: 'You are a helpful assistant. Keep responses concise but helpful. You have access to the full conversation history.' },
+      ...messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+      { role: 'user' as const, content: userMessage }
+    ];
 
     try {
       const res = await fetch('https://ai-portal-dev.zetachain.com/api/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: MODEL_API_IDS[model],
-          messages: [
-            { role: 'system', content: 'You are a helpful assistant. Keep responses concise (2-3 sentences max).' },
-            { role: 'user', content: SAMPLE_REQUEST.message }
-          ],
-          max_tokens: 150,
+          model: MODEL_API_IDS[selectedModel],
+          messages: conversationHistory,
+          max_tokens: 500,
           stream: true,
         }),
         signal: controller.signal,
@@ -121,93 +131,142 @@ function ApiDemo() {
               const content = data.choices?.[0]?.delta?.content;
               if (content) {
                 fullText += content;
-                setResponse(fullText);
+                setStreamingContent(fullText);
               }
             } catch {}
           }
         }
       }
+
+      setMessages(prev => [...prev, { role: 'assistant', content: fullText, model: selectedModel }]);
+      setStreamingContent('');
     } catch (error) {
       if ((error as Error).name === 'AbortError') return;
-      setResponse(FALLBACK_RESPONSES[model]);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, there was an error processing your request.', model: selectedModel }]);
+      setStreamingContent('');
     } finally {
       setIsLoading(false);
+      setTimeout(scrollToBottom, 100);
     }
   };
 
-  const handleModelChange = (model: string) => {
-    setSelectedModel(model);
-    fetchRealResponse(model);
+  const getModelColor = (modelId: string) => {
+    const model = MODELS.find(m => m.id === modelId);
+    return model?.color || 'text-white';
   };
 
   return (
-    <div className="grid md:grid-cols-2 gap-6">
-      {/* Request */}
-      <div>
-        <div className="text-xs text-white/40 mb-3 font-mono">REQUEST</div>
-        <div className="bg-[#111] border border-white/10 rounded-lg overflow-hidden font-mono text-xs">
-          <div className="border-b border-white/10 px-4 py-2 text-[10px] text-white/40">
-            POST /v1/chat
+    <div className="bg-[#111] border border-white/10 rounded-lg overflow-hidden">
+      {/* Header with model selector */}
+      <div className="border-b border-white/10 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-white/40 font-mono">MODEL:</span>
+            <div className="flex gap-2">
+              {MODELS.map((model) => (
+                <button
+                  key={model.id}
+                  onClick={() => setSelectedModel(model.id)}
+                  className={`px-3 py-1.5 text-xs font-mono border transition-colors ${
+                    selectedModel === model.id
+                      ? `${model.bgColor} ${model.borderColor} ${model.color}`
+                      : 'bg-white/5 border-white/10 text-white/50 hover:border-white/20'
+                  }`}
+                >
+                  {model.id}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="p-4">
-            <pre className="text-white/70">
-{`{
-  "threadId": "${SAMPLE_REQUEST.threadId}",
-  "model": "`}<span className="text-green-400">{selectedModel}</span>{`",
-  "message": "${SAMPLE_REQUEST.message}"
-}`}
-            </pre>
-          </div>
-        </div>
-
-        {/* Model selector */}
-        <div className="mt-4">
-          <div className="text-xs text-white/40 mb-2 font-mono">SWITCH MODEL</div>
-          <div className="grid grid-cols-2 gap-2">
-            {MODELS.map((model) => (
-              <button
-                key={model.id}
-                onClick={() => handleModelChange(model.id)}
-                className={`px-4 py-2 text-xs font-mono border transition-colors ${
-                  selectedModel === model.id
-                    ? `${model.bgColor} ${model.borderColor} ${model.color}`
-                    : 'bg-white/5 border-white/10 text-white/50 hover:border-white/20'
-                }`}
-              >
-                {model.id}
-              </button>
-            ))}
+          <div className="text-xs text-white/30 font-mono">
+            {messages.length > 0 && `${messages.length} messages in context`}
           </div>
         </div>
       </div>
 
-      {/* Response */}
-      <div>
-        <div className="text-xs text-white/40 mb-3 font-mono">RESPONSE</div>
-        <div className="bg-[#111] border border-white/10 rounded-lg overflow-hidden font-mono text-xs">
-          <div className="border-b border-white/10 px-4 py-2 text-[10px] text-white/40 flex items-center justify-between">
-            <span>200 OK</span>
-            {isLoading && (
-              <span className="text-green-400">● Streaming...</span>
-            )}
+      {/* Chat area */}
+      <div className="h-[350px] overflow-y-auto p-4 space-y-4">
+        {messages.length === 0 && !isLoading && (
+          <div className="h-full flex items-center justify-center text-white/30 text-sm">
+            <div className="text-center">
+              <p className="mb-2">Try the SDK - type a message below</p>
+              <p className="text-xs text-white/20">Switch models anytime. Context is preserved.</p>
+            </div>
           </div>
-          <div className="p-4 min-h-[200px]">
-            <pre className="text-white/70 whitespace-pre-wrap">
-{`{
-  "id": "msg_k9d8fj2l",
-  "model": "${selectedModel}",
-  "threadId": "${SAMPLE_REQUEST.threadId}",
-  "content": "${isLoading ? 'Loading...' : response}",
-  "contextPreserved": true
-}`}
-            </pre>
-          </div>
-        </div>
+        )}
 
-        <div className="mt-4 p-3 bg-green-400/10 border border-green-400/20 text-xs text-green-400">
-          ✓ Context from previous messages maintained across model switch
-        </div>
+        {messages.map((msg, idx) => (
+          <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[80%] ${msg.role === 'user' ? 'order-2' : ''}`}>
+              {msg.role === 'assistant' && msg.model && (
+                <div className={`text-[10px] font-mono mb-1 ${getModelColor(msg.model)}`}>
+                  {msg.model}
+                </div>
+              )}
+              <div className={`px-4 py-3 rounded text-sm ${
+                msg.role === 'user'
+                  ? 'bg-white text-black'
+                  : 'bg-white/10 text-white/90'
+              }`}>
+                {msg.content}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {isLoading && streamingContent && (
+          <div className="flex gap-3 justify-start">
+            <div className="max-w-[80%]">
+              <div className={`text-[10px] font-mono mb-1 ${getModelColor(selectedModel)}`}>
+                {selectedModel}
+              </div>
+              <div className="px-4 py-3 rounded text-sm bg-white/10 text-white/90">
+                {streamingContent}
+                <span className="inline-block w-2 h-4 bg-white/50 ml-1 animate-pulse" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isLoading && !streamingContent && (
+          <div className="flex gap-3 justify-start">
+            <div className="px-4 py-3 rounded bg-white/10">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
       </div>
+
+      {/* Input area */}
+      <form onSubmit={sendMessage} className="border-t border-white/10 p-4">
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="Type a message... (e.g., 'Explain quantum computing')"
+            disabled={isLoading}
+            className="flex-1 px-4 py-3 bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/30 text-sm"
+          />
+          <button
+            type="submit"
+            disabled={isLoading || !inputValue.trim()}
+            className="px-6 py-3 bg-white text-black font-medium text-sm hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Send
+          </button>
+        </div>
+        <div className="mt-3 flex items-center gap-2 text-[10px] text-white/30">
+          <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+          <span>Context preserved across model switches - try switching models mid-conversation!</span>
+        </div>
+      </form>
     </div>
   );
 }
@@ -296,13 +355,16 @@ export default function DeveloperAPI() {
         </div>
       </div>
 
-      {/* API Demo */}
+      {/* Interactive SDK Demo */}
       <div className="border-b border-white/10">
         <div className="max-w-6xl mx-auto px-6 py-20">
-          <div className="text-xs uppercase tracking-widest text-white/40 mb-8">
-            LIVE SDK CONSOLE
+          <div className="text-xs uppercase tracking-widest text-white/40 mb-4">
+            TRY IT NOW - INTERACTIVE SDK DEMO
           </div>
-          <ApiDemo />
+          <p className="text-white/50 text-sm mb-8 max-w-2xl">
+            Type your own messages and switch between AI models mid-conversation. Your context is preserved across all models.
+          </p>
+          <InteractiveSDKDemo />
         </div>
       </div>
 
