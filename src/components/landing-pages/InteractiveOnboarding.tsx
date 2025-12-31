@@ -1,10 +1,20 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { usePrivy } from '@privy-io/react-auth';
+import { usePrivy, useIdentityToken } from '@privy-io/react-auth';
 
 // Design - ANUMA Landing Page Design (3) - Interactive onboarding with context panel
+// Integrated with Evermind SDK for real AI responses
+
+const API_BASE_URL = "https://ai-portal-dev.zetachain.com";
+
+// Model mapping for the API
+const MODEL_IDS: Record<string, string> = {
+  'GPT-4': 'openai/gpt-4o',
+  'Claude': 'anthropic/claude-3-5-sonnet-20241022',
+  'Gemini': 'google/gemini-1.5-pro',
+};
 
 interface Message {
   role: 'system' | 'user' | 'assistant';
@@ -184,7 +194,72 @@ export default function InteractiveOnboarding() {
   const [messageIdCounter, setMessageIdCounter] = useState(0);
   const [flashContext, setFlashContext] = useState(false);
   const [showContextPanel, setShowContextPanel] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+
   const { login, authenticated } = usePrivy();
+  const { identityToken } = useIdentityToken();
+
+  // Function to call the Evermind API for real AI responses
+  const callEvermindAPI = useCallback(async (
+    model: string,
+    contextData: ContextData
+  ): Promise<string> => {
+    const modelId = MODEL_IDS[model] || 'openai/gpt-4o';
+
+    // Build the system prompt with context
+    const systemPrompt = `You are a helpful AI assistant. You are responding to a user named ${contextData.name} who is working on ${contextData.workingOn} and needs help with ${contextData.needsHelp}.
+
+Keep your response concise (2-3 sentences max), friendly, and directly address their needs. Reference their name and project to show you understand the context.`;
+
+    const userPrompt = `Hi, I'm ${contextData.name}. I'm working on ${contextData.workingOn} and I need help with ${contextData.needsHelp}. Can you give me some quick advice?`;
+
+    // If we have an identity token, use the real API
+    if (identityToken) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${identityToken}`,
+          },
+          body: JSON.stringify({
+            model: modelId,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt },
+            ],
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[ANUMA] API error:', response.status, errorText);
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const content = data?.choices?.[0]?.message?.content;
+
+        if (content) {
+          return content;
+        }
+        throw new Error('No content in response');
+      } catch (error) {
+        console.error('[ANUMA] API call failed:', error);
+        // Fall back to simulated response
+        setApiError('Using demo mode - login with wallet for live AI');
+      }
+    }
+
+    // Fallback responses when API is not available
+    const fallbackResponses: Record<string, string> = {
+      'GPT-4': `Great to meet you, ${contextData.name}! For ${contextData.workingOn}, I'd recommend starting with ${contextData.needsHelp} by breaking it down into smaller, manageable milestones. Focus on your core value proposition first.`,
+      'Claude': `Hi ${contextData.name}! Working on ${contextData.workingOn} sounds exciting. For ${contextData.needsHelp}, I'd suggest a structured approach: define clear objectives, identify potential blockers early, and iterate quickly. Would you like me to elaborate on any of these?`,
+      'Gemini': `Hello ${contextData.name}! ${contextData.workingOn} is a great project. Regarding ${contextData.needsHelp}, I can help you analyze different approaches and find the most efficient path forward. What aspect would you like to explore first?`
+    };
+
+    return fallbackResponses[model] || fallbackResponses['GPT-4'];
+  }, [identityToken]);
 
   useEffect(() => {
     setMessages([{
@@ -259,7 +334,7 @@ export default function InteractiveOnboarding() {
           setFlashContext(true);
           setMessages([{
             role: 'assistant',
-            content: `How can I help you, ${context.name}?`,
+            content: `Interesting! What do you need help with for ${userMessage}?`,
             model: 'Claude',
             id: nextId,
             highlightName: true
@@ -275,72 +350,76 @@ export default function InteractiveOnboarding() {
         setTimeout(() => {
           setShowModelPicker(true);
         }, 800);
-
-      } else if (step === 3 && selectedModel) {
-        const responses: Record<string, string> = {
-          'GPT-4': `${context.name}, for ${context.workingOn}, I'd start with ${context.needsHelp}. Given your background, you'll want to focus on scalability from day one.`,
-          'Claude': `Hi ${context.name}! For ${context.workingOn}, specifically ${context.needsHelp}, I'd recommend a structured approach: 1) Define your core value proposition, 2) Identify key technical challenges, 3) Build an MVP timeline. Want me to elaborate?`,
-          'Gemini': `${context.name}, working on ${context.workingOn} is exciting! For ${context.needsHelp}, I can help you with real-time data analysis, multi-modal understanding, or integration strategies. What would be most valuable?`
-        };
-
-        setFlashContext(true);
-        setMessages([{
-          role: 'assistant',
-          content: responses[selectedModel],
-          model: selectedModel,
-          id: nextId,
-          highlightName: true
-        }]);
-
-        setTimeout(() => {
-          setFlashContext(false);
-          const systemId = messageIdCounter + 2;
-          setMessageIdCounter(prev => prev + 1);
-          setMessages(prev => [...prev, {
-            role: 'system',
-            content: `See how the context stayed consistent across different AI models? That's ANUMA.`,
-            id: systemId
-          }]);
-
-          setTimeout(() => {
-            setStep(4);
-          }, 2500);
-        }, 2000);
       }
     }, 1200 + Math.random() * 800);
   };
 
-  const handleModelSelect = (model: string) => {
+  const handleModelSelect = async (model: string) => {
     setSelectedModel(model);
     setShowModelPicker(false);
+
     const currentId = messageIdCounter;
     setMessages([{
       role: 'user',
-      content: `I choose ${model}`,
+      content: `Let me ask ${model}`,
       id: currentId
     }]);
     setMessageIdCounter(prev => prev + 1);
 
-    setTimeout(() => {
-      handleSubmitAnswer({ preventDefault: () => {} } as React.FormEvent);
-    }, 500);
+    setIsTyping(true);
+    setFlashContext(true);
+
+    try {
+      // Get real AI response from the API
+      const aiResponse = await callEvermindAPI(model, context);
+
+      setIsTyping(false);
+      const nextId = messageIdCounter + 1;
+      setMessageIdCounter(prev => prev + 1);
+
+      setMessages([{
+        role: 'assistant',
+        content: aiResponse,
+        model: model,
+        id: nextId,
+        highlightName: true
+      }]);
+
+      setTimeout(() => {
+        setFlashContext(false);
+        const systemId = messageIdCounter + 2;
+        setMessageIdCounter(prev => prev + 1);
+
+        setMessages(prev => [...prev, {
+          role: 'system',
+          content: apiError
+            ? `${apiError}. Notice how context was preserved across models? That's ANUMA.`
+            : `See how ${model} understood your context without you repeating it? That's ANUMA.`,
+          id: systemId
+        }]);
+
+        setTimeout(() => {
+          setStep(4);
+        }, 2500);
+      }, 2000);
+    } catch (error) {
+      console.error('[ANUMA] Error getting AI response:', error);
+      setIsTyping(false);
+      setFlashContext(false);
+
+      // Show error and move to waitlist
+      setMessages([{
+        role: 'system',
+        content: 'Demo complete! Join the waitlist to experience real AI responses.',
+        id: messageIdCounter + 1
+      }]);
+      setMessageIdCounter(prev => prev + 1);
+      setStep(4);
+    }
   };
 
   const handleJoinWaitlist = () => {
     login();
-    // Move to success step after Privy login
-    setTimeout(() => {
-      if (authenticated) {
-        const currentId = messageIdCounter;
-        setMessages([{
-          role: 'system',
-          content: `Thanks ${context.name}! You're now on the waitlist. Get ready to experience AI without limits.`,
-          id: currentId
-        }]);
-        setMessageIdCounter(prev => prev + 1);
-        setStep(5);
-      }
-    }, 1000);
   };
 
   // Watch for authentication changes
@@ -483,7 +562,7 @@ export default function InteractiveOnboarding() {
                 className="mb-8"
               >
                 <div className="text-center mb-6">
-                  <p className="text-black/60 text-sm">Choose your AI model:</p>
+                  <p className="text-black/60 text-sm">Choose which AI model should help you:</p>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   {['GPT-4', 'Claude', 'Gemini'].map((model) => (
@@ -495,6 +574,11 @@ export default function InteractiveOnboarding() {
                       className="p-6 border-2 border-black/10 hover:border-black/40 hover:bg-black/[0.02] transition-all"
                     >
                       <div className="text-lg tracking-wide">{model}</div>
+                      <div className="text-xs text-black/40 mt-1">
+                        {model === 'GPT-4' && 'OpenAI'}
+                        {model === 'Claude' && 'Anthropic'}
+                        {model === 'Gemini' && 'Google'}
+                      </div>
                     </motion.button>
                   ))}
                 </div>
