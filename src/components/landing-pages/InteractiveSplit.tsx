@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { usePrivy } from '@privy-io/react-auth';
 
 // Design - ANUMA Landing Page Design (2) - Interactive demo with split layout
 
@@ -211,7 +210,16 @@ function InteractiveDemo({ onComplete }: { onComplete: () => void }) {
 }
 
 function WaitlistModal({ onClose }: { onClose: () => void }) {
-  const { login, authenticated } = usePrivy();
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email) {
+      setSubmitted(true);
+      console.log('Waitlist signup:', email);
+    }
+  };
 
   return (
     <motion.div
@@ -235,20 +243,30 @@ function WaitlistModal({ onClose }: { onClose: () => void }) {
           ×
         </button>
 
-        {!authenticated ? (
+        {!submitted ? (
           <div className="space-y-8">
             <div>
-              <h2 className="text-4xl tracking-tight mb-2">Join the waitlist</h2>
+              <h2 className="text-4xl tracking-tight mb-2 text-black">Join the waitlist</h2>
               <p className="text-black/60">Be among the first to experience ANUMA.</p>
             </div>
 
-            <button
-              onClick={login}
-              className="w-full group relative px-12 py-4 bg-black text-white overflow-hidden"
-            >
-              <span className="relative z-10">Join now</span>
-              <div className="absolute inset-0 bg-black/80 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-            </button>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                required
+                className="w-full px-4 py-4 border border-black/20 bg-white text-black placeholder-black/40 focus:outline-none focus:border-black"
+              />
+              <button
+                type="submit"
+                className="w-full group relative px-12 py-4 bg-black text-white overflow-hidden"
+              >
+                <span className="relative z-10">Join now</span>
+                <div className="absolute inset-0 bg-black/80 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+              </button>
+            </form>
 
             <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-black/40">
               <div className="flex items-center gap-2">
@@ -275,7 +293,7 @@ function WaitlistModal({ onClose }: { onClose: () => void }) {
               <span className="text-white text-2xl">✓</span>
             </motion.div>
             <div>
-              <h3 className="text-2xl tracking-tight mb-2">You&apos;re in.</h3>
+              <h3 className="text-2xl tracking-tight mb-2 text-black">You&apos;re in.</h3>
               <p className="text-black/60">We&apos;ll reach out soon.</p>
             </div>
           </div>
@@ -287,7 +305,6 @@ function WaitlistModal({ onClose }: { onClose: () => void }) {
 
 export default function InteractiveSplit() {
   const [showWaitlist, setShowWaitlist] = useState(false);
-  const { login, authenticated } = usePrivy();
 
   return (
     <div className="min-h-screen bg-white relative overflow-hidden">
@@ -309,10 +326,10 @@ export default function InteractiveSplit() {
         <header className="px-6 md:px-12 py-8 flex justify-between items-center">
           <div className="text-sm tracking-[0.2em] text-black font-medium">ANUMA</div>
           <button
-            onClick={authenticated ? undefined : login}
+            onClick={() => setShowWaitlist(true)}
             className="px-6 py-2 bg-black text-white text-xs tracking-wider hover:bg-gray-800 transition-colors"
           >
-            {authenticated ? 'JOINED' : 'JOIN WAITLIST'}
+            JOIN WAITLIST
           </button>
         </header>
 

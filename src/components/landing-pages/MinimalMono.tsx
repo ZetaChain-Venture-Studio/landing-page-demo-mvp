@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { usePrivy } from '@privy-io/react-auth';
 
 // Landing Page Design (1) - Minimal mono grid with animated model switcher
 
@@ -41,37 +40,36 @@ function ModelSwitcher() {
   }, []);
 
   return (
-    <div className="space-y-12">
-      <div className="relative border border-gray-200 p-8 space-y-6">
+    <div className="space-y-6">
+      <div className="relative border border-gray-300 p-6 space-y-4">
         {/* ANUMA label on border */}
-        <div className="absolute -top-3 left-8 bg-white px-3">
-          <p className="text-xs tracking-wider text-gray-400">POST /anuma</p>
+        <div className="absolute -top-3 left-6 bg-white px-2">
+          <p className="text-xs tracking-wider text-gray-500 font-medium">POST /anuma</p>
         </div>
 
         {/* Stored context - visible */}
-        <div className="bg-gray-50 border border-gray-200 p-4 space-y-2">
-          <p className="text-xs text-gray-400 tracking-wider">PROJECT: FINTECH-SAAS-Q4</p>
-          <div className="text-xs text-gray-500 space-y-1">
+        <div className="bg-gray-100 border border-gray-300 p-3 space-y-2">
+          <p className="text-xs text-gray-600 tracking-wider font-bold">PROJECT: FINTECH-SAAS-Q4</p>
+          <div className="text-xs text-gray-700 space-y-0.5 font-medium">
             <p>• Product: B2B payment analytics platform</p>
             <p>• Tech stack: React, Node.js, PostgreSQL, Stripe API</p>
             <p>• Team: 4 engineers, 8 months runway, $50k MRR</p>
-            <p>• Context: Roadmap prioritization discussion</p>
           </div>
         </div>
 
         {/* User prompt */}
         <div>
-          <p className="text-xs text-gray-400 tracking-wider mb-3">YOU</p>
-          <p className="text-sm text-gray-500">
+          <p className="text-xs text-gray-600 tracking-wider mb-2 font-bold">YOU</p>
+          <p className="text-sm text-gray-800 font-semibold">
             &quot;Which feature should we build next?&quot;
           </p>
         </div>
 
         {/* Divider */}
-        <div className="h-px bg-gray-200"></div>
+        <div className="h-px bg-gray-300"></div>
 
         {/* Model response - changes */}
-        <div className="space-y-3">
+        <div className="space-y-2">
           <div className="flex items-center gap-3">
             <div className="relative h-6 flex items-center min-w-[80px]">
               <AnimatePresence mode="wait">
@@ -81,7 +79,7 @@ function ModelSwitcher() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
                   transition={{ duration: 0.3 }}
-                  className="absolute text-xs tracking-wider text-black"
+                  className="absolute text-xs tracking-wider text-black font-bold"
                 >
                   {exchanges[currentIndex].model}
                 </motion.p>
@@ -89,7 +87,7 @@ function ModelSwitcher() {
             </div>
           </div>
 
-          <div className="relative min-h-[60px]">
+          <div className="relative min-h-[50px]">
             <AnimatePresence mode="wait">
               <motion.p
                 key={currentIndex}
@@ -97,7 +95,7 @@ function ModelSwitcher() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.4 }}
-                className="absolute text-sm"
+                className="absolute text-sm text-gray-900 font-medium leading-relaxed"
               >
                 {exchanges[currentIndex].response}
               </motion.p>
@@ -110,14 +108,14 @@ function ModelSwitcher() {
         {exchanges.map((_, index) => (
           <div
             key={index}
-            className={`h-px transition-all duration-500 ${
-              index === currentIndex ? 'w-12 bg-black' : 'w-8 bg-gray-300'
+            className={`h-1 transition-all duration-500 rounded ${
+              index === currentIndex ? 'w-10 bg-black' : 'w-6 bg-gray-400'
             }`}
           />
         ))}
       </div>
 
-      <p className="text-center text-xs text-gray-400 tracking-wider">
+      <p className="text-center text-xs text-gray-600 tracking-wider font-medium">
         ALL MODELS USE YOUR CONTEXT. SWITCH FREELY.
       </p>
     </div>
@@ -125,20 +123,44 @@ function ModelSwitcher() {
 }
 
 function WaitlistForm() {
-  const { login, authenticated } = usePrivy();
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email) {
+      setSubmitted(true);
+      console.log('Waitlist signup:', email);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="text-center py-4">
+        <p className="text-sm text-gray-700 font-medium">You&apos;re on the list!</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-3">
-      <button
-        onClick={login}
-        className="w-full px-4 py-3 bg-black text-white text-sm hover:bg-gray-800 transition-colors"
-      >
-        {authenticated ? 'JOINED' : 'JOIN WAITLIST'}
-      </button>
-      {authenticated && (
-        <p className="text-xs text-gray-500 text-center">You&apos;re on the list!</p>
-      )}
-    </div>
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <div className="flex flex-col sm:flex-row gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email"
+          required
+          className="flex-1 px-4 py-3 border border-gray-300 bg-white text-black placeholder-gray-500 focus:outline-none focus:border-black text-sm"
+        />
+        <button
+          type="submit"
+          className="px-6 py-3 bg-black text-white text-sm hover:bg-gray-800 transition-colors font-medium"
+        >
+          JOIN WAITLIST
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -149,31 +171,31 @@ export default function MinimalMono() {
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]" />
       <div className="absolute inset-0 bg-gradient-to-b from-white via-transparent to-white" />
 
-      <div className="relative min-h-screen flex flex-col justify-center px-6 py-20 max-w-3xl mx-auto">
+      <div className="relative min-h-screen flex flex-col justify-center px-6 py-12 max-w-3xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="space-y-40"
+          className="space-y-12"
         >
           {/* Header */}
-          <div className="space-y-3">
-            <h1 className="text-7xl md:text-9xl tracking-tight">ANUMA</h1>
-            <p className="text-gray-400 text-xs tracking-wider">
+          <div className="space-y-2">
+            <h1 className="text-6xl md:text-8xl tracking-tight font-bold">ANUMA</h1>
+            <p className="text-gray-600 text-sm tracking-wider font-medium">
               ONE INTERFACE. EVERY MODEL.
             </p>
           </div>
 
           {/* What it's for */}
-          <div className="space-y-16">
-            <p className="text-sm text-gray-500">
+          <div className="space-y-8">
+            <p className="text-sm text-gray-700 font-medium">
               Switch between AI models mid-conversation without losing context. All your project memory stays with you.
             </p>
             <ModelSwitcher />
           </div>
 
           {/* Waitlist */}
-          <div className="space-y-8">
+          <div>
             <WaitlistForm />
           </div>
         </motion.div>

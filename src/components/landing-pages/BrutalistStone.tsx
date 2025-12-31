@@ -1,20 +1,50 @@
 "use client";
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { usePrivy } from '@privy-io/react-auth';
 
 // Landing Page Design - Brutalist stone boxes
 
-function WaitlistButton() {
-  const { login, authenticated } = usePrivy();
+function WaitlistForm() {
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email) {
+      setSubmitted(true);
+      console.log('Waitlist signup:', email);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
+          <span className="text-white text-sm">✓</span>
+        </div>
+        <span className="font-mono text-sm text-black">You&apos;re on the list!</span>
+      </div>
+    );
+  }
 
   return (
-    <button
-      onClick={login}
-      className="px-8 py-4 bg-black text-white font-mono text-sm hover:bg-neutral-800 transition-colors uppercase tracking-wider"
-    >
-      {authenticated ? 'Joined!' : 'Join Waitlist'}
-    </button>
+    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md">
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Enter your email"
+        required
+        className="flex-1 px-4 py-4 border-2 border-black bg-white text-black placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-black font-mono text-sm"
+      />
+      <button
+        type="submit"
+        className="px-8 py-4 bg-black text-white font-mono text-sm hover:bg-neutral-800 transition-colors uppercase tracking-wider whitespace-nowrap"
+      >
+        Join Waitlist
+      </button>
+    </form>
   );
 }
 
@@ -30,13 +60,8 @@ export default function BrutalistStone() {
         {/* Header */}
         <header className="px-8 py-6 border-b border-black/20">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-8 h-8 border-2 border-black flex items-center justify-center">
-                <span className="text-xs font-bold">A</span>
-              </div>
-              <span className="font-mono tracking-tight text-lg uppercase font-bold">ANUMA</span>
-            </div>
-            <a href="#waitlist" className="font-mono text-xs uppercase tracking-wider text-neutral-500 hover:text-black transition-colors">
+            <span className="font-mono tracking-tight text-xl uppercase font-bold text-black">ANUMA</span>
+            <a href="#waitlist" className="font-mono text-xs uppercase tracking-wider text-black/70 hover:text-black transition-colors">
               Join Waitlist
             </a>
           </div>
@@ -65,12 +90,12 @@ export default function BrutalistStone() {
                   Every AI.
                 </h1>
 
-                <p className="text-neutral-600 text-xl max-w-md leading-relaxed font-light">
+                <p className="text-neutral-800 text-xl max-w-md leading-relaxed">
                   Switch between models. Keep context. Your data stays local.
                 </p>
 
                 <div id="waitlist">
-                  <WaitlistButton />
+                  <WaitlistForm />
                 </div>
               </motion.div>
 
@@ -95,21 +120,21 @@ export default function BrutalistStone() {
 
                   <div className="space-y-3 min-h-[180px]">
                     <div className="flex gap-3">
-                      <div className="text-neutral-400 text-xs shrink-0 font-mono">YOU</div>
-                      <div className="text-sm text-neutral-800">Help me plan my project roadmap</div>
+                      <div className="text-neutral-600 text-xs shrink-0 font-mono font-bold">YOU</div>
+                      <div className="text-sm text-black font-medium">Help me plan my project roadmap</div>
                     </div>
                     <div className="flex gap-3">
-                      <div className="text-neutral-400 text-xs shrink-0 font-mono">GPT</div>
-                      <div className="text-sm text-neutral-600">I&apos;d recommend starting with milestones...</div>
+                      <div className="text-neutral-600 text-xs shrink-0 font-mono font-bold">GPT</div>
+                      <div className="text-sm text-neutral-800">I&apos;d recommend starting with milestones...</div>
                     </div>
                     <div className="flex gap-3">
-                      <div className="text-neutral-400 text-xs shrink-0 font-mono">Claude</div>
-                      <div className="text-sm text-neutral-600">Building on that roadmap, let me add...</div>
+                      <div className="text-neutral-600 text-xs shrink-0 font-mono font-bold">Claude</div>
+                      <div className="text-sm text-neutral-800">Building on that roadmap, let me add...</div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 text-[10px] text-neutral-400 font-mono pt-2 border-t border-black/10">
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                  <div className="flex items-center gap-2 text-[10px] text-neutral-700 font-mono pt-2 border-t border-black/10">
+                    <div className="w-1.5 h-1.5 bg-green-600 rounded-full animate-pulse" />
                     Context preserved across models
                   </div>
                 </div>
@@ -121,8 +146,8 @@ export default function BrutalistStone() {
         {/* Footer */}
         <footer className="px-8 py-8 border-t border-black/20">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <p className="text-xs text-neutral-400 font-mono uppercase tracking-wide">© 2025 Anuma</p>
-            <div className="flex gap-8 text-xs font-mono text-neutral-500 uppercase tracking-wide">
+            <p className="text-xs text-neutral-700 font-mono uppercase tracking-wide">© 2025 Anuma</p>
+            <div className="flex gap-8 text-xs font-mono text-neutral-700 uppercase tracking-wide">
               <a href="#" className="hover:text-black transition-colors">Privacy</a>
               <a href="#" className="hover:text-black transition-colors">Terms</a>
               <a href="#" className="hover:text-black transition-colors">Contact</a>

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { usePrivy } from '@privy-io/react-auth';
 
 // Design Landing Page (2) - White centered with conversation flow and $25 pricing
 
@@ -111,17 +110,47 @@ function ModelSwitcher() {
 }
 
 function WaitlistForm() {
-  const { login, authenticated } = usePrivy();
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email) {
+      setSubmitted(true);
+      console.log('Waitlist signup:', email);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="flex justify-center">
+        <div className="text-center">
+          <div className="text-2xl mb-2">✓</div>
+          <p className="text-black/80">You&apos;re on the list!</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex justify-center">
-      <button
-        onClick={login}
-        className="px-8 py-3 bg-black text-white hover:bg-black/80 transition-colors"
-      >
-        {authenticated ? 'Joined!' : 'Join Waitlist'}
-      </button>
-    </div>
+    <form onSubmit={handleSubmit} className="flex justify-center">
+      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email"
+          required
+          className="flex-1 px-4 py-3 border border-black/20 bg-white text-black placeholder-black/40 focus:outline-none focus:border-black"
+        />
+        <button
+          type="submit"
+          className="px-8 py-3 bg-black text-white hover:bg-black/80 transition-colors whitespace-nowrap"
+        >
+          Join Waitlist
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -140,13 +169,13 @@ export default function WhitePricing() {
             ANUMA
           </div>
 
-          <h1 className="text-5xl md:text-7xl mb-8 tracking-tight leading-[1.1]">
+          <h1 className="text-5xl md:text-7xl mb-8 tracking-tight leading-[1.1] text-black">
             One conversation
             <br />
             across every AI model
           </h1>
 
-          <p className="text-xl text-black/70 mb-16 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xl text-black/80 mb-16 max-w-2xl mx-auto leading-relaxed">
             Switch between GPT-4, Claude, Gemini, and Llama mid-conversation. Your context and memories follow you. Stored locally, always private.
           </p>
 

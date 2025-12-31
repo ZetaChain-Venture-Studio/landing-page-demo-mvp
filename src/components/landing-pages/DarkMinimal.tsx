@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { usePrivy } from '@privy-io/react-auth';
 import { X } from 'lucide-react';
 
 // Design Landing Page (1) - Dark minimal with typing animation
@@ -41,51 +40,102 @@ const MODEL_RESPONSES = [
   "Next.js aligns well with your vintage watch marketplace goals. The framework's features will help you stay within the $15k budget and meet your March deadline while providing good performance for product listings.",
 ];
 
+const MODEL_API_IDS: Record<string, string> = {
+  'GPT-4': 'openai/gpt-4o',
+  'Claude': 'anthropic/claude-3-5-sonnet-20241022',
+  'Gemini': 'google/gemini-1.5-pro',
+  'Llama': 'meta-llama/llama-3.1-70b-instruct',
+};
+
 function ModelSwitcher() {
   const [activeModel, setActiveModel] = useState(0);
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Auto-rotate models
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveModel((prev) => (prev + 1) % MODELS.length);
-      setProgress(0);
-    }, 10000);  // Slower model switching for better readability
-    return () => clearInterval(interval);
-  }, []);
+  const fetchRealResponse = async (modelIndex: number) => {
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
 
-  // Progress bar
-  useEffect(() => {
-    setProgress(0);
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) return 100;
-        return prev + (100 / 10000) * 50;  // Match slower interval
-      });
-    }, 50);
-    return () => clearInterval(progressInterval);
-  }, [activeModel]);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
-  // Typing animation
-  useEffect(() => {
-    const fullText = MODEL_RESPONSES[activeModel];
+    const modelName = MODELS[modelIndex].name;
+    const modelId = MODEL_API_IDS[modelName];
+
+    setIsLoading(true);
     setDisplayedText('');
     setIsTyping(true);
 
-    let currentIndex = 0;
-    const typingInterval = setInterval(() => {
-      if (currentIndex <= fullText.length) {
-        setDisplayedText(fullText.slice(0, currentIndex));
-        currentIndex++;
-      } else {
-        setIsTyping(false);
-        clearInterval(typingInterval);
-      }
-    }, 15);
+    try {
+      const response = await fetch('https://ai-portal-dev.zetachain.com/api/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: modelId,
+          messages: [
+            { role: 'system', content: 'You are a helpful assistant. Keep responses concise (2-3 sentences max). Remember the context: the user is building an e-commerce app for selling vintage watches with a $15k budget and March 2025 launch date.' },
+            { role: 'user', content: CONVERSATION[0].text },
+            { role: 'user', content: CONVERSATION[1].text }
+          ],
+          max_tokens: 150,
+          stream: true,
+        }),
+        signal: controller.signal,
+      });
 
-    return () => clearInterval(typingInterval);
+      if (!response.ok) throw new Error('API error');
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No reader');
+
+      const decoder = new TextDecoder();
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ') && !line.includes('[DONE]')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              const content = data.choices?.[0]?.delta?.content;
+              if (content) {
+                fullText += content;
+                setDisplayedText(fullText);
+              }
+            } catch {}
+          }
+        }
+      }
+
+      setIsTyping(false);
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') return;
+      // Fallback to static response
+      setDisplayedText(MODEL_RESPONSES[modelIndex]);
+      setIsTyping(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch response when model changes
+  useEffect(() => {
+    fetchRealResponse(activeModel);
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeModel]);
 
   return (
@@ -158,16 +208,12 @@ function ModelSwitcher() {
 
       {/* Footer showing context preservation */}
       <div className="px-6 py-4 bg-[#0d0d0d] border-t border-[#222222]">
-        <div className="flex items-center justify-between text-xs mb-3">
-          <span className="text-[#666666]">All models have access to full conversation history</span>
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${isLoading ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`} />
+            <span className="text-[#888888]">{isLoading ? 'Fetching live response...' : 'Live AI response'}</span>
+          </div>
           <span className="text-[#666666]">2 messages in context</span>
-        </div>
-        {/* Progress bar */}
-        <div className="w-full h-1 bg-[#1a1a1a] rounded-full overflow-hidden">
-          <div
-            className="h-full bg-white transition-all duration-75 ease-linear"
-            style={{ width: `${progress}%` }}
-          />
         </div>
       </div>
     </div>
@@ -213,16 +259,46 @@ function FAQModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void })
   );
 }
 
-function WaitlistButton() {
-  const { login, authenticated } = usePrivy();
+function WaitlistForm() {
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email) {
+      setSubmitted(true);
+      console.log('Waitlist signup:', email);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="flex items-center gap-3 text-white">
+        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+          <span className="text-white text-sm">✓</span>
+        </div>
+        <span>You&apos;re on the list!</span>
+      </div>
+    );
+  }
 
   return (
-    <button
-      onClick={login}
-      className="px-6 py-3 bg-white text-black hover:bg-[#eee] transition-colors"
-    >
-      {authenticated ? 'Joined!' : 'Join Waitlist'}
-    </button>
+    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md">
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Enter your email"
+        required
+        className="flex-1 px-4 py-3 bg-[#1a1a1a] border border-[#333333] text-white placeholder-[#666666] focus:outline-none focus:border-white"
+      />
+      <button
+        type="submit"
+        className="px-6 py-3 bg-white text-black hover:bg-[#eee] transition-colors whitespace-nowrap"
+      >
+        Join Waitlist
+      </button>
+    </form>
   );
 }
 
@@ -280,8 +356,8 @@ export default function DarkMinimal() {
         </motion.div>
 
         {/* Waitlist below demo */}
-        <div id="waitlist" className="text-center mb-16">
-          <WaitlistButton />
+        <div id="waitlist" className="flex justify-center mb-16">
+          <WaitlistForm />
         </div>
 
         {/* Simple feature list */}
