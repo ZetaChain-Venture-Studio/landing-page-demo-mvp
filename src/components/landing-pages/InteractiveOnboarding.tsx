@@ -96,11 +96,11 @@ function ContextPanel({ context, flash }: { context: ContextData; flash: boolean
                 <motion.div
                   initial={{ x: -10, opacity: 0 }}
                   animate={{
-                    x: 0,
+                    x: flickerIndex === 0 ? [0, 1, -1, 0] : 0,
                     opacity: 1,
-                    backgroundColor: flickerIndex === 0 || flash ? 'rgba(34, 197, 94, 0.15)' : 'transparent'
+                    fontWeight: flickerIndex === 0 || flash ? 700 : 400,
                   }}
-                  transition={{ delay: 0.2, duration: 0.3 }}
+                  transition={{ delay: 0.2, duration: 0.15 }}
                   className="text-lg text-black px-2 py-1 -mx-2"
                 >
                   {context.name}
@@ -120,11 +120,11 @@ function ContextPanel({ context, flash }: { context: ContextData; flash: boolean
                 <motion.div
                   initial={{ x: -10, opacity: 0 }}
                   animate={{
-                    x: 0,
+                    x: flickerIndex === 1 ? [0, 1, -1, 0] : 0,
                     opacity: 1,
-                    backgroundColor: flickerIndex === 1 || flash ? 'rgba(34, 197, 94, 0.15)' : 'transparent'
+                    fontWeight: flickerIndex === 1 || flash ? 700 : 400,
                   }}
-                  transition={{ delay: 0.2, duration: 0.3 }}
+                  transition={{ delay: 0.2, duration: 0.15 }}
                   className="text-lg text-black px-2 py-1 -mx-2"
                 >
                   {context.workingOn}
@@ -144,11 +144,11 @@ function ContextPanel({ context, flash }: { context: ContextData; flash: boolean
                 <motion.div
                   initial={{ x: -10, opacity: 0 }}
                   animate={{
-                    x: 0,
+                    x: flickerIndex === 2 ? [0, 1, -1, 0] : 0,
                     opacity: 1,
-                    backgroundColor: flickerIndex === 2 || flash ? 'rgba(34, 197, 94, 0.15)' : 'transparent'
+                    fontWeight: flickerIndex === 2 || flash ? 700 : 400,
                   }}
-                  transition={{ delay: 0.2, duration: 0.3 }}
+                  transition={{ delay: 0.2, duration: 0.15 }}
                   className="text-lg text-black px-2 py-1 -mx-2"
                 >
                   {context.needsHelp}
@@ -563,6 +563,7 @@ Keep your response concise (2-3 sentences max), friendly, and directly address t
               >
                 <div className="text-center mb-6">
                   <p className="text-black/60 text-sm">Choose which AI model should help you:</p>
+                  <p className="text-black/40 text-xs mt-2 italic">(Context is preserved no matter which one you choose)</p>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   {['GPT-4', 'Claude', 'Gemini'].map((model) => (

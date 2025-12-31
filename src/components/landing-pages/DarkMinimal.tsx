@@ -1,10 +1,19 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { usePrivy } from '@privy-io/react-auth';
+import { X } from 'lucide-react';
 
 // Design Landing Page (1) - Dark minimal with typing animation
+
+const FAQ_ITEMS = [
+  { q: "What is ANUMA?", a: "ANUMA is a unified interface to access GPT-4, Claude, Gemini, and Llama - all in one place." },
+  { q: "How does context work?", a: "Your conversation history is preserved when you switch between AI models. No need to repeat yourself." },
+  { q: "Where is my data stored?", a: "Everything is stored locally in your browser. We don't have access to your conversations." },
+  { q: "How much does it cost?", a: "$25/month for unlimited access to all AI models. No per-token fees." },
+  { q: "When is launch?", a: "We're launching in early 2025. Join the waitlist for early access." },
+];
 
 const MODELS = [
   { id: 'gpt4', name: 'GPT-4', company: 'OpenAI' },
@@ -165,6 +174,45 @@ function ModelSwitcher() {
   );
 }
 
+function FAQModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="bg-[#111] border border-[#333] rounded-xl max-w-lg w-full max-h-[80vh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between p-6 border-b border-[#333]">
+            <h2 className="text-xl font-medium">About ANUMA</h2>
+            <button onClick={onClose} className="text-[#808080] hover:text-white transition-colors">
+              <X className="size-5" />
+            </button>
+          </div>
+          <div className="p-6 space-y-6">
+            {FAQ_ITEMS.map((item, i) => (
+              <div key={i}>
+                <h3 className="text-white font-medium mb-2">{item.q}</h3>
+                <p className="text-[#a0a0a0] text-sm leading-relaxed">{item.a}</p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 function WaitlistButton() {
   const { login, authenticated } = usePrivy();
 
@@ -179,20 +227,24 @@ function WaitlistButton() {
 }
 
 export default function DarkMinimal() {
+  const [showFAQ, setShowFAQ] = useState(false);
+
   return (
     <div className="min-h-screen bg-[#0d0d0d] text-white">
+      <FAQModal isOpen={showFAQ} onClose={() => setShowFAQ(false)} />
+
       {/* Header */}
       <header className="border-b border-[#222222]">
         <div className="max-w-5xl mx-auto px-6 py-6 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <span className="text-base font-medium">ANUMA</span>
-            <div className="relative group">
-              <span className="text-[#808080] cursor-help hover:text-white transition-colors">ⓘ</span>
-              <div className="absolute left-0 top-full mt-2 w-64 p-3 bg-[#1a1a1a] border border-[#333] rounded-lg text-xs text-[#b3b3b3] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                <strong className="text-white block mb-1">ANUMA</strong>
-                One interface for GPT-4, Claude, Gemini & Llama. Switch models instantly while keeping full context.
-              </div>
-            </div>
+            <button
+              onClick={() => setShowFAQ(true)}
+              className="flex items-center gap-1 px-3 py-1.5 bg-[#1a1a1a] border border-[#333] rounded-full text-xs text-[#b3b3b3] hover:bg-[#252525] hover:text-white transition-all"
+            >
+              <span className="text-sm">ⓘ</span>
+              <span>FAQ</span>
+            </button>
           </div>
           <a href="#waitlist" className="text-sm text-[#808080] hover:text-white transition-colors">
             Join Waitlist

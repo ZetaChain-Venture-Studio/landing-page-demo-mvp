@@ -307,10 +307,10 @@ export default function InteractiveSplit() {
       <div className="relative z-10 min-h-screen flex flex-col">
         {/* Header */}
         <header className="px-6 md:px-12 py-8 flex justify-between items-center">
-          <div className="text-xs tracking-[0.3em] text-black/30">ANUMA</div>
+          <div className="text-sm tracking-[0.2em] text-black font-medium">ANUMA</div>
           <button
             onClick={authenticated ? undefined : login}
-            className="px-6 py-2 border border-black/20 text-xs tracking-wider hover:bg-black hover:text-white transition-colors"
+            className="px-6 py-2 bg-black text-white text-xs tracking-wider hover:bg-gray-800 transition-colors"
           >
             {authenticated ? 'JOINED' : 'JOIN WAITLIST'}
           </button>
@@ -357,7 +357,7 @@ export default function InteractiveSplit() {
 
         {/* Footer hints */}
         <footer className="px-6 md:px-12 py-8">
-          <div className="flex justify-between items-center text-xs text-black/20 tracking-wider">
+          <div className="flex justify-between items-center text-xs text-black/50 tracking-wider">
             <div>EARLY ACCESS</div>
             <div>2025</div>
           </div>
