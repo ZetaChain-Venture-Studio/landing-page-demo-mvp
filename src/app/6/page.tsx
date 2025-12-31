@@ -1,6 +1,5 @@
-import LandingPage from '@/components/LandingPage';
-import { anumaSanctuary } from '@/lib/palettes';
+import DeveloperAPI from '@/components/landing-pages/DeveloperAPI';
 
-export default function Palette6Page() {
-  return <LandingPage paletteId="6" palette={anumaSanctuary} />;
+export default function Page6() {
+  return <DeveloperAPI />;
 }

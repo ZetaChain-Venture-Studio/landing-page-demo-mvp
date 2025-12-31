@@ -1,6 +1,5 @@
-import LandingPage from '@/components/LandingPage';
-import { anumaSanctuary } from '@/lib/palettes';
+import LuxuryLLM from '@/components/landing-pages/LuxuryLLM';
 
-export default function Palette2Page() {
-  return <LandingPage paletteId="2" palette={anumaSanctuary} />;
+export default function Page2() {
+  return <LuxuryLLM />;
 }

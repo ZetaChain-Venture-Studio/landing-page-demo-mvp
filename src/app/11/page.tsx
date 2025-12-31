@@ -1,5 +1,5 @@
-import WhitePricing from '@/components/landing-pages/WhitePricing';
+import CreamAnimated from '@/components/landing-pages/CreamAnimated';
 
 export default function Page11() {
-  return <WhitePricing />;
+  return <CreamAnimated />;
 }

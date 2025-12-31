@@ -1,6 +1,5 @@
-import LandingPage from '@/components/LandingPage';
-import { anumaSanctuary } from '@/lib/palettes';
+import Web3Hero from '@/components/landing-pages/Web3Hero';
 
-export default function Palette1Page() {
-  return <LandingPage paletteId="1" palette={anumaSanctuary} />;
+export default function Page1() {
+  return <Web3Hero />;
 }

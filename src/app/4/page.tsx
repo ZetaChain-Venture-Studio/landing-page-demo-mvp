@@ -1,6 +1,5 @@
-import LandingPage from '@/components/LandingPage';
-import { anumaSanctuary } from '@/lib/palettes';
+import DarkMinimal from '@/components/landing-pages/DarkMinimal';
 
-export default function Palette4Page() {
-  return <LandingPage paletteId="4" palette={anumaSanctuary} />;
+export default function Page4() {
+  return <DarkMinimal />;
 }

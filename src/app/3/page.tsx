@@ -1,6 +1,5 @@
-import LandingPage from '@/components/LandingPage';
-import { anumaSanctuary } from '@/lib/palettes';
+import MinimalMono from '@/components/landing-pages/MinimalMono';
 
-export default function Palette3Page() {
-  return <LandingPage paletteId="3" palette={anumaSanctuary} />;
+export default function Page3() {
+  return <MinimalMono />;
 }

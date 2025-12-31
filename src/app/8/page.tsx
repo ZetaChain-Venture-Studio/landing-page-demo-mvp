@@ -1,5 +1,5 @@
-import LuxuryLLM from '@/components/landing-pages/LuxuryLLM';
+import BlueprintTechnical from '@/components/landing-pages/BlueprintTechnical';
 
-export default function LandingPage8() {
-  return <LuxuryLLM />;
+export default function Page8() {
+  return <BlueprintTechnical />;
 }

@@ -1,5 +1,5 @@
-import Web3Hero from '@/components/landing-pages/Web3Hero';
+import BrutalistStone from '@/components/landing-pages/BrutalistStone';
 
-export default function LandingPage7() {
-  return <Web3Hero />;
+export default function Page7() {
+  return <BrutalistStone />;
 }
