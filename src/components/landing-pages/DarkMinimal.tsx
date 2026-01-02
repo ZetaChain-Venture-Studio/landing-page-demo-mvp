@@ -301,15 +301,15 @@ export default function DarkMinimal() {
               <span>FAQ</span>
             </button>
           </div>
-          {/* Pricing comparison */}
+          {/* Pricing comparison - always visible */}
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-3 text-xs">
+            <div className="flex items-center gap-3 text-xs">
               <div className="flex items-center gap-2">
-                <span className="text-[#808080] line-through">$75/mo</span>
-                <span className="text-white font-medium">$25/mo</span>
+                <span className="text-red-400 line-through">$130/mo</span>
+                <span className="text-white font-bold text-sm">$25/mo</span>
               </div>
-              <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-[10px] font-medium">
-                SAVE $50
+              <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-[10px] font-bold uppercase">
+                Save $105
               </span>
             </div>
             <a href="#waitlist" className="text-sm text-[#808080] hover:text-white transition-colors">
@@ -361,7 +361,7 @@ export default function DarkMinimal() {
             {/* Individual Subscriptions */}
             <div className="border border-[#333] bg-[#111] p-8">
               <div className="text-sm text-[#808080] mb-6 uppercase tracking-wider">Individual Subscriptions</div>
-              <div className="space-y-4 mb-8">
+              <div className="space-y-3 mb-8">
                 <div className="flex justify-between items-center py-2 border-b border-[#333]">
                   <span className="text-green-400">ChatGPT Plus</span>
                   <span className="text-[#b3b3b3]">$20/mo</span>
@@ -378,14 +378,28 @@ export default function DarkMinimal() {
                   <span className="text-purple-400">Llama (API)</span>
                   <span className="text-[#b3b3b3]">$15/mo</span>
                 </div>
+                <div className="flex justify-between items-center py-2 border-b border-[#333]">
+                  <span className="text-cyan-400">Perplexity Pro</span>
+                  <span className="text-[#b3b3b3]">$20/mo</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[#333]">
+                  <span className="text-red-400">Mistral</span>
+                  <span className="text-[#b3b3b3]">$15/mo</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[#333]">
+                  <span className="text-yellow-400">Cohere</span>
+                  <span className="text-[#b3b3b3]">$20/mo</span>
+                </div>
               </div>
               <div className="flex justify-between items-center py-3 border-t border-[#444]">
                 <span className="text-white font-medium">Total</span>
-                <span className="text-2xl text-red-400 line-through">$75/mo</span>
+                <span className="text-2xl text-red-400 line-through">$130/mo</span>
               </div>
               <div className="mt-4 text-xs text-[#666]">
-                + Multiple accounts to manage
+                + 7 different accounts to manage
                 <br />+ No shared context between models
+                <br />+ Different interfaces to learn
+                <br />+ Data scattered everywhere
               </div>
             </div>
 
@@ -394,22 +408,34 @@ export default function DarkMinimal() {
               <div className="absolute -top-3 left-6 px-3 py-1 bg-green-400 text-black text-xs font-medium">
                 RECOMMENDED
               </div>
-              <div className="text-sm text-[#808080] mb-6 uppercase tracking-wider">ANUMA</div>
-              <div className="space-y-4 mb-8">
+              <div className="text-sm text-[#808080] mb-6 uppercase tracking-wider">ANUMA - All Models Included</div>
+              <div className="space-y-3 mb-8">
                 <div className="flex justify-between items-center py-2 border-b border-[#333]">
-                  <span className="text-green-400">GPT-4</span>
+                  <span className="text-green-400">GPT-4 / GPT-4o</span>
                   <span className="text-green-400">✓</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-[#333]">
-                  <span className="text-orange-400">Claude</span>
+                  <span className="text-orange-400">Claude 3.5 Sonnet</span>
                   <span className="text-green-400">✓</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-[#333]">
-                  <span className="text-blue-400">Gemini</span>
+                  <span className="text-blue-400">Gemini Pro</span>
                   <span className="text-green-400">✓</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-[#333]">
-                  <span className="text-purple-400">Llama</span>
+                  <span className="text-purple-400">Llama 3.1</span>
+                  <span className="text-green-400">✓</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[#333]">
+                  <span className="text-cyan-400">Perplexity</span>
+                  <span className="text-green-400">✓</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[#333]">
+                  <span className="text-red-400">Mistral Large</span>
+                  <span className="text-green-400">✓</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[#333]">
+                  <span className="text-yellow-400">+ More coming</span>
                   <span className="text-green-400">✓</span>
                 </div>
               </div>
@@ -418,9 +444,10 @@ export default function DarkMinimal() {
                 <span className="text-4xl text-white">$25<span className="text-lg text-[#808080]">/mo</span></span>
               </div>
               <div className="mt-4 text-xs text-green-400/80">
-                ✓ Single interface for all models
+                ✓ All models in one interface
                 <br />✓ Unified context across models
-                <br />✓ Unlimited requests
+                <br />✓ 100% private - stored locally
+                <br />✓ No data leaves your device
               </div>
             </div>
           </div>
