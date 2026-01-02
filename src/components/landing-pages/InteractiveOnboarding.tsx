@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { usePrivy, useIdentityToken } from '@privy-io/react-auth';
 
 // Design - ANUMA Landing Page Design (3) - Interactive onboarding with context panel
 // Integrated with Evermind SDK for real AI responses
@@ -195,9 +194,9 @@ export default function InteractiveOnboarding() {
   const [flashContext, setFlashContext] = useState(false);
   const [showContextPanel, setShowContextPanel] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-
-  const { login, authenticated } = usePrivy();
-  const { identityToken } = useIdentityToken();
+  const [endingPhase, setEndingPhase] = useState<'response' | 'insight' | 'waitlist' | null>(null);
+  const [email, setEmail] = useState('');
+  const [emailSubmitted, setEmailSubmitted] = useState(false);
 
   // Function to call the Evermind API for real AI responses
   const callEvermindAPI = useCallback(async (
@@ -213,42 +212,35 @@ Keep your response concise (2-3 sentences max), friendly, and directly address t
 
     const userPrompt = `Hi, I'm ${contextData.name}. I'm working on ${contextData.workingOn} and I need help with ${contextData.needsHelp}. Can you give me some quick advice?`;
 
-    // If we have an identity token, use the real API
-    if (identityToken) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${identityToken}`,
-          },
-          body: JSON.stringify({
-            model: modelId,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt },
-            ],
-          }),
-        });
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: modelId,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+        }),
+      });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('[ANUMA] API error:', response.status, errorText);
-          throw new Error(`API error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        const content = data?.choices?.[0]?.message?.content;
-
-        if (content) {
-          return content;
-        }
-        throw new Error('No content in response');
-      } catch (error) {
-        console.error('[ANUMA] API call failed:', error);
-        // Fall back to simulated response
-        setApiError('Using demo mode - login with wallet for live AI');
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
       }
+
+      const data = await response.json();
+      const content = data?.choices?.[0]?.message?.content;
+
+      if (content) {
+        return content;
+      }
+      throw new Error('No content in response');
+    } catch (error) {
+      console.error('[ANUMA] API call failed:', error);
+      setApiError('demo');
     }
 
     // Fallback responses when API is not available
@@ -259,7 +251,7 @@ Keep your response concise (2-3 sentences max), friendly, and directly address t
     };
 
     return fallbackResponses[model] || fallbackResponses['GPT-4'];
-  }, [identityToken]);
+  }, []);
 
   useEffect(() => {
     setMessages([{
@@ -368,6 +360,7 @@ Keep your response concise (2-3 sentences max), friendly, and directly address t
 
     setIsTyping(true);
     setFlashContext(true);
+    setEndingPhase('response');
 
     try {
       // Get real AI response from the API
@@ -385,56 +378,38 @@ Keep your response concise (2-3 sentences max), friendly, and directly address t
         highlightName: true
       }]);
 
+      // Phase 1: Show response for 3 seconds
       setTimeout(() => {
         setFlashContext(false);
-        const systemId = messageIdCounter + 2;
-        setMessageIdCounter(prev => prev + 1);
+        // Phase 2: Fade out and show insight message
+        setEndingPhase('insight');
+        setMessages([]);
+        setShowContextPanel(false);
+      }, 3000);
 
-        setMessages(prev => [...prev, {
-          role: 'system',
-          content: apiError
-            ? `${apiError}. Notice how context was preserved across models? That's ANUMA.`
-            : `See how ${model} understood your context without you repeating it? That's ANUMA.`,
-          id: systemId
-        }]);
+      // Phase 3: After insight shows for 3 seconds, show waitlist
+      setTimeout(() => {
+        setEndingPhase('waitlist');
+        setStep(4);
+      }, 6500);
 
-        setTimeout(() => {
-          setStep(4);
-        }, 2500);
-      }, 2000);
     } catch (error) {
       console.error('[ANUMA] Error getting AI response:', error);
       setIsTyping(false);
       setFlashContext(false);
-
-      // Show error and move to waitlist
-      setMessages([{
-        role: 'system',
-        content: 'Demo complete! Join the waitlist to experience real AI responses.',
-        id: messageIdCounter + 1
-      }]);
-      setMessageIdCounter(prev => prev + 1);
+      setEndingPhase('waitlist');
       setStep(4);
     }
   };
 
-  const handleJoinWaitlist = () => {
-    login();
-  };
-
-  // Watch for authentication changes
-  useEffect(() => {
-    if (authenticated && step === 4) {
-      const currentId = messageIdCounter;
-      setMessages([{
-        role: 'system',
-        content: `Thanks ${context.name}! You're now on the waitlist. Get ready to experience AI without limits.`,
-        id: currentId
-      }]);
-      setMessageIdCounter(prev => prev + 1);
+  const handleEmailSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email) {
+      setEmailSubmitted(true);
+      console.log('Waitlist signup:', email);
       setStep(5);
     }
-  }, [authenticated, step, context.name, messageIdCounter]);
+  };
 
   return (
     <div className="min-h-screen bg-white text-black flex items-center justify-center p-6 overflow-hidden">
@@ -552,6 +527,36 @@ Keep your response concise (2-3 sentences max), friendly, and directly address t
                   </div>
                 </motion.div>
               )}
+
+              {/* Insight message after response fades */}
+              {endingPhase === 'insight' && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.6 }}
+                  className="flex justify-center items-center h-full"
+                >
+                  <div className="text-center max-w-lg">
+                    <motion.p
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="text-2xl md:text-3xl leading-relaxed text-black/80"
+                    >
+                      See how <span className="font-semibold">{selectedModel}</span> understood your context without you repeating it?
+                    </motion.p>
+                    <motion.p
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.6 }}
+                      className="text-3xl md:text-4xl font-bold mt-4 text-black"
+                    >
+                      That&apos;s ANUMA.
+                    </motion.p>
+                  </div>
+                </motion.div>
+              )}
             </div>
 
             {/* Model picker */}
@@ -612,8 +617,8 @@ Keep your response concise (2-3 sentences max), friendly, and directly address t
               </motion.form>
             )}
 
-            {/* Waitlist signup with Privy */}
-            {step === 4 && (
+            {/* Waitlist signup with email */}
+            {step === 4 && endingPhase === 'waitlist' && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -624,9 +629,17 @@ Keep your response concise (2-3 sentences max), friendly, and directly address t
                   <p className="text-black/60">Join the waitlist for early access.</p>
                 </div>
 
-                <div className="max-w-md mx-auto space-y-4">
+                <form onSubmit={handleEmailSubmit} className="max-w-md mx-auto space-y-4">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    required
+                    className="w-full px-4 py-4 border border-black/20 bg-white text-black placeholder-black/40 focus:outline-none focus:border-black text-center"
+                  />
                   <motion.button
-                    onClick={handleJoinWaitlist}
+                    type="submit"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="w-full bg-black text-white py-4 text-lg tracking-wide hover:bg-black/90 transition-colors"
@@ -641,7 +654,7 @@ Keep your response concise (2-3 sentences max), friendly, and directly address t
                     <span>•</span>
                     <span>Local storage</span>
                   </div>
-                </div>
+                </form>
               </motion.div>
             )}
 
