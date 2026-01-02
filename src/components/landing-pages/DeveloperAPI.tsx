@@ -369,9 +369,9 @@ export default function DeveloperAPI() {
               transition={{ duration: 0.8 }}
             >
               <h1 className="text-5xl md:text-6xl mb-6 tracking-tight">
-                One SDK for
+                One SDK,
                 <br />
-                every AI model
+                All AI Models
               </h1>
 
               <p className="text-xl text-white/50 mb-8 leading-relaxed">
@@ -379,10 +379,12 @@ export default function DeveloperAPI() {
               </p>
 
               <div className="space-y-4">
-                <WaitlistButton buttonText="Get SDK Access" />
-                <div className="inline-flex items-center gap-2 px-3 py-1 border border-white/20 text-xs tracking-widest text-white/60">
+                <div className="inline-flex items-center gap-2 px-3 py-1 border border-white/20 text-xs tracking-widest text-white/60 mb-2">
                   <span>DEVELOPER SDK</span>
                   <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-[10px] rounded">COMING SOON</span>
+                </div>
+                <div>
+                  <WaitlistButton buttonText="Get SDK Access" />
                 </div>
               </div>
             </motion.div>

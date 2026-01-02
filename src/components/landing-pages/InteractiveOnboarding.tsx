@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePrivy } from '@privy-io/react-auth';
+import { Volume2, VolumeX } from 'lucide-react';
 
 // Design - ANUMA Landing Page Design (3) - Interactive onboarding with context panel
 // Integrated with Evermind SDK for real AI responses
@@ -196,7 +197,47 @@ export default function InteractiveOnboarding() {
   const [showContextPanel, setShowContextPanel] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [endingPhase, setEndingPhase] = useState<'response' | 'insight' | 'waitlist' | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const { login, authenticated } = usePrivy();
+
+  // Initialize and play background music
+  useEffect(() => {
+    const audio = new Audio('/onyric-music.m4a');
+    audio.loop = true;
+    audio.volume = 0.4; // Mid volume (40%)
+    audioRef.current = audio;
+
+    // Attempt to autoplay
+    const playAudio = async () => {
+      try {
+        await audio.play();
+      } catch {
+        // Autoplay blocked, will play on user interaction
+        const handleInteraction = () => {
+          audio.play().catch(() => {});
+          document.removeEventListener('click', handleInteraction);
+          document.removeEventListener('keydown', handleInteraction);
+        };
+        document.addEventListener('click', handleInteraction);
+        document.addEventListener('keydown', handleInteraction);
+      }
+    };
+
+    playAudio();
+
+    return () => {
+      audio.pause();
+      audio.src = '';
+    };
+  }, []);
+
+  const toggleMute = () => {
+    if (audioRef.current) {
+      audioRef.current.muted = !audioRef.current.muted;
+      setIsMuted(!isMuted);
+    }
+  };
 
   // Function to call the Evermind API for real AI responses
   const callEvermindAPI = useCallback(async (
@@ -417,9 +458,27 @@ Keep your response concise (2-3 sentences max), friendly, and directly address t
       </div>
 
       <div className="relative z-10 w-full max-w-5xl">
-        {/* ANUMA branding */}
-        <div className="absolute -top-12 left-0 text-xs tracking-[0.3em] text-black/30">
-          ANUMA
+        {/* ANUMA branding and audio control */}
+        <div className="absolute -top-12 left-0 right-0 flex justify-between items-center">
+          <div className="text-xs tracking-[0.3em] text-black/30">
+            ANUMA
+          </div>
+          <button
+            onClick={toggleMute}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs text-black/40 hover:text-black/60 transition-colors"
+          >
+            {isMuted ? (
+              <>
+                <VolumeX className="w-4 h-4" />
+                <span>Unmute</span>
+              </>
+            ) : (
+              <>
+                <Volume2 className="w-4 h-4" />
+                <span>Playing</span>
+              </>
+            )}
+          </button>
         </div>
 
         <div className="grid lg:grid-cols-[1fr,300px] gap-12 items-start">

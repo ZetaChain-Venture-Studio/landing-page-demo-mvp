@@ -85,22 +85,26 @@ function ModelSwitcher() {
           ))}
         </div>
 
-        {/* Context bar */}
-        {contextItems.length > 0 && (
-          <div className="border-t border-black/10 p-4 bg-black/[0.02]">
-            <div className="text-xs text-black/40 mb-2">Shared context</div>
-            <div className="flex flex-wrap gap-2">
-              {contextItems.map((item, idx) => (
+        {/* Context bar - always visible */}
+        <div className="border-t border-black/10 p-4 bg-black/[0.02]">
+          <div className="text-xs text-black/40 mb-2">Shared context</div>
+          <div className="flex flex-wrap gap-2 min-h-[32px]">
+            {contextItems.length > 0 ? (
+              contextItems.map((item, idx) => (
                 <span
                   key={idx}
                   className="px-2 py-1 bg-white border border-black/10 text-xs"
                 >
                   {item}
                 </span>
-              ))}
-            </div>
+              ))
+            ) : (
+              <span className="px-2 py-1 bg-white/50 border border-black/5 text-xs text-black/30 italic">
+                Waiting for context...
+              </span>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       <div className="text-center text-sm text-black/30 mt-4">
@@ -162,54 +166,53 @@ export default function WhitePricing() {
           <ModelSwitcher />
         </motion.div>
 
-        {/* Value props */}
-        <div className="mt-40 space-y-32">
-          {/* Unified context */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="max-w-xl mx-auto text-center"
-          >
-            <div className="text-5xl mb-6 text-black">∞</div>
-            <h2 className="text-3xl mb-4 tracking-tight text-black">Unified context</h2>
-            <p className="text-lg text-black/70 leading-relaxed">
-              Start a conversation with Claude, continue with GPT-4, finish with Gemini. Your full history and context transfers instantly between models.
-            </p>
-          </motion.div>
+        {/* Value props - grouped together */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true }}
+          className="mt-40 max-w-4xl mx-auto"
+        >
+          <div className="border border-black/10 bg-black/[0.01] p-12">
+            <div className="grid md:grid-cols-3 gap-8 text-center">
+              {/* Unified context */}
+              <div>
+                <div className="text-4xl mb-4 text-black">∞</div>
+                <h2 className="text-xl mb-3 tracking-tight text-black font-medium">Unified Context</h2>
+                <p className="text-sm text-black/60 leading-relaxed">
+                  Switch between AI models mid-conversation. Your full history transfers instantly.
+                </p>
+              </div>
 
-          {/* Local memories */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="max-w-xl mx-auto text-center"
-          >
-            <div className="text-5xl mb-6 text-black">⊙</div>
-            <h2 className="text-3xl mb-4 tracking-tight text-black">Private by design</h2>
-            <p className="text-lg text-black/70 leading-relaxed">
-              All your conversations and memories are stored in your browser. Never uploaded, never synced. Complete control over your data.
-            </p>
-          </motion.div>
+              {/* Private by design */}
+              <div className="md:border-x md:border-black/10 md:px-8">
+                <div className="text-4xl mb-4 text-black">⊙</div>
+                <h2 className="text-xl mb-3 tracking-tight text-black font-medium">Private by Design</h2>
+                <p className="text-sm text-black/60 leading-relaxed">
+                  All conversations stored locally in your browser. Never uploaded, never synced.
+                </p>
+              </div>
 
-          {/* Pricing */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="max-w-xl mx-auto text-center pt-12 border-t border-black/10"
-          >
-            <div className="text-7xl mb-4 text-black">$25</div>
-            <p className="text-lg text-black/70 leading-relaxed">
-              One subscription. Every major AI model included.
-              <br />
-              (No more paying for ChatGPT Plus + Claude Pro + Gemini Advanced)
-            </p>
-          </motion.div>
-        </div>
+              {/* Pricing */}
+              <div>
+                <div className="text-4xl mb-4 text-black font-bold">$25</div>
+                <h2 className="text-xl mb-3 tracking-tight text-black font-medium">Per Month</h2>
+                <p className="text-sm text-black/60 leading-relaxed">
+                  One subscription for every AI model. No per-token fees.
+                </p>
+              </div>
+            </div>
+
+            {/* Savings callout */}
+            <div className="mt-10 pt-8 border-t border-black/10 text-center">
+              <div className="inline-flex items-center gap-4 px-6 py-3 bg-black text-white">
+                <span className="text-white/60 line-through text-sm">$75/mo separately</span>
+                <span className="font-medium">Save $50/month with ANUMA</span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Footer CTA */}
         <div className="mt-40 pt-20 border-t border-black/10 text-center">

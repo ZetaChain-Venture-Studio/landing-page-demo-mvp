@@ -139,6 +139,14 @@ function ModelSwitcher() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeModel]);
 
+  // Auto-cycle through models every 8 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveModel(prev => (prev + 1) % MODELS.length);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="border border-[#222222] rounded-lg overflow-hidden bg-[#0a0a0a]">
       {/* Model selector header */}
@@ -293,9 +301,21 @@ export default function DarkMinimal() {
               <span>FAQ</span>
             </button>
           </div>
-          <a href="#waitlist" className="text-sm text-[#808080] hover:text-white transition-colors">
-            Join Waitlist
-          </a>
+          {/* Pricing comparison */}
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-3 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-[#808080] line-through">$75/mo</span>
+                <span className="text-white font-medium">$25/mo</span>
+              </div>
+              <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-[10px] font-medium">
+                SAVE $50
+              </span>
+            </div>
+            <a href="#waitlist" className="text-sm text-[#808080] hover:text-white transition-colors">
+              Join Waitlist
+            </a>
+          </div>
         </div>
       </header>
 
@@ -331,8 +351,87 @@ export default function DarkMinimal() {
           <WaitlistButton />
         </div>
 
-        {/* Simple feature list */}
+        {/* Pricing Comparison */}
         <div className="border-t border-[#222222] pt-16 mt-32">
+          <div className="text-xs uppercase tracking-widest text-[#808080] mb-8 text-center">
+            PRICING COMPARISON
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Individual Subscriptions */}
+            <div className="border border-[#333] bg-[#111] p-8">
+              <div className="text-sm text-[#808080] mb-6 uppercase tracking-wider">Individual Subscriptions</div>
+              <div className="space-y-4 mb-8">
+                <div className="flex justify-between items-center py-2 border-b border-[#333]">
+                  <span className="text-green-400">ChatGPT Plus</span>
+                  <span className="text-[#b3b3b3]">$20/mo</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[#333]">
+                  <span className="text-orange-400">Claude Pro</span>
+                  <span className="text-[#b3b3b3]">$20/mo</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[#333]">
+                  <span className="text-blue-400">Gemini Advanced</span>
+                  <span className="text-[#b3b3b3]">$20/mo</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[#333]">
+                  <span className="text-purple-400">Llama (API)</span>
+                  <span className="text-[#b3b3b3]">$15/mo</span>
+                </div>
+              </div>
+              <div className="flex justify-between items-center py-3 border-t border-[#444]">
+                <span className="text-white font-medium">Total</span>
+                <span className="text-2xl text-red-400 line-through">$75/mo</span>
+              </div>
+              <div className="mt-4 text-xs text-[#666]">
+                + Multiple accounts to manage
+                <br />+ No shared context between models
+              </div>
+            </div>
+
+            {/* ANUMA */}
+            <div className="border-2 border-green-400/50 bg-green-400/5 p-8 relative">
+              <div className="absolute -top-3 left-6 px-3 py-1 bg-green-400 text-black text-xs font-medium">
+                RECOMMENDED
+              </div>
+              <div className="text-sm text-[#808080] mb-6 uppercase tracking-wider">ANUMA</div>
+              <div className="space-y-4 mb-8">
+                <div className="flex justify-between items-center py-2 border-b border-[#333]">
+                  <span className="text-green-400">GPT-4</span>
+                  <span className="text-green-400">✓</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[#333]">
+                  <span className="text-orange-400">Claude</span>
+                  <span className="text-green-400">✓</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[#333]">
+                  <span className="text-blue-400">Gemini</span>
+                  <span className="text-green-400">✓</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[#333]">
+                  <span className="text-purple-400">Llama</span>
+                  <span className="text-green-400">✓</span>
+                </div>
+              </div>
+              <div className="flex justify-between items-center py-3 border-t border-[#444]">
+                <span className="text-white font-medium">Total</span>
+                <span className="text-4xl text-white">$25<span className="text-lg text-[#808080]">/mo</span></span>
+              </div>
+              <div className="mt-4 text-xs text-green-400/80">
+                ✓ Single interface for all models
+                <br />✓ Unified context across models
+                <br />✓ Unlimited requests
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center mt-8 text-sm text-[#666]">
+            No per-token charges. No overage fees. No surprises.
+          </div>
+        </div>
+
+        {/* Simple feature list */}
+        <div className="border-t border-[#222222] pt-16 mt-16">
           <div className="grid md:grid-cols-3 gap-12">
             <div>
               <h3 className="text-lg mb-3">Switch freely</h3>
