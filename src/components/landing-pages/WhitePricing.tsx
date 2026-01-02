@@ -86,20 +86,20 @@ function ModelSwitcher() {
         </div>
 
         {/* Context bar - always visible */}
-        <div className="border-t border-black/10 p-4 bg-black/[0.02]">
-          <div className="text-xs text-black/40 mb-2">Shared context</div>
+        <div className="border-t border-black/10 p-4 bg-gray-100">
+          <div className="text-xs text-black/60 mb-2 font-medium">Shared context</div>
           <div className="flex flex-wrap gap-2 min-h-[32px]">
             {contextItems.length > 0 ? (
               contextItems.map((item, idx) => (
                 <span
                   key={idx}
-                  className="px-2 py-1 bg-white border border-black/10 text-xs"
+                  className="px-2 py-1 bg-black text-white border border-black text-xs"
                 >
                   {item}
                 </span>
               ))
             ) : (
-              <span className="px-2 py-1 bg-white/50 border border-black/5 text-xs text-black/30 italic">
+              <span className="px-2 py-1 bg-gray-200 border border-gray-300 text-xs text-black/50 italic">
                 Waiting for context...
               </span>
             )}
@@ -207,8 +207,8 @@ export default function WhitePricing() {
             {/* Savings callout */}
             <div className="mt-10 pt-8 border-t border-black/10 text-center">
               <div className="inline-flex items-center gap-4 px-6 py-3 bg-black text-white">
-                <span className="text-white/60 line-through text-sm">$75/mo separately</span>
-                <span className="font-medium">Save $50/month with ANUMA</span>
+                <span className="text-white/60 line-through text-sm">$100/mo separately</span>
+                <span className="font-medium">Save $75/month with ANUMA</span>
               </div>
             </div>
           </div>

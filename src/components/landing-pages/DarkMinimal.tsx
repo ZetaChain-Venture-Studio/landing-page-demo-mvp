@@ -301,15 +301,15 @@ export default function DarkMinimal() {
               <span>FAQ</span>
             </button>
           </div>
-          {/* Pricing comparison */}
+          {/* Pricing comparison - always visible */}
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-3 text-xs">
+            <div className="flex items-center gap-3 text-xs">
               <div className="flex items-center gap-2">
-                <span className="text-[#808080] line-through">$75/mo</span>
-                <span className="text-white font-medium">$25/mo</span>
+                <span className="text-red-400 line-through">$75/mo</span>
+                <span className="text-white font-bold text-sm">$25/mo</span>
               </div>
-              <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-[10px] font-medium">
-                SAVE $50
+              <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-[10px] font-bold uppercase">
+                Save $50
               </span>
             </div>
             <a href="#waitlist" className="text-sm text-[#808080] hover:text-white transition-colors">

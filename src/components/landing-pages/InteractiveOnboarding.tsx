@@ -208,23 +208,45 @@ export default function InteractiveOnboarding() {
     audio.volume = 0.4; // Mid volume (40%)
     audioRef.current = audio;
 
-    // Attempt to autoplay
-    const playAudio = async () => {
+    // Try muted autoplay first (browsers allow this)
+    audio.muted = true;
+
+    const startPlayback = async () => {
       try {
         await audio.play();
+        // If muted play succeeds, unmute on first interaction
+        const unmute = () => {
+          if (audioRef.current) {
+            audioRef.current.muted = false;
+            setIsMuted(false);
+          }
+          document.removeEventListener('click', unmute);
+          document.removeEventListener('keydown', unmute);
+          document.removeEventListener('touchstart', unmute);
+        };
+        document.addEventListener('click', unmute, { once: true });
+        document.addEventListener('keydown', unmute, { once: true });
+        document.addEventListener('touchstart', unmute, { once: true });
+        setIsMuted(true); // Show as muted initially
       } catch {
-        // Autoplay blocked, will play on user interaction
+        // Even muted autoplay blocked, wait for interaction
         const handleInteraction = () => {
-          audio.play().catch(() => {});
+          if (audioRef.current) {
+            audioRef.current.muted = false;
+            audioRef.current.play().catch(() => {});
+            setIsMuted(false);
+          }
           document.removeEventListener('click', handleInteraction);
           document.removeEventListener('keydown', handleInteraction);
+          document.removeEventListener('touchstart', handleInteraction);
         };
         document.addEventListener('click', handleInteraction);
         document.addEventListener('keydown', handleInteraction);
+        document.addEventListener('touchstart', handleInteraction);
       }
     };
 
-    playAudio();
+    startPlayback();
 
     return () => {
       audio.pause();
