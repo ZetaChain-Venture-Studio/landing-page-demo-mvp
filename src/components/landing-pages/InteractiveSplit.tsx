@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Design - ANUMA Landing Page Design (2) - Interactive demo with split layout
@@ -11,200 +11,247 @@ interface Message {
   model?: string;
 }
 
-const demoFlow = {
-  prompts: [
-    "Explain quantum computing in simple terms",
-    "How does that relate to cryptography?",
-    "Which is better for this: GPT or Claude?"
-  ],
-  responses: {
-    GPT: [
-      "Quantum computing uses quantum bits (qubits) that can exist in multiple states simultaneously, unlike classical bits that are either 0 or 1. This allows quantum computers to process certain calculations exponentially faster.",
-      "Quantum computers could potentially break current encryption methods because they can factor large numbers much faster than classical computers. This threatens RSA encryption, which relies on the difficulty of factoring.",
-      "For cryptography explanations, I'd recommend Claude - it tends to provide more structured security analysis."
-    ],
-    Claude: [
-      "Think of quantum computing like this: regular computers use bits like light switches (on/off). Quantum computers use qubits that can be both on AND off at the same time, like a coin spinning in the air before it lands.",
-      "Building on what we discussed about quantum computing: Current encryption relies on math problems that take classical computers centuries to solve. Quantum computers could solve these in hours, which is why we're developing 'quantum-resistant' encryption.",
-      "I appreciate the question! While GPT and I approach things differently, for understanding security implications, I focus more on practical risks and mitigation strategies."
-    ],
-    Gemini: [
-      "Quantum computing harnesses quantum mechanics principles - superposition and entanglement. Qubits can represent 0, 1, or both simultaneously (superposition), enabling parallel processing at an unprecedented scale.",
-      "The connection is critical: Shor's algorithm, running on a quantum computer, could break RSA-2048 encryption in days versus billions of years on classical systems. Post-quantum cryptography is now a priority.",
-      "Each model has strengths. GPT excels at creative explanations, Claude at detailed analysis, and I integrate multi-modal understanding with real-time data."
-    ]
-  }
+const MODELS = [
+  { id: 'gpt-4', label: 'GPT-4', color: 'bg-green-600', textColor: 'text-green-700', bgLight: 'bg-green-50', border: 'border-green-300' },
+  { id: 'claude', label: 'Claude', color: 'bg-orange-500', textColor: 'text-orange-700', bgLight: 'bg-orange-50', border: 'border-orange-300' },
+  { id: 'gemini', label: 'Gemini', color: 'bg-blue-600', textColor: 'text-blue-700', bgLight: 'bg-blue-50', border: 'border-blue-300' },
+];
+
+const MODEL_API_IDS: Record<string, string> = {
+  'gpt-4': 'openai/gpt-4o',
+  'claude': 'anthropic/claude-3-5-sonnet-20241022',
+  'gemini': 'google/gemini-1.5-pro',
 };
 
-function InteractiveDemo({ onComplete }: { onComplete: () => void }) {
+function InteractiveDemo() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [currentModel, setCurrentModel] = useState<'GPT' | 'Claude' | 'Gemini'>('GPT');
-  const [step, setStep] = useState(0);
-  const [isTyping, setIsTyping] = useState(false);
-  const [showModelSwitch, setShowModelSwitch] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('gpt-4');
+  const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const models = ['GPT', 'Claude', 'Gemini'] as const;
+  const getModel = (id: string) => MODELS.find(m => m.id === id) || MODELS[0];
 
-  const sendMessage = (prompt: string, model: typeof currentModel) => {
-    setMessages(prev => [...prev, { role: 'user', content: prompt }]);
-    setIsTyping(true);
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputValue.trim() || isLoading) return;
 
-    setTimeout(() => {
-      setIsTyping(false);
-      const response = demoFlow.responses[model][step];
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: response,
-        model: model
-      }]);
+    const userMessage = inputValue.trim();
+    setInputValue('');
+    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setIsLoading(true);
+    setStreamingContent('');
 
-      if (step === 0) {
-        setTimeout(() => setShowModelSwitch(true), 1000);
-      }
-
-      if (step < demoFlow.prompts.length - 1) {
-        setTimeout(() => setStep(step + 1), 2000);
-      } else {
-        setTimeout(() => onComplete(), 3000);
-      }
-    }, 1500);
-  };
-
-  useEffect(() => {
-    if (step < demoFlow.prompts.length) {
-      const timer = setTimeout(() => {
-        sendMessage(demoFlow.prompts[step], currentModel);
-      }, step === 0 ? 1000 : 1500);
-
-      return () => clearTimeout(timer);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, currentModel]);
 
-  const switchModel = (model: typeof currentModel) => {
-    setCurrentModel(model);
-    setShowModelSwitch(false);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    const conversationHistory = [
+      { role: 'system' as const, content: 'You are a helpful assistant. Keep responses concise (2-3 sentences max). You have access to the full conversation history.' },
+      ...messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+      { role: 'user' as const, content: userMessage }
+    ];
+
+    try {
+      const res = await fetch('https://ai-portal-dev.zetachain.com/api/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: MODEL_API_IDS[selectedModel],
+          messages: conversationHistory,
+          max_tokens: 200,
+          stream: true,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) throw new Error('API error');
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('No reader');
+
+      const decoder = new TextDecoder();
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ') && !line.includes('[DONE]')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              const content = data.choices?.[0]?.delta?.content;
+              if (content) {
+                fullText += content;
+                setStreamingContent(fullText);
+              }
+            } catch {}
+          }
+        }
+      }
+
+      setMessages(prev => [...prev, { role: 'assistant', content: fullText, model: selectedModel }]);
+      setStreamingContent('');
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') return;
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Error - please try again.', model: selectedModel }]);
+      setStreamingContent('');
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    }
   };
 
   return (
     <div className="relative">
       {/* Demo label */}
       <div className="mb-4 flex items-center gap-2">
-        <div className="text-xs tracking-wider text-black/40">LIVE DEMO</div>
+        <div className="text-xs tracking-wider text-black/60 font-medium">TRY IT - INTERACTIVE DEMO</div>
         <div className="flex-1 h-px bg-black/10" />
-        <motion.div
-          className="w-2 h-2 bg-black rounded-full"
-          animate={{ opacity: [0.3, 1, 0.3] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        />
+        <div className={`w-2 h-2 rounded-full ${isLoading ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`} />
       </div>
 
       {/* Chat interface */}
-      <div className="bg-white border-2 border-black/10 h-[500px] flex flex-col">
+      <div className="bg-white border-2 border-black/20 h-[500px] flex flex-col">
         {/* Model selector bar */}
-        <div className="border-b border-black/10 p-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="text-xs tracking-wider text-black/40">CURRENT MODEL:</div>
-            <div className="text-sm tracking-wide">{currentModel}</div>
+        <div className="border-b border-black/10 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="text-xs tracking-wider text-black/60 font-medium">SELECT MODEL:</div>
+            <div className="flex gap-2">
+              {MODELS.map((model) => (
+                <button
+                  key={model.id}
+                  onClick={() => setSelectedModel(model.id)}
+                  className={`px-3 py-1.5 text-xs font-medium border transition-all ${
+                    selectedModel === model.id
+                      ? `${model.bgLight} ${model.border} ${model.textColor}`
+                      : 'bg-gray-100 border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  {model.label}
+                </button>
+              ))}
+            </div>
           </div>
-
-          {showModelSwitch && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-xs px-3 py-1 border border-black/20 hover:bg-black hover:text-white transition-colors"
-              onClick={() => {
-                const nextModel = models[(models.indexOf(currentModel) + 1) % models.length];
-                switchModel(nextModel);
-              }}
-            >
-              SWITCH MODEL
-            </motion.button>
-          )}
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          <AnimatePresence mode="popLayout">
-            {messages.map((message, i) => (
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {messages.length === 0 && !isLoading && (
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center text-black/40">
+                <p className="text-sm mb-1">Type a message to start</p>
+                <p className="text-xs">Switch models anytime - context is preserved</p>
+              </div>
+            </div>
+          )}
+
+          {messages.map((msg, idx) => {
+            const model = msg.model ? getModel(msg.model) : getModel(selectedModel);
+            return (
               <motion.div
-                key={i}
+                key={idx}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div className={`max-w-[80%] ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
-                  {message.role === 'assistant' && message.model && (
-                    <div className="text-[10px] tracking-wider text-black/30 mb-1">
-                      {message.model}
+                <div className={`max-w-[85%] ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                  {msg.role === 'assistant' && msg.model && (
+                    <div className={`text-[10px] font-bold tracking-wider mb-1 ${model.textColor}`}>
+                      {model.label}
                     </div>
                   )}
                   <div className={`inline-block p-4 ${
-                    message.role === 'user'
+                    msg.role === 'user'
                       ? 'bg-black text-white'
-                      : 'bg-black/5 text-black'
+                      : `${model.bgLight} border ${model.border} text-black`
                   }`}>
-                    <p className="text-sm leading-relaxed">{message.content}</p>
+                    <p className="text-sm leading-relaxed">{msg.content}</p>
                   </div>
                 </div>
               </motion.div>
-            ))}
-          </AnimatePresence>
+            );
+          })}
 
-          {isTyping && (
+          {isLoading && streamingContent && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex justify-start"
             >
-              <div className="bg-black/5 p-4 rounded">
-                <div className="flex gap-1">
-                  <motion.div
-                    className="w-2 h-2 bg-black/40 rounded-full"
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{ duration: 1, repeat: Infinity, delay: 0 }}
-                  />
-                  <motion.div
-                    className="w-2 h-2 bg-black/40 rounded-full"
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
-                  />
-                  <motion.div
-                    className="w-2 h-2 bg-black/40 rounded-full"
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
-                  />
+              <div className="max-w-[85%]">
+                <div className={`text-[10px] font-bold tracking-wider mb-1 ${getModel(selectedModel).textColor}`}>
+                  {getModel(selectedModel).label}
+                </div>
+                <div className={`inline-block p-4 ${getModel(selectedModel).bgLight} border ${getModel(selectedModel).border} text-black`}>
+                  <p className="text-sm leading-relaxed">
+                    {streamingContent}
+                    <span className="inline-block w-2 h-4 bg-black/30 ml-1 animate-pulse" />
+                  </p>
                 </div>
               </div>
             </motion.div>
           )}
+
+          {isLoading && !streamingContent && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-start"
+            >
+              <div className={`p-4 ${getModel(selectedModel).bgLight} border ${getModel(selectedModel).border}`}>
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 bg-black/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-black/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-black/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          <div ref={messagesEndRef} />
         </div>
 
-        {/* Context preservation indicator */}
-        {messages.length > 2 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="border-t border-black/10 p-3 bg-black/5"
-          >
+        {/* Input area */}
+        <form onSubmit={sendMessage} className="border-t border-black/10 p-4">
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="Ask anything..."
+              disabled={isLoading}
+              className="flex-1 px-4 py-3 border border-black/20 bg-white text-black placeholder-black/40 focus:outline-none focus:border-black text-sm"
+            />
+            <button
+              type="submit"
+              disabled={isLoading || !inputValue.trim()}
+              className="px-6 py-3 bg-black text-white text-sm font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Send
+            </button>
+          </div>
+        </form>
+
+        {/* Context indicator */}
+        {messages.length > 0 && (
+          <div className="border-t border-black/10 px-4 py-2 bg-gray-50">
             <div className="flex items-center gap-2 text-xs text-black/60">
               <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-              <span>Context preserved across {messages.filter(m => m.role === 'assistant').length} responses</span>
+              <span>{messages.length} messages · Context preserved across all models</span>
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
-
-      {/* Hint text */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 2 }}
-        className="mt-4 text-xs text-black/30 text-center"
-      >
-        Watch as the conversation flows across different AI models
-      </motion.div>
     </div>
   );
 }
@@ -366,7 +413,7 @@ export default function InteractiveSplit() {
 
               {/* Right - Interactive Demo */}
               <div className="relative">
-                <InteractiveDemo onComplete={() => setShowWaitlist(true)} />
+                <InteractiveDemo />
               </div>
             </div>
           </div>
