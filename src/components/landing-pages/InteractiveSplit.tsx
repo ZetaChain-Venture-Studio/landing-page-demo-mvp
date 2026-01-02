@@ -30,16 +30,47 @@ function InteractiveDemo() {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
+  const [contextItems, setContextItems] = useState<string[]>([]);
+  const [newContextItem, setNewContextItem] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const getModel = (id: string) => MODELS.find(m => m.id === id) || MODELS[0];
+
+  // Extract context items from input as user types
+  const extractContext = (text: string) => {
+    const keywords: string[] = [];
+    // Extract numbers with $ or k
+    const moneyMatch = text.match(/\$[\d,]+k?|\d+k/gi);
+    if (moneyMatch) keywords.push(...moneyMatch);
+    // Extract dates/years
+    const dateMatch = text.match(/\b(202[4-9]|Q[1-4]|January|February|March|April|May|June|July|August|September|October|November|December)\b/gi);
+    if (dateMatch) keywords.push(...dateMatch);
+    // Extract common project terms
+    const projectTerms = text.match(/\b(app|website|startup|project|product|business|marketing|sales|design|development)\b/gi);
+    if (projectTerms) keywords.push(...projectTerms.slice(0, 2));
+    return [...new Set(keywords)];
+  };
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim() || isLoading) return;
 
     const userMessage = inputValue.trim();
+
+    // Extract and add context items with animation
+    const newItems = extractContext(userMessage);
+    if (newItems.length > 0) {
+      for (const item of newItems) {
+        if (!contextItems.includes(item)) {
+          setNewContextItem(item);
+          setContextItems(prev => [...prev, item]);
+          // Clear the "new" highlight after animation
+          setTimeout(() => setNewContextItem(null), 1000);
+        }
+      }
+    }
+
     setInputValue('');
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
@@ -243,15 +274,45 @@ function InteractiveDemo() {
           </div>
         </form>
 
-        {/* Context indicator */}
-        {messages.length > 0 && (
-          <div className="border-t border-black/10 px-4 py-2 bg-gray-50">
+        {/* Context storage panel - always visible */}
+        <div className="border-t border-black/10 px-4 py-3 bg-gray-50">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs text-black/60">
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-              <span>{messages.length} messages · Context preserved across all models</span>
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+              <span>Context being stored</span>
             </div>
+            {messages.length > 0 && (
+              <span className="text-xs text-black/40">{messages.length} messages</span>
+            )}
           </div>
-        )}
+          {/* Context items */}
+          <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
+            {contextItems.length > 0 ? (
+              contextItems.map((item, idx) => (
+                <motion.span
+                  key={idx}
+                  initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                    y: 0,
+                    backgroundColor: item === newContextItem ? 'rgb(34, 197, 94)' : 'white'
+                  }}
+                  transition={{ duration: 0.3 }}
+                  className={`px-2 py-1 border text-xs ${
+                    item === newContextItem
+                      ? 'border-green-500 text-white bg-green-500'
+                      : 'border-black/10 text-black/70 bg-white'
+                  }`}
+                >
+                  {item}
+                </motion.span>
+              ))
+            ) : (
+              <span className="text-xs text-black/30 italic">Type something to see context extraction...</span>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -266,6 +327,19 @@ function WaitlistButton() {
       className="px-6 py-2 bg-black text-white text-xs tracking-wider hover:bg-gray-800 transition-colors"
     >
       {authenticated ? 'JOINED' : 'JOIN WAITLIST'}
+    </button>
+  );
+}
+
+function TryItButton() {
+  const { login, authenticated } = usePrivy();
+
+  return (
+    <button
+      onClick={login}
+      className="text-sm text-black border border-black/20 px-4 py-2 hover:bg-black hover:text-white transition-colors"
+    >
+      {authenticated ? 'Welcome! ✓' : 'Try it now →'}
     </button>
   );
 }
@@ -312,15 +386,7 @@ export default function InteractiveSplit() {
                     ANUMA preserves your conversation as you switch between AI models. No repeating yourself. No lost context.
                   </p>
                   <div className="flex flex-wrap gap-x-6 gap-y-2 pt-4">
-                    <button
-                      onClick={() => {
-                        const demoSection = document.querySelector('.border-2.border-black\\/10');
-                        demoSection?.scrollIntoView({ behavior: 'smooth' });
-                      }}
-                      className="text-sm text-black border border-black/20 px-4 py-2 hover:bg-black hover:text-white transition-colors"
-                    >
-                      Try it now →
-                    </button>
+                    <TryItButton />
                   </div>
                 </div>
               </div>
