@@ -464,7 +464,7 @@ export default function DeveloperAPI() {
             {/* Individual Subscriptions */}
             <div className="border border-white/10 bg-white/5 p-8">
               <div className="text-sm text-white/40 mb-6 uppercase tracking-wider">Individual Subscriptions</div>
-              <div className="space-y-4 mb-8">
+              <div className="space-y-3 mb-8">
                 <div className="flex justify-between items-center py-2 border-b border-white/10">
                   <span className="text-green-400">ChatGPT Plus</span>
                   <span className="text-white/80">$20/mo</span>
@@ -481,14 +481,28 @@ export default function DeveloperAPI() {
                   <span className="text-purple-400">Llama (API)</span>
                   <span className="text-white/80">$15/mo</span>
                 </div>
+                <div className="flex justify-between items-center py-2 border-b border-white/10">
+                  <span className="text-cyan-400">Perplexity Pro</span>
+                  <span className="text-white/80">$20/mo</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-white/10">
+                  <span className="text-red-400">Mistral</span>
+                  <span className="text-white/80">$15/mo</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-white/10">
+                  <span className="text-yellow-400">Cohere</span>
+                  <span className="text-white/80">$20/mo</span>
+                </div>
               </div>
               <div className="flex justify-between items-center py-3 border-t border-white/20">
                 <span className="text-white font-medium">Total</span>
-                <span className="text-2xl text-red-400 line-through">$75/mo</span>
+                <span className="text-2xl text-red-400 line-through">$130/mo</span>
               </div>
               <div className="mt-4 text-xs text-white/40">
-                + Multiple accounts to manage
+                + 7 different accounts to manage
                 <br />+ No shared context between models
+                <br />+ Different APIs to integrate
+                <br />+ Data scattered across providers
               </div>
             </div>
 
@@ -497,22 +511,34 @@ export default function DeveloperAPI() {
               <div className="absolute -top-3 left-6 px-3 py-1 bg-green-400 text-black text-xs font-medium">
                 RECOMMENDED
               </div>
-              <div className="text-sm text-white/40 mb-6 uppercase tracking-wider">ANUMA SDK</div>
-              <div className="space-y-4 mb-8">
+              <div className="text-sm text-white/40 mb-6 uppercase tracking-wider">ANUMA SDK - All Models</div>
+              <div className="space-y-3 mb-8">
                 <div className="flex justify-between items-center py-2 border-b border-white/10">
-                  <span className="text-green-400">GPT-4</span>
+                  <span className="text-green-400">GPT-4 / GPT-4o</span>
                   <span className="text-green-400">✓</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-white/10">
-                  <span className="text-orange-400">Claude</span>
+                  <span className="text-orange-400">Claude 3.5 Sonnet</span>
                   <span className="text-green-400">✓</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-white/10">
-                  <span className="text-blue-400">Gemini</span>
+                  <span className="text-blue-400">Gemini Pro</span>
                   <span className="text-green-400">✓</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-white/10">
-                  <span className="text-purple-400">Llama</span>
+                  <span className="text-purple-400">Llama 3.1</span>
+                  <span className="text-green-400">✓</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-white/10">
+                  <span className="text-cyan-400">Perplexity</span>
+                  <span className="text-green-400">✓</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-white/10">
+                  <span className="text-red-400">Mistral Large</span>
+                  <span className="text-green-400">✓</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-white/10">
+                  <span className="text-yellow-400">+ More coming</span>
                   <span className="text-green-400">✓</span>
                 </div>
               </div>
@@ -521,9 +547,10 @@ export default function DeveloperAPI() {
                 <span className="text-4xl text-white">$25<span className="text-lg text-white/50">/mo</span></span>
               </div>
               <div className="mt-4 text-xs text-green-400/80">
-                ✓ Single interface for all models
+                ✓ Single SDK for all models
                 <br />✓ Unified context across models
-                <br />✓ Unlimited requests
+                <br />✓ 100% private - local storage
+                <br />✓ No vendor lock-in
               </div>
             </div>
           </div>

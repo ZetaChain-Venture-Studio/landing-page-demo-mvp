@@ -207,9 +207,12 @@ export default function WhitePricing() {
             {/* Savings callout */}
             <div className="mt-10 pt-8 border-t border-black/10 text-center">
               <div className="inline-flex items-center gap-4 px-6 py-3 bg-black text-white">
-                <span className="text-white/60 line-through text-sm">$100/mo separately</span>
-                <span className="font-medium">Save $75/month with ANUMA</span>
+                <span className="text-white/60 line-through text-sm">$130/mo separately</span>
+                <span className="font-medium">Save $105/month with ANUMA</span>
               </div>
+              <p className="mt-4 text-xs text-black/50">
+                Includes GPT-4, Claude, Gemini, Llama, Perplexity, Mistral & more
+              </p>
             </div>
           </div>
         </motion.div>
