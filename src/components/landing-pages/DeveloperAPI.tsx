@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { usePrivy } from '@privy-io/react-auth';
 
 // Design Landing Page (3) - Developer SDK dark
 
@@ -65,11 +66,20 @@ function InteractiveSDKDemo() {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
+  const [sharedContext, setSharedContext] = useState('');
+  const [contextSet, setContextSet] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleSetContext = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (sharedContext.trim()) {
+      setContextSet(true);
+    }
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -89,9 +99,13 @@ function InteractiveSDKDemo() {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    // Build conversation history for context
+    // Build conversation history with shared context
+    const systemContent = sharedContext
+      ? `You are a helpful assistant. The user has provided this context: "${sharedContext}". Keep this context in mind for all responses. Keep responses concise but helpful.`
+      : 'You are a helpful assistant. Keep responses concise but helpful.';
+
     const conversationHistory = [
-      { role: 'system' as const, content: 'You are a helpful assistant. Keep responses concise but helpful. You have access to the full conversation history.' },
+      { role: 'system' as const, content: systemContent },
       ...messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
       { role: 'user' as const, content: userMessage }
     ];
@@ -156,161 +170,189 @@ function InteractiveSDKDemo() {
   };
 
   return (
-    <div className="bg-[#111] border border-white/10 rounded-lg overflow-hidden">
-      {/* Header with model selector */}
-      <div className="border-b border-white/10 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-white/40 font-mono">MODEL:</span>
-            <div className="flex gap-2">
-              {MODELS.map((model) => (
-                <button
-                  key={model.id}
-                  onClick={() => setSelectedModel(model.id)}
-                  className={`px-3 py-1.5 text-xs font-mono border transition-colors ${
-                    selectedModel === model.id
-                      ? `${model.bgColor} ${model.borderColor} ${model.color}`
-                      : 'bg-white/5 border-white/10 text-white/50 hover:border-white/20'
-                  }`}
-                >
-                  {model.id}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="text-xs text-white/30 font-mono">
-            {messages.length > 0 && `${messages.length} messages in context`}
-          </div>
+    <div className="grid lg:grid-cols-[300px,1fr] gap-6">
+      {/* Left side - Shared Context Panel */}
+      <div className="bg-[#111] border border-white/10 rounded-lg p-4">
+        <div className="text-xs uppercase tracking-widest text-white/40 mb-4">
+          SHARED CONTEXT
         </div>
-      </div>
-
-      {/* Chat area */}
-      <div className="h-[350px] overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && !isLoading && (
-          <div className="h-full flex items-center justify-center text-white/30 text-sm">
-            <div className="text-center">
-              <p className="mb-2">Try the SDK - type a message below</p>
-              <p className="text-xs text-white/20">Switch models anytime. Context is preserved.</p>
+        {!contextSet ? (
+          <form onSubmit={handleSetContext} className="space-y-4">
+            <textarea
+              value={sharedContext}
+              onChange={(e) => setSharedContext(e.target.value)}
+              placeholder="e.g., I'm building an e-commerce app for vintage watches with a $15k budget..."
+              className="w-full h-32 px-3 py-2 bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/30 text-sm resize-none"
+            />
+            <button
+              type="submit"
+              disabled={!sharedContext.trim()}
+              className="w-full px-4 py-2 bg-white text-black text-sm font-medium hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Set Context
+            </button>
+            <p className="text-[10px] text-white/30">
+              This context will be shared across all AI models
+            </p>
+          </form>
+        ) : (
+          <div className="space-y-4">
+            <div className="p-3 bg-white/5 border border-green-400/30 rounded text-sm text-white/80">
+              {sharedContext}
             </div>
+            <div className="flex items-center gap-2 text-xs text-green-400">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+              Context active
+            </div>
+            <button
+              onClick={() => {
+                setContextSet(false);
+                setMessages([]);
+              }}
+              className="text-xs text-white/40 hover:text-white/60 underline"
+            >
+              Change context
+            </button>
           </div>
         )}
+      </div>
 
-        {messages.map((msg, idx) => (
-          <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] ${msg.role === 'user' ? 'order-2' : ''}`}>
-              {msg.role === 'assistant' && msg.model && (
-                <div className={`text-[10px] font-mono mb-1 ${getModelColor(msg.model)}`}>
-                  {msg.model}
+      {/* Right side - Chat Interface */}
+      <div className="bg-[#111] border border-white/10 rounded-lg overflow-hidden">
+        {/* Header with model selector */}
+        <div className="border-b border-white/10 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-white/40 font-mono">MODEL:</span>
+              <div className="flex gap-2">
+                {MODELS.map((model) => (
+                  <button
+                    key={model.id}
+                    onClick={() => setSelectedModel(model.id)}
+                    className={`px-3 py-1.5 text-xs font-mono border transition-colors ${
+                      selectedModel === model.id
+                        ? `${model.bgColor} ${model.borderColor} ${model.color}`
+                        : 'bg-white/5 border-white/10 text-white/50 hover:border-white/20'
+                    }`}
+                  >
+                    {model.id}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="text-xs text-white/30 font-mono">
+              {messages.length > 0 && `${messages.length} messages in context`}
+            </div>
+          </div>
+        </div>
+
+        {/* Chat area */}
+        <div className="h-[300px] overflow-y-auto p-4 space-y-4">
+          {messages.length === 0 && !isLoading && (
+            <div className="h-full flex items-center justify-center text-white/30 text-sm">
+              <div className="text-center">
+                {contextSet ? (
+                  <>
+                    <p className="mb-2">Context is set. Ask any question!</p>
+                    <p className="text-xs text-white/20">Switch models anytime - your context is preserved.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mb-2">Set your shared context first</p>
+                    <p className="text-xs text-white/20">Or just start chatting without context</p>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {messages.map((msg, idx) => (
+            <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[80%] ${msg.role === 'user' ? 'order-2' : ''}`}>
+                {msg.role === 'assistant' && msg.model && (
+                  <div className={`text-[10px] font-mono mb-1 ${getModelColor(msg.model)}`}>
+                    {msg.model}
+                  </div>
+                )}
+                <div className={`px-4 py-3 rounded text-sm ${
+                  msg.role === 'user'
+                    ? 'bg-white text-black'
+                    : 'bg-white/10 text-white/90'
+                }`}>
+                  {msg.content}
                 </div>
-              )}
-              <div className={`px-4 py-3 rounded text-sm ${
-                msg.role === 'user'
-                  ? 'bg-white text-black'
-                  : 'bg-white/10 text-white/90'
-              }`}>
-                {msg.content}
               </div>
             </div>
-          </div>
-        ))}
+          ))}
 
-        {isLoading && streamingContent && (
-          <div className="flex gap-3 justify-start">
-            <div className="max-w-[80%]">
-              <div className={`text-[10px] font-mono mb-1 ${getModelColor(selectedModel)}`}>
-                {selectedModel}
-              </div>
-              <div className="px-4 py-3 rounded text-sm bg-white/10 text-white/90">
-                {streamingContent}
-                <span className="inline-block w-2 h-4 bg-white/50 ml-1 animate-pulse" />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {isLoading && !streamingContent && (
-          <div className="flex gap-3 justify-start">
-            <div className="px-4 py-3 rounded bg-white/10">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          {isLoading && streamingContent && (
+            <div className="flex gap-3 justify-start">
+              <div className="max-w-[80%]">
+                <div className={`text-[10px] font-mono mb-1 ${getModelColor(selectedModel)}`}>
+                  {selectedModel}
+                </div>
+                <div className="px-4 py-3 rounded text-sm bg-white/10 text-white/90">
+                  {streamingContent}
+                  <span className="inline-block w-2 h-4 bg-white/50 ml-1 animate-pulse" />
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div ref={messagesEndRef} />
+          {isLoading && !streamingContent && (
+            <div className="flex gap-3 justify-start">
+              <div className="px-4 py-3 rounded bg-white/10">
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input area */}
+        <form onSubmit={sendMessage} className="border-t border-white/10 p-4">
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={contextSet ? "Ask a question about your context..." : "Type a message..."}
+              disabled={isLoading}
+              className="flex-1 px-4 py-3 bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/30 text-sm"
+            />
+            <button
+              type="submit"
+              disabled={isLoading || !inputValue.trim()}
+              className="px-6 py-3 bg-white text-black font-medium text-sm hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Send
+            </button>
+          </div>
+          <div className="mt-3 flex items-center gap-2 text-[10px] text-white/30">
+            <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+            <span>Switch models mid-conversation - context is always preserved!</span>
+          </div>
+        </form>
       </div>
-
-      {/* Input area */}
-      <form onSubmit={sendMessage} className="border-t border-white/10 p-4">
-        <div className="flex gap-3">
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Type a message... (e.g., 'Explain quantum computing')"
-            disabled={isLoading}
-            className="flex-1 px-4 py-3 bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-white/30 text-sm"
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !inputValue.trim()}
-            className="px-6 py-3 bg-white text-black font-medium text-sm hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Send
-          </button>
-        </div>
-        <div className="mt-3 flex items-center gap-2 text-[10px] text-white/30">
-          <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-          <span>Context preserved across model switches - try switching models mid-conversation!</span>
-        </div>
-      </form>
     </div>
   );
 }
 
-function WaitlistForm({ buttonText = 'Enter Waitlist' }: { buttonText?: string }) {
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setSubmitted(true);
-      console.log('Waitlist signup:', email);
-    }
-  };
-
-  if (submitted) {
-    return (
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-          <span className="text-white text-sm">✓</span>
-        </div>
-        <span className="text-white">You&apos;re on the list!</span>
-      </div>
-    );
-  }
+function WaitlistButton({ buttonText = 'Enter Waitlist' }: { buttonText?: string }) {
+  const { login, authenticated } = usePrivy();
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md">
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Enter your email"
-        required
-        className="flex-1 px-4 py-3 bg-white/5 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-white"
-      />
-      <button
-        type="submit"
-        className="px-6 py-3 bg-white text-black hover:bg-white/90 transition-colors whitespace-nowrap"
-      >
-        {buttonText}
-      </button>
-    </form>
+    <button
+      onClick={login}
+      className="px-8 py-4 bg-white text-black hover:bg-white/90 transition-colors whitespace-nowrap"
+    >
+      {authenticated ? 'Joined' : buttonText}
+    </button>
   );
 }
 
@@ -326,11 +368,6 @@ export default function DeveloperAPI() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <div className="inline-flex items-center gap-2 px-3 py-1 border border-white/20 text-xs mb-6 tracking-widest text-white/60">
-                <span>DEVELOPER SDK</span>
-                <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-[10px] rounded">COMING SOON</span>
-              </div>
-
               <h1 className="text-5xl md:text-6xl mb-6 tracking-tight">
                 One SDK for
                 <br />
@@ -341,7 +378,13 @@ export default function DeveloperAPI() {
                 Switch between <span className="text-green-400">GPT-4</span>, <span className="text-orange-400">Claude</span>, <span className="text-blue-400">Gemini</span>, and <span className="text-purple-400">Llama</span> with a single parameter. <span className="text-white font-medium">Context persists</span>. No vendor lock-in.
               </p>
 
-              <WaitlistForm buttonText="Get SDK Access" />
+              <div className="space-y-4">
+                <WaitlistButton buttonText="Get SDK Access" />
+                <div className="inline-flex items-center gap-2 px-3 py-1 border border-white/20 text-xs tracking-widest text-white/60">
+                  <span>DEVELOPER SDK</span>
+                  <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-[10px] rounded">COMING SOON</span>
+                </div>
+              </div>
             </motion.div>
 
             <motion.div
@@ -495,7 +538,7 @@ export default function DeveloperAPI() {
           <h2 className="text-4xl mb-6 tracking-tight">Join the private beta</h2>
           <p className="text-white/50 mb-8">Limited SDK access available for early adopters</p>
           <div className="flex justify-center">
-            <WaitlistForm buttonText="Enter Waitlist" />
+            <WaitlistButton buttonText="Enter Waitlist" />
           </div>
         </div>
       </div>

@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { usePrivy } from '@privy-io/react-auth';
 
 // Landing Page Design - Brutalist stone boxes
 
 const MODELS = [
-  { id: 'gpt-4', label: 'GPT', color: 'bg-green-100 border-green-300 text-green-800' },
-  { id: 'claude', label: 'Claude', color: 'bg-orange-100 border-orange-300 text-orange-800' },
-  { id: 'gemini', label: 'Gemini', color: 'bg-blue-100 border-blue-300 text-blue-800' },
+  { id: 'gpt-4', label: 'GPT-4', color: 'text-green-700', bgColor: 'bg-green-100', borderColor: 'border-green-300' },
+  { id: 'claude', label: 'Claude', color: 'text-orange-700', bgColor: 'bg-orange-100', borderColor: 'border-orange-300' },
+  { id: 'gemini', label: 'Gemini', color: 'text-blue-700', bgColor: 'bg-blue-100', borderColor: 'border-blue-300' },
 ];
 
 const MODEL_API_IDS: Record<string, string> = {
@@ -17,33 +18,25 @@ const MODEL_API_IDS: Record<string, string> = {
   'gemini': 'google/gemini-1.5-pro',
 };
 
-interface Message {
-  role: 'user' | 'assistant';
+const SHARED_CONTEXT = "Building a mobile fitness app for busy professionals. Budget: $30k. Launch: Q2 2025.";
+const DEMO_QUESTION = "What tech stack would you recommend?";
+
+interface DemoResponse {
+  model: string;
   content: string;
-  model?: string;
 }
 
-function MiniDemo() {
-  const [selectedModel, setSelectedModel] = useState('gpt-4');
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [streamingContent, setStreamingContent] = useState('');
+function AutoDemo() {
+  const [phase, setPhase] = useState<'context' | 'question' | 'responses' | 'cycling'>('context');
+  const [currentModelIndex, setCurrentModelIndex] = useState(0);
+  const [responses, setResponses] = useState<DemoResponse[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typedContent, setTypedContent] = useState('');
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const getModelLabel = (id: string) => MODELS.find(m => m.id === id)?.label || id;
-  const getModelColor = (id: string) => MODELS.find(m => m.id === id)?.color || '';
+  const getModel = (id: string) => MODELS.find(m => m.id === id) || MODELS[0];
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputValue.trim() || isLoading) return;
-
-    const userMessage = inputValue.trim();
-    setInputValue('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
-    setIsLoading(true);
-    setStreamingContent('');
-
+  const fetchResponse = useCallback(async (modelId: string): Promise<string> => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -51,202 +44,211 @@ function MiniDemo() {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    const conversationHistory = [
-      { role: 'system' as const, content: 'You are a helpful assistant. Keep responses very concise (1-2 sentences max).' },
-      ...messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-      { role: 'user' as const, content: userMessage }
-    ];
-
     try {
       const res = await fetch('https://ai-portal-dev.zetachain.com/api/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: MODEL_API_IDS[selectedModel],
-          messages: conversationHistory,
+          model: MODEL_API_IDS[modelId],
+          messages: [
+            { role: 'system', content: `You are a helpful assistant. Context: ${SHARED_CONTEXT}. Keep responses to 1-2 sentences max.` },
+            { role: 'user', content: DEMO_QUESTION }
+          ],
           max_tokens: 100,
-          stream: true,
         }),
         signal: controller.signal,
       });
 
       if (!res.ok) throw new Error('API error');
+      const data = await res.json();
+      return data.choices?.[0]?.message?.content || 'No response';
+    } catch {
+      return "I'd recommend React Native with Firebase for quick development within your timeline and budget.";
+    }
+  }, []);
 
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error('No reader');
+  // Type out content character by character
+  const typeContent = useCallback((content: string, onComplete: () => void) => {
+    setTypedContent('');
+    setIsTyping(true);
+    let index = 0;
+    const interval = setInterval(() => {
+      if (index < content.length) {
+        setTypedContent(content.slice(0, index + 1));
+        index++;
+      } else {
+        clearInterval(interval);
+        setIsTyping(false);
+        onComplete();
+      }
+    }, 25);
+    return () => clearInterval(interval);
+  }, []);
 
-      const decoder = new TextDecoder();
-      let fullText = '';
+  // Demo flow
+  useEffect(() => {
+    const runDemo = async () => {
+      // Phase 1: Show context
+      await new Promise(r => setTimeout(r, 2000));
+      setPhase('question');
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      // Phase 2: Show question
+      await new Promise(r => setTimeout(r, 2000));
+      setPhase('responses');
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+      // Phase 3: Get and show responses from each model
+      for (let i = 0; i < MODELS.length; i++) {
+        setCurrentModelIndex(i);
+        const response = await fetchResponse(MODELS[i].id);
 
-        for (const line of lines) {
-          if (line.startsWith('data: ') && !line.includes('[DONE]')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              const content = data.choices?.[0]?.delta?.content;
-              if (content) {
-                fullText += content;
-                setStreamingContent(fullText);
-              }
-            } catch {}
-          }
+        await new Promise<void>((resolve) => {
+          typeContent(response, () => {
+            setResponses(prev => [...prev, { model: MODELS[i].id, content: response }]);
+            resolve();
+          });
+        });
+
+        if (i < MODELS.length - 1) {
+          await new Promise(r => setTimeout(r, 1500));
         }
       }
 
-      setMessages(prev => [...prev, { role: 'assistant', content: fullText, model: selectedModel }]);
-      setStreamingContent('');
-    } catch (error) {
-      if ((error as Error).name === 'AbortError') return;
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Error - please try again.', model: selectedModel }]);
-      setStreamingContent('');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      // Phase 4: Cycle through responses
+      await new Promise(r => setTimeout(r, 2000));
+      setPhase('cycling');
+    };
+
+    runDemo();
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [fetchResponse, typeContent]);
+
+  // Cycle through models when in cycling phase
+  useEffect(() => {
+    if (phase !== 'cycling') return;
+    const interval = setInterval(() => {
+      setCurrentModelIndex(prev => (prev + 1) % MODELS.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [phase]);
 
   return (
     <div className="space-y-4">
-      {/* Header with model selector */}
-      <div className="flex items-center justify-between border-b border-black/10 pb-4">
-        <span className="font-mono text-xs text-neutral-500">TRY IT</span>
-        <div className="flex gap-1">
-          {MODELS.map((model) => (
-            <button
-              key={model.id}
-              onClick={() => setSelectedModel(model.id)}
-              className={`px-2 py-1 text-[10px] font-mono border transition-all ${
-                selectedModel === model.id
-                  ? model.color
-                  : 'bg-neutral-100 border-black/10 text-neutral-500 hover:border-black/20'
-              }`}
-            >
-              {model.label}
-            </button>
-          ))}
+      {/* Shared Context Panel */}
+      <div className="border-2 border-black/20 bg-stone-50 p-4">
+        <div className="font-mono text-[10px] text-neutral-500 uppercase tracking-wider mb-2">
+          SHARED CONTEXT
+        </div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-sm text-black font-medium"
+        >
+          {SHARED_CONTEXT}
+        </motion.div>
+        <div className="flex items-center gap-2 mt-3 text-[10px] text-green-700 font-mono">
+          <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse" />
+          Context active for all models
         </div>
       </div>
 
-      {/* Chat area */}
-      <div className="space-y-3 min-h-[140px] max-h-[180px] overflow-y-auto">
-        {messages.length === 0 && !isLoading && (
-          <div className="text-center py-8 text-neutral-400 text-xs font-mono">
-            Type a message to try ANUMA
-          </div>
+      {/* Question */}
+      <AnimatePresence>
+        {(phase === 'question' || phase === 'responses' || phase === 'cycling') && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex gap-3"
+          >
+            <div className="text-xs shrink-0 font-mono font-bold text-neutral-600">YOU</div>
+            <div className="text-sm text-black font-medium">{DEMO_QUESTION}</div>
+          </motion.div>
         )}
+      </AnimatePresence>
 
-        {messages.map((msg, idx) => (
-          <div key={idx} className="flex gap-3">
-            <div className={`text-xs shrink-0 font-mono font-bold ${
-              msg.role === 'user' ? 'text-neutral-600' : getModelColor(msg.model || selectedModel).replace('bg-', 'text-').replace('-100', '-700').split(' ')[0]
-            }`}>
-              {msg.role === 'user' ? 'YOU' : getModelLabel(msg.model || selectedModel)}
-            </div>
-            <div className={`text-sm ${msg.role === 'user' ? 'text-black font-medium' : 'text-neutral-800'}`}>
-              {msg.content}
-            </div>
-          </div>
-        ))}
-
-        {isLoading && streamingContent && (
-          <div className="flex gap-3">
-            <div className={`text-xs shrink-0 font-mono font-bold ${getModelColor(selectedModel).replace('bg-', 'text-').replace('-100', '-700').split(' ')[0]}`}>
-              {getModelLabel(selectedModel)}
+      {/* Response Area */}
+      <div className="min-h-[100px] space-y-3">
+        {phase === 'responses' && (
+          <motion.div
+            key={currentModelIndex}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex gap-3"
+          >
+            <div className={`text-xs shrink-0 font-mono font-bold ${getModel(MODELS[currentModelIndex].id).color}`}>
+              {getModel(MODELS[currentModelIndex].id).label}
             </div>
             <div className="text-sm text-neutral-800">
-              {streamingContent}
-              <span className="inline-block w-1.5 h-3 bg-black/50 ml-0.5 animate-pulse" />
+              {typedContent}
+              {isTyping && <span className="inline-block w-1.5 h-3 bg-black/50 ml-0.5 animate-pulse" />}
             </div>
-          </div>
+          </motion.div>
         )}
 
-        {isLoading && !streamingContent && (
-          <div className="flex gap-3">
-            <div className={`text-xs shrink-0 font-mono font-bold ${getModelColor(selectedModel).replace('bg-', 'text-').replace('-100', '-700').split(' ')[0]}`}>
-              {getModelLabel(selectedModel)}
-            </div>
-            <div className="flex gap-1 items-center">
-              <div className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <div className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <div className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-            </div>
+        {phase === 'cycling' && responses.length > 0 && (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentModelIndex}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className={`p-4 ${getModel(MODELS[currentModelIndex].id).bgColor} border ${getModel(MODELS[currentModelIndex].id).borderColor}`}
+            >
+              <div className={`text-xs font-mono font-bold mb-2 ${getModel(MODELS[currentModelIndex].id).color}`}>
+                {getModel(MODELS[currentModelIndex].id).label}
+              </div>
+              <div className="text-sm text-neutral-800">
+                {responses.find(r => r.model === MODELS[currentModelIndex].id)?.content}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        )}
+
+        {phase === 'context' && (
+          <div className="text-center py-4 text-neutral-400 text-xs font-mono">
+            Loading demo...
           </div>
         )}
       </div>
 
-      {/* Input */}
-      <form onSubmit={sendMessage} className="flex gap-2 border-t border-black/10 pt-4">
-        <input
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Ask anything..."
-          disabled={isLoading}
-          className="flex-1 px-3 py-2 text-sm border border-black/20 bg-white text-black placeholder-neutral-400 focus:outline-none focus:border-black font-mono"
-        />
-        <button
-          type="submit"
-          disabled={isLoading || !inputValue.trim()}
-          className="px-4 py-2 bg-black text-white text-xs font-mono uppercase disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-800 transition-colors"
-        >
-          Send
-        </button>
-      </form>
-
-      {/* Context indicator */}
-      <div className="flex items-center gap-2 text-[10px] text-neutral-700 font-mono">
-        <div className={`w-1.5 h-1.5 rounded-full ${isLoading ? 'bg-yellow-500 animate-pulse' : 'bg-green-600'}`} />
-        {messages.length > 0 ? `${messages.length} messages · Context preserved` : 'Context preserved across models'}
+      {/* Model indicator */}
+      <div className="flex items-center justify-between border-t border-black/10 pt-4">
+        <div className="flex gap-2">
+          {MODELS.map((model, idx) => (
+            <div
+              key={model.id}
+              className={`px-2 py-1 text-[10px] font-mono border transition-all ${
+                currentModelIndex === idx && (phase === 'responses' || phase === 'cycling')
+                  ? `${model.bgColor} ${model.borderColor} ${model.color}`
+                  : 'bg-neutral-100 border-black/10 text-neutral-400'
+              }`}
+            >
+              {model.label}
+            </div>
+          ))}
+        </div>
+        <div className="text-[10px] text-neutral-500 font-mono">
+          Same context · Different perspectives
+        </div>
       </div>
     </div>
   );
 }
 
-function WaitlistForm() {
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setSubmitted(true);
-      console.log('Waitlist signup:', email);
-    }
-  };
-
-  if (submitted) {
-    return (
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
-          <span className="text-white text-sm">✓</span>
-        </div>
-        <span className="font-mono text-sm text-black">You&apos;re on the list!</span>
-      </div>
-    );
-  }
+function WaitlistButton() {
+  const { login, authenticated } = usePrivy();
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md">
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Enter your email"
-        required
-        className="flex-1 px-4 py-4 border-2 border-black bg-white text-black placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-black font-mono text-sm"
-      />
-      <button
-        type="submit"
-        className="px-8 py-4 bg-black text-white font-mono text-sm hover:bg-neutral-800 transition-colors uppercase tracking-wider whitespace-nowrap"
-      >
-        Join Waitlist
-      </button>
-    </form>
+    <button
+      onClick={login}
+      className="px-8 py-4 bg-black text-white font-mono text-sm hover:bg-neutral-800 transition-colors uppercase tracking-wider whitespace-nowrap"
+    >
+      {authenticated ? 'Joined' : 'Join Waitlist'}
+    </button>
   );
 }
 
@@ -283,21 +285,21 @@ export default function BrutalistStone() {
               >
                 <h1
                   className="text-black leading-[0.85] tracking-tighter"
-                  style={{ fontSize: 'clamp(3rem, 10vw, 7rem)' }}
+                  style={{ fontSize: 'clamp(3rem, 10vw, 6rem)' }}
                 >
-                  One
+                  Every model,
                   <br />
-                  interface.
+                  shared
                   <br />
-                  Every AI.
+                  context.
                 </h1>
 
                 <p className="text-neutral-800 text-xl max-w-md leading-relaxed">
-                  Switch between models. Keep context. Your data stays local.
+                  Switch between any base model. Keep context across them, buy only 1 subscription.
                 </p>
 
                 <div id="waitlist">
-                  <WaitlistForm />
+                  <WaitlistButton />
                 </div>
               </motion.div>
 
@@ -308,7 +310,7 @@ export default function BrutalistStone() {
                 transition={{ duration: 0.8, delay: 0.2 }}
                 className="border border-black bg-white p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,0.08)]"
               >
-                <MiniDemo />
+                <AutoDemo />
               </motion.div>
             </div>
           </div>

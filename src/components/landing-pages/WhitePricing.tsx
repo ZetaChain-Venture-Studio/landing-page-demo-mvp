@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { usePrivy } from '@privy-io/react-auth';
 
 // Design Landing Page (2) - White centered with conversation flow and $25 pricing
 
@@ -53,7 +54,7 @@ function ModelSwitcher() {
             className={`px-4 py-2 text-sm transition-all ${
               activeModel === index
                 ? 'bg-black text-white'
-                : 'bg-white border border-black/10 hover:border-black/30'
+                : 'bg-white border border-black/20 text-black hover:border-black/40'
             }`}
           >
             <span className="mr-2">{model.symbol}</span>
@@ -109,48 +110,18 @@ function ModelSwitcher() {
   );
 }
 
-function WaitlistForm() {
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setSubmitted(true);
-      console.log('Waitlist signup:', email);
-    }
-  };
-
-  if (submitted) {
-    return (
-      <div className="flex justify-center">
-        <div className="text-center">
-          <div className="text-2xl mb-2">✓</div>
-          <p className="text-black/80">You&apos;re on the list!</p>
-        </div>
-      </div>
-    );
-  }
+function WaitlistButton() {
+  const { login, authenticated } = usePrivy();
 
   return (
-    <form onSubmit={handleSubmit} className="flex justify-center">
-      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Enter your email"
-          required
-          className="flex-1 px-4 py-3 border border-black/20 bg-white text-black placeholder-black/40 focus:outline-none focus:border-black"
-        />
-        <button
-          type="submit"
-          className="px-8 py-3 bg-black text-white hover:bg-black/80 transition-colors whitespace-nowrap"
-        >
-          Join Waitlist
-        </button>
-      </div>
-    </form>
+    <div className="flex justify-center">
+      <button
+        onClick={login}
+        className="px-8 py-4 bg-black text-white hover:bg-black/80 transition-colors whitespace-nowrap"
+      >
+        {authenticated ? 'Joined' : 'Join Waitlist'}
+      </button>
+    </div>
   );
 }
 
@@ -165,7 +136,7 @@ export default function WhitePricing() {
           transition={{ duration: 0.8 }}
           className="text-center mb-32"
         >
-          <div className="inline-block px-3 py-1 border border-black/20 text-xs mb-8 tracking-widest">
+          <div className="inline-block px-3 py-1 border border-black/20 text-xs mb-8 tracking-widest text-black">
             ANUMA
           </div>
 
@@ -179,7 +150,7 @@ export default function WhitePricing() {
             Switch between GPT-4, Claude, Gemini, and Llama mid-conversation. Your context and memories follow you. Stored locally, always private.
           </p>
 
-          <WaitlistForm />
+          <WaitlistButton />
         </motion.div>
 
         {/* Model switcher demo */}
@@ -201,8 +172,8 @@ export default function WhitePricing() {
             viewport={{ once: true }}
             className="max-w-xl mx-auto text-center"
           >
-            <div className="text-5xl mb-6">∞</div>
-            <h2 className="text-3xl mb-4 tracking-tight">Unified context</h2>
+            <div className="text-5xl mb-6 text-black">∞</div>
+            <h2 className="text-3xl mb-4 tracking-tight text-black">Unified context</h2>
             <p className="text-lg text-black/70 leading-relaxed">
               Start a conversation with Claude, continue with GPT-4, finish with Gemini. Your full history and context transfers instantly between models.
             </p>
@@ -216,8 +187,8 @@ export default function WhitePricing() {
             viewport={{ once: true }}
             className="max-w-xl mx-auto text-center"
           >
-            <div className="text-5xl mb-6">⊙</div>
-            <h2 className="text-3xl mb-4 tracking-tight">Private by design</h2>
+            <div className="text-5xl mb-6 text-black">⊙</div>
+            <h2 className="text-3xl mb-4 tracking-tight text-black">Private by design</h2>
             <p className="text-lg text-black/70 leading-relaxed">
               All your conversations and memories are stored in your browser. Never uploaded, never synced. Complete control over your data.
             </p>
@@ -231,7 +202,7 @@ export default function WhitePricing() {
             viewport={{ once: true }}
             className="max-w-xl mx-auto text-center pt-12 border-t border-black/10"
           >
-            <div className="text-7xl mb-4">$25</div>
+            <div className="text-7xl mb-4 text-black">$25</div>
             <p className="text-lg text-black/70 leading-relaxed">
               One subscription. Every major AI model included.
               <br />
@@ -243,7 +214,7 @@ export default function WhitePricing() {
         {/* Footer CTA */}
         <div className="mt-40 pt-20 border-t border-black/10 text-center">
           <p className="text-xl mb-8 text-black/60">Ready for early access?</p>
-          <WaitlistForm />
+          <WaitlistButton />
         </div>
 
         {/* Footer */}

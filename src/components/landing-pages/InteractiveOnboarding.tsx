@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePrivy } from '@privy-io/react-auth';
 
 // Design - ANUMA Landing Page Design (3) - Interactive onboarding with context panel
 // Integrated with Evermind SDK for real AI responses
@@ -195,8 +196,7 @@ export default function InteractiveOnboarding() {
   const [showContextPanel, setShowContextPanel] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [endingPhase, setEndingPhase] = useState<'response' | 'insight' | 'waitlist' | null>(null);
-  const [email, setEmail] = useState('');
-  const [emailSubmitted, setEmailSubmitted] = useState(false);
+  const { login, authenticated } = usePrivy();
 
   // Function to call the Evermind API for real AI responses
   const callEvermindAPI = useCallback(async (
@@ -402,13 +402,8 @@ Keep your response concise (2-3 sentences max), friendly, and directly address t
     }
   };
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setEmailSubmitted(true);
-      console.log('Waitlist signup:', email);
-      setStep(5);
-    }
+  const handleJoinWaitlist = () => {
+    login();
   };
 
   return (
@@ -617,8 +612,8 @@ Keep your response concise (2-3 sentences max), friendly, and directly address t
               </motion.form>
             )}
 
-            {/* Waitlist signup with email */}
-            {step === 4 && endingPhase === 'waitlist' && (
+            {/* Waitlist signup with Privy */}
+            {step === 4 && endingPhase === 'waitlist' && !authenticated && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -629,17 +624,9 @@ Keep your response concise (2-3 sentences max), friendly, and directly address t
                   <p className="text-black/60">Join the waitlist for early access.</p>
                 </div>
 
-                <form onSubmit={handleEmailSubmit} className="max-w-md mx-auto space-y-4">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    required
-                    className="w-full px-4 py-4 border border-black/20 bg-white text-black placeholder-black/40 focus:outline-none focus:border-black text-center"
-                  />
+                <div className="max-w-md mx-auto space-y-4">
                   <motion.button
-                    type="submit"
+                    onClick={handleJoinWaitlist}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="w-full bg-black text-white py-4 text-lg tracking-wide hover:bg-black/90 transition-colors"
@@ -654,12 +641,12 @@ Keep your response concise (2-3 sentences max), friendly, and directly address t
                     <span>•</span>
                     <span>Local storage</span>
                   </div>
-                </form>
+                </div>
               </motion.div>
             )}
 
-            {/* Success state */}
-            {step === 5 && (
+            {/* Authenticated state */}
+            {step === 4 && endingPhase === 'waitlist' && authenticated && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -677,6 +664,7 @@ Keep your response concise (2-3 sentences max), friendly, and directly address t
                 <p className="text-black/60">We&apos;ll be in touch soon.</p>
               </motion.div>
             )}
+
           </div>
 
           {/* Context Panel - Right side */}

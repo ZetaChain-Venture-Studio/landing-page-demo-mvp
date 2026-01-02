@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import { usePrivy } from '@privy-io/react-auth';
 
 // Design Landing Page (1) - Dark minimal with typing animation
 
@@ -259,46 +260,16 @@ function FAQModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void })
   );
 }
 
-function WaitlistForm() {
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setSubmitted(true);
-      console.log('Waitlist signup:', email);
-    }
-  };
-
-  if (submitted) {
-    return (
-      <div className="flex items-center gap-3 text-white">
-        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-          <span className="text-white text-sm">✓</span>
-        </div>
-        <span>You&apos;re on the list!</span>
-      </div>
-    );
-  }
+function WaitlistButton() {
+  const { login, authenticated } = usePrivy();
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md">
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Enter your email"
-        required
-        className="flex-1 px-4 py-3 bg-[#1a1a1a] border border-[#333333] text-white placeholder-[#666666] focus:outline-none focus:border-white"
-      />
-      <button
-        type="submit"
-        className="px-6 py-3 bg-white text-black hover:bg-[#eee] transition-colors whitespace-nowrap"
-      >
-        Join Waitlist
-      </button>
-    </form>
+    <button
+      onClick={login}
+      className="px-8 py-4 bg-white text-black hover:bg-[#eee] transition-colors whitespace-nowrap"
+    >
+      {authenticated ? 'Joined' : 'Join Waitlist'}
+    </button>
   );
 }
 
@@ -357,7 +328,7 @@ export default function DarkMinimal() {
 
         {/* Waitlist below demo */}
         <div id="waitlist" className="flex justify-center mb-16">
-          <WaitlistForm />
+          <WaitlistButton />
         </div>
 
         {/* Simple feature list */}
