@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import PrivyProvider from "@/providers/PrivyProvider";
+import { PostHogProvider } from "@/providers/PostHogProvider";
 
 export const metadata: Metadata = {
   title: "anuma.ai - Join the Waitlist",
@@ -23,7 +24,9 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <PrivyProvider>{children}</PrivyProvider>
+        <PostHogProvider>
+          <PrivyProvider>{children}</PrivyProvider>
+        </PostHogProvider>
       </body>
     </html>
   );
