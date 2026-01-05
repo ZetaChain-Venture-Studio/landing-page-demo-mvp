@@ -1,50 +1,40 @@
 'use client';
 
 import posthog from 'posthog-js';
-import { PostHogProvider as PHProvider } from 'posthog-js/react';
-import { useEffect } from 'react';
+import { PostHogProvider as PHProvider, usePostHog as usePH } from 'posthog-js/react';
+import { useEffect, useState } from 'react';
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
+  const [isReady, setIsReady] = useState(false);
+
   useEffect(() => {
-    // Initialize PostHog
     const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
     const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com';
 
-    if (posthogKey) {
+    if (posthogKey && typeof window !== 'undefined') {
       posthog.init(posthogKey, {
         api_host: posthogHost,
         person_profiles: 'identified_only',
         capture_pageview: true,
         capture_pageleave: true,
-        // Enable session recording for better A/B test analysis
-        enable_recording_console_log: false,
-        // Disable in development
-        loaded: (posthog) => {
+        loaded: (ph) => {
           if (process.env.NODE_ENV === 'development') {
-            posthog.debug();
+            ph.debug();
           }
+          setIsReady(true);
         },
       });
+    } else {
+      setIsReady(true); // No key, just render children
     }
   }, []);
+
+  if (!isReady) {
+    return <>{children}</>;
+  }
 
   return <PHProvider client={posthog}>{children}</PHProvider>;
 }
 
-// Hook to track custom events
-export function usePostHog() {
-  return {
-    capture: (event: string, properties?: Record<string, unknown>) => {
-      posthog.capture(event, properties);
-    },
-    identify: (userId: string, properties?: Record<string, unknown>) => {
-      posthog.identify(userId, properties);
-    },
-    getFeatureFlag: (key: string) => {
-      return posthog.getFeatureFlag(key);
-    },
-    isFeatureEnabled: (key: string) => {
-      return posthog.isFeatureEnabled(key);
-    },
-  };
-}
+// Re-export the hook from posthog-js/react
+export { usePH as usePostHog };
