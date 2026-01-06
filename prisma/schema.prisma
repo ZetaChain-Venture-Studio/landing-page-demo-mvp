@@ -16,6 +16,7 @@ model User {
   email           String   @unique
   walletAddress   String?  @unique
   snagUserId      String?  @unique
+  role            String?  // Developer, Designer, Founder, etc.
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
