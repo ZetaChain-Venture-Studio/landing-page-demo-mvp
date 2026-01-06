@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, Copy, Check, ExternalLink, Share2, User, ChevronDown, LogOut } from 'lucide-react';
+import { CheckCircle, Copy, Check, ExternalLink, Share2, User, ChevronDown, ChevronRight, LogOut } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSnag } from '@/hooks/useSnag';
 import { ColorPalette, anumaSanctuary, isDarkPalette } from '@/lib/palettes';
@@ -106,6 +106,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   const [bonusPoints, setBonusPoints] = useState(0);
   const [stakingPoints, setStakingPoints] = useState(0);
   const [waitlistCompleted, setWaitlistCompleted] = useState(false);
+  const [socialDropdownOpen, setSocialDropdownOpen] = useState(false);
 
   const referralLink = useMemo(() => {
     if (typeof window !== 'undefined' && walletAddress) {
@@ -176,17 +177,23 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   };
 
   // Convert Snag rules to tasks
+  // Social tasks grouped together for dropdown
+  const socialTasks: Task[] = useMemo(() => [
+    { id: 'follow_x', title: 'Follow Twitter', description: 'Stay updated with our latest announcements', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.x, type: 'social' },
+    { id: 'follow_instagram', title: 'Follow Instagram', description: 'Join our visual journey', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.instagram, type: 'social' },
+    { id: 'follow_tiktok', title: 'Follow TikTok', description: 'Discover short-form insights', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.tiktok, type: 'social' },
+    { id: 'follow_telegram', title: 'Join Telegram', description: 'Connect with the community', points: 100, completed: false, action: 'Join', ctaUrl: socialLinks.telegram, type: 'social' },
+  ], [socialLinks.x, socialLinks.instagram, socialLinks.tiktok, socialLinks.telegram]);
+
   const tasks: Task[] = useMemo(() => {
     if (snagRules.length === 0) {
+      // Order: Waitlist first, Stake last (matching screenshot)
       return [
-        { id: 'waitlist', title: 'Join the Waitlist', description: 'Connect your wallet and secure your spot', points: 400, completed: true, action: 'Completed', claimType: 'auto' },
-        { id: 'follow_x', title: 'Follow on X', description: 'Stay updated with our latest announcements', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.x },
-        { id: 'follow_instagram', title: 'Follow on Instagram', description: 'Join our visual journey', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.instagram },
-        { id: 'follow_tiktok', title: 'Follow on TikTok', description: 'Discover short-form insights', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.tiktok },
-        { id: 'follow_telegram', title: 'Join Telegram', description: 'Connect with the community', points: 100, completed: false, action: 'Join', ctaUrl: socialLinks.telegram },
-        { id: 'share', title: 'Share Your Journey', description: 'Quote tweet our launch post', points: 300, completed: false, action: 'Share', type: 'share' },
-        { id: 'invite_friend', title: 'Extend an Invitation', description: 'Earn Credits when your referral signs up', points: 250, completed: false, action: 'Invite', type: 'referral' },
-        { id: 'stake_zeta', title: 'Anchor the Foundation', description: 'Earn 1 Credit for each ZETA token you stake to the Foundation', points: 1, completed: stakingPoints > 0, action: 'Stake', type: 'staking' },
+        { id: 'waitlist', title: 'The Inauguration', description: 'Join the waitlist and secure your spot', points: 400, completed: true, action: 'Completed', claimType: 'auto' },
+        { id: 'social_group', title: 'Follow Us', description: 'Follow on Twitter, Instagram, TikTok & Telegram', points: 400, completed: false, action: 'Expand', type: 'social_group' },
+        { id: 'invite_friend', title: 'Extend an Invitation', description: 'Refer a friend and earn credits when they sign up', points: 250, completed: false, action: 'Invite', type: 'referral' },
+        { id: 'amplify', title: 'Amplify Anuma', description: 'Jan 12th product intro post impressions/QT', points: 300, completed: false, action: 'Share', type: 'share', ctaUrl: 'https://x.com/anuma_ai' },
+        { id: 'stake_zeta', title: 'Anchor the Foundation', description: 'Stake ZETA - Earn 2.5 credits per ZETA staked', points: stakingPoints || 0, completed: stakingPoints > 0, action: 'Stake', type: 'staking' },
       ];
     }
 
@@ -212,7 +219,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
         ctaUrl,
       };
     });
-  }, [snagRules, ruleStatuses, stakingPoints, socialLinks.x, socialLinks.instagram, socialLinks.tiktok, socialLinks.telegram]);
+  }, [snagRules, ruleStatuses, stakingPoints]);
 
   // Calculate points from completed tasks (fallback when Snag isn't working)
   const completedTasksPoints = useMemo(() => {
@@ -224,7 +231,10 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   const rank = snagRank?.position || 0;
   const totalUsers = snagRank?.total || 0;
   const rankPercent = totalUsers > 0 && rank > 0 ? Math.ceil((rank / totalUsers) * 100) : null;
-  const completedTasksCount = tasks.filter(t => t.completed).length;
+  // Total tasks: 8 (4 individual + 4 socials grouped)
+  const totalTaskCount = tasks.length - 1 + socialTasks.length; // -1 for social_group, +4 for individual socials
+  const completedSocialTasks = socialTasks.filter(t => t.completed).length;
+  const completedTasksCount = tasks.filter(t => t.completed && t.type !== 'social_group').length + completedSocialTasks;
 
   const copyReferralLink = useCallback(async () => {
     if (referralLink) {
@@ -420,10 +430,10 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
             className="mb-12"
           >
             <h1 className="text-4xl font-light tracking-tight mb-2" style={{ color: palette.text, fontFamily: "'Cormorant Garamond', Georgia, serif", fontStyle: 'italic' }}>
-              Building Your Foundation
+              Get Early Access
             </h1>
             <p className="max-w-2xl" style={{ color: palette.textMuted }}>
-              By participating in the pre-launch rituals, you earn Foundation Credits that will manifest as AI Credits upon the public opening of the sanctuary. Your Foundation Credits represent your early stake in Anuma.
+              Complete tasks to earn AI Credits. The more credits you earn, the earlier you get access to Anuma. Your credits represent your early stake in the platform.
             </p>
           </motion.div>
 
@@ -431,11 +441,118 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
             {/* Left: Tasks */}
             <div className="lg:col-span-2 space-y-4">
               <h2 className="text-sm uppercase tracking-widest mb-4" style={{ color: palette.textLight }}>
-                Foundation Rituals
+                Earn AI Credits
               </h2>
 
               {tasks.map((task, index) => {
                 const isReferralTask = task.type === 'referral';
+                const isSocialGroup = task.type === 'social_group';
+                const isStakingTask = task.type === 'staking';
+
+                // Social Group with dropdown
+                if (isSocialGroup) {
+                  const completedSocials = socialTasks.filter(t => t.completed).length;
+                  const totalSocialPoints = socialTasks.reduce((sum, t) => sum + t.points, 0);
+
+                  return (
+                    <motion.div
+                      key={task.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="rounded-xl border overflow-hidden"
+                      style={{
+                        backgroundColor: palette.bg,
+                        borderColor: palette.border,
+                      }}
+                    >
+                      {/* Main Social Group Header */}
+                      <button
+                        onClick={() => setSocialDropdownOpen(!socialDropdownOpen)}
+                        className="w-full p-5 flex items-start justify-between gap-4 text-left transition-colors hover:opacity-90"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-medium" style={{ color: palette.text }}>{task.title}</h3>
+                            <motion.div
+                              animate={{ rotate: socialDropdownOpen ? 90 : 0 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <ChevronRight className="w-4 h-4" style={{ color: palette.textMuted }} />
+                            </motion.div>
+                            {completedSocials === socialTasks.length && (
+                              <CheckCircle className="w-4 h-4" style={{ color: palette.success }} />
+                            )}
+                          </div>
+                          <p className="text-sm" style={{ color: palette.textMuted }}>
+                            {task.description} ({completedSocials}/{socialTasks.length} completed)
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-lg font-medium" style={{ color: palette.accent }}>
+                            +{totalSocialPoints}
+                          </span>
+                          <span className="text-sm ml-1" style={{ color: palette.textLight }}>Credits</span>
+                        </div>
+                      </button>
+
+                      {/* Expandable Social Tasks */}
+                      <AnimatePresence>
+                        {socialDropdownOpen && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="border-t" style={{ borderColor: palette.border }}>
+                              {socialTasks.map((socialTask, sIndex) => (
+                                <div
+                                  key={socialTask.id}
+                                  className="px-5 py-4 flex items-center justify-between border-b last:border-b-0"
+                                  style={{
+                                    backgroundColor: socialTask.completed ? palette.bgAlt : 'transparent',
+                                    borderColor: palette.border,
+                                  }}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="text-sm font-medium" style={{ color: palette.text }}>
+                                        {socialTask.title}
+                                      </h4>
+                                      {socialTask.completed && (
+                                        <CheckCircle className="w-3.5 h-3.5" style={{ color: palette.success }} />
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-sm" style={{ color: palette.accent }}>
+                                      +{socialTask.points}
+                                    </span>
+                                    {!socialTask.completed && (
+                                      <button
+                                        onClick={() => handleTaskClick(socialTask)}
+                                        className="px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1"
+                                        style={{
+                                          backgroundColor: palette.accent,
+                                          color: isDark ? palette.bg : '#ffffff'
+                                        }}
+                                      >
+                                        <ExternalLink className="w-3 h-3" />
+                                        {socialTask.action}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  );
+                }
 
                 return (
                   <motion.div
@@ -497,6 +614,17 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                               Share & Earn Credits
                             </button>
                           </div>
+                        ) : isStakingTask && !task.completed ? (
+                          <button
+                            onClick={() => setShowStakingModal(true)}
+                            className="px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2"
+                            style={{
+                              backgroundColor: palette.accent,
+                              color: isDark ? palette.bg : '#ffffff'
+                            }}
+                          >
+                            Stake ZETA
+                          </button>
                         ) : !task.completed ? (
                           <button
                             onClick={() => handleTaskClick(task)}
@@ -514,10 +642,21 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                       </div>
 
                       <div className="text-right">
-                        <span className="text-lg font-medium" style={{ color: palette.accent }}>
-                          +{task.points}
-                        </span>
-                        <span className="text-sm ml-1" style={{ color: palette.textLight }}>Credits</span>
+                        {isStakingTask ? (
+                          <>
+                            <span className="text-lg font-medium" style={{ color: palette.accent }}>
+                              2.5
+                            </span>
+                            <span className="text-sm ml-1" style={{ color: palette.textLight }}>per ZETA</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-lg font-medium" style={{ color: palette.accent }}>
+                              +{task.points}
+                            </span>
+                            <span className="text-sm ml-1" style={{ color: palette.textLight }}>Credits</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -555,7 +694,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                 {/* Credits */}
                 <div className="mb-6 pb-6 border-b" style={{ borderColor: palette.border }}>
                   <p className="text-sm uppercase tracking-widest mb-2" style={{ color: palette.textLight }}>
-                    Foundation Credits
+                    AI Credits
                   </p>
                   <motion.p
                     className="text-5xl font-light tracking-tight"
@@ -582,7 +721,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                   <div>
                     <p className="text-xs uppercase tracking-widest mb-1" style={{ color: palette.textLight }}>Tasks</p>
                     <p className="text-xl font-medium" style={{ color: palette.text }}>
-                      {completedTasksCount}/{tasks.length}
+                      {completedTasksCount}/{totalTaskCount}
                     </p>
                   </div>
                 </div>
@@ -594,7 +733,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                 >
                   <div>
                     <p className="font-medium text-sm mb-1 flex items-center gap-2" style={{ color: totalPoints >= 10000 ? palette.success : palette.textMuted }}>
-                      <span>{totalPoints >= 10000 ? '✓' : '🔒'}</span> {totalPoints >= 10000 ? 'Eligibility Confirmed' : 'Seeking Inauguration'}
+                      <span>{totalPoints >= 10000 ? '✓' : '🔒'}</span> {totalPoints >= 10000 ? 'Eligibility Confirmed' : 'Get Early Access'}
                     </p>
                     <p className="text-xs mb-2" style={{ color: palette.textLight }}>
                       Priority eligibility at 10,000 credits
