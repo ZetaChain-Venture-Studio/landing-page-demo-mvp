@@ -18,11 +18,13 @@ function TypeWriter({
   speed?: number;
   className?: string;
 }) {
-  const [displayedText, setDisplayedText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const onCompleteRef = useRef(onComplete);
   const hasCalledComplete = useRef(false);
+
+  // Strip ** markers from text for display length calculation
+  const plainText = text.replace(/\*\*/g, '');
 
   // Keep ref updated with latest callback
   useEffect(() => {
@@ -31,26 +33,24 @@ function TypeWriter({
 
   // Reset when text changes
   useEffect(() => {
-    setDisplayedText('');
     setCurrentIndex(0);
     setIsComplete(false);
     hasCalledComplete.current = false;
   }, [text]);
 
-  // Typing effect
+  // Typing effect - based on plain text length
   useEffect(() => {
-    if (currentIndex < text.length) {
+    if (currentIndex < plainText.length) {
       const timeout = setTimeout(() => {
-        setDisplayedText(prev => prev + text[currentIndex]);
         setCurrentIndex(prev => prev + 1);
       }, speed);
       return () => clearTimeout(timeout);
     }
-  }, [currentIndex, text, speed]);
+  }, [currentIndex, plainText.length, speed]);
 
-  // Completion effect - separate to avoid callback reference issues
+  // Completion effect
   useEffect(() => {
-    if (currentIndex >= text.length && !hasCalledComplete.current) {
+    if (currentIndex >= plainText.length && plainText.length > 0 && !hasCalledComplete.current) {
       setIsComplete(true);
       hasCalledComplete.current = true;
       const timeout = setTimeout(() => {
@@ -58,27 +58,64 @@ function TypeWriter({
       }, 800);
       return () => clearTimeout(timeout);
     }
-  }, [currentIndex, text.length]);
+  }, [currentIndex, plainText.length]);
 
-  // Convert **text** to bold after typing is complete
+  // Render text with bold support - always hide ** markers
   const renderText = () => {
-    if (!isComplete) {
-      return (
-        <>
-          {displayedText}
-          <span className="animate-pulse">|</span>
-        </>
-      );
+    // Parse the original text into segments (bold and regular)
+    const segments: { text: string; bold: boolean }[] = [];
+    const regex = /\*\*([^*]+)\*\*/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      // Add text before the match
+      if (match.index > lastIndex) {
+        segments.push({ text: text.slice(lastIndex, match.index), bold: false });
+      }
+      // Add the bold text (without **)
+      segments.push({ text: match[1], bold: true });
+      lastIndex = regex.lastIndex;
+    }
+    // Add remaining text
+    if (lastIndex < text.length) {
+      segments.push({ text: text.slice(lastIndex), bold: false });
     }
 
-    // Parse bold markers
-    const parts = displayedText.split(/(\*\*[^*]+\*\*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} className="font-medium">{part.slice(2, -2)}</strong>;
+    // Calculate how much to show based on currentIndex
+    let charsToShow = currentIndex;
+    const result: React.ReactNode[] = [];
+
+    for (let i = 0; i < segments.length && charsToShow > 0; i++) {
+      const segment = segments[i];
+      const segmentLength = segment.text.length;
+
+      if (charsToShow >= segmentLength) {
+        // Show entire segment
+        if (segment.bold && isComplete) {
+          result.push(<strong key={i} className="font-medium">{segment.text}</strong>);
+        } else {
+          result.push(<span key={i}>{segment.text}</span>);
+        }
+        charsToShow -= segmentLength;
+      } else {
+        // Show partial segment
+        const partialText = segment.text.slice(0, charsToShow);
+        if (segment.bold && isComplete) {
+          result.push(<strong key={i} className="font-medium">{partialText}</strong>);
+        } else {
+          result.push(<span key={i}>{partialText}</span>);
+        }
+        charsToShow = 0;
       }
-      return <span key={i}>{part}</span>;
-    });
+    }
+
+    // Add cursor if not complete
+    if (!isComplete) {
+      result.push(<span key="cursor" className="animate-pulse">|</span>);
+    }
+
+    return result;
   };
 
   return (
@@ -142,6 +179,7 @@ export default function VideoIntro() {
   const [waitlistCount, setWaitlistCount] = useState(2847);
   const [musicStarted, setMusicStarted] = useState(false);
   const musicStartedRef = useRef(false);
+  const [hasSubmittedEmail, setHasSubmittedEmail] = useState(false);
 
   const walletCreated = user?.wallet?.address;
 
@@ -304,6 +342,9 @@ export default function VideoIntro() {
         localStorage.setItem('anuma_email', email);
       }
 
+      // Mark that email was submitted in this session
+      setHasSubmittedEmail(true);
+
       // Move to submitted state then trigger Privy
       setFlowState('email_submitted');
 
@@ -315,18 +356,20 @@ export default function VideoIntro() {
     } catch (error) {
       console.error('Error saving user:', error);
       // Still proceed with Privy even if save failed
+      setHasSubmittedEmail(true);
+      setFlowState('email_submitted');
       login({ prefill: { type: 'email', value: email } });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // After Privy auth, move to post-email state
+  // After Privy auth completes (only if email was submitted in this session), move to post-email state
   useEffect(() => {
-    if (authenticated && walletCreated && (flowState === 'email_input' || flowState === 'email_submitted')) {
+    if (authenticated && walletCreated && hasSubmittedEmail && flowState === 'email_submitted') {
       setFlowState('post_email');
     }
-  }, [authenticated, walletCreated, flowState]);
+  }, [authenticated, walletCreated, hasSubmittedEmail, flowState]);
 
   // Get current content based on state
   const getCurrentContent = () => {
