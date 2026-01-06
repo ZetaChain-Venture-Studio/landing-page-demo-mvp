@@ -6,6 +6,26 @@ import { usePrivy } from '@privy-io/react-auth';
 import { ChevronDown } from 'lucide-react';
 import posthog from 'posthog-js';
 
+// Animated digit that only animates when it changes
+function AnimatedDigit({ digit }: { digit: string }) {
+  return (
+    <span className="relative inline-block overflow-hidden h-[1.2em]">
+      <AnimatePresence mode="popLayout">
+        <motion.span
+          key={digit}
+          initial={{ y: '100%', opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: '-100%', opacity: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="inline-block"
+        >
+          {digit}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
+
 // Live counter component with rolling numbers
 function LiveCounter() {
   const [count, setCount] = useState(2847);
@@ -19,6 +39,9 @@ function LiveCounter() {
     return () => clearInterval(interval);
   }, []);
 
+  // Convert to string with commas and split into individual characters
+  const formattedCount = count.toLocaleString();
+
   return (
     <div className="inline-flex items-center gap-3 px-6 py-3 border border-[#e7e5e4] rounded-full bg-white">
       <span className="relative flex h-2 w-2">
@@ -26,14 +49,11 @@ function LiveCounter() {
         <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D4AF37]"></span>
       </span>
       <span className="text-sm text-[#78716c]">
-        <motion.span
-          key={count}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-[#1c1917] font-medium inline-block"
-        >
-          {count.toLocaleString()}
-        </motion.span>
+        <span className="text-[#1c1917] font-medium">
+          {formattedCount.split('').map((char, i) => (
+            char === ',' ? <span key={i}>,</span> : <AnimatedDigit key={i} digit={char} />
+          ))}
+        </span>
         {" "}on the waitlist
       </span>
     </div>
