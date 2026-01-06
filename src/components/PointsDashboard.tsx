@@ -444,6 +444,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                     >
                       {/* Main Social Group Header */}
                       <button
+                        type="button"
                         onClick={() => setSocialDropdownOpen(!socialDropdownOpen)}
                         className="w-full p-5 flex items-start justify-between gap-4 text-left transition-colors hover:opacity-90"
                       >
@@ -508,7 +509,11 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                                     </span>
                                     {!socialTask.completed && (
                                       <button
-                                        onClick={() => handleTaskClick(socialTask)}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleTaskClick(socialTask);
+                                        }}
                                         className="px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1"
                                         style={{
                                           backgroundColor: palette.accent,
