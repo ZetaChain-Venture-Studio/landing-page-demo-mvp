@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { snagClient } from '@/lib/snag';
 
+// Rule ID to points mapping (since rule completion API doesn't work reliably)
+const RULE_POINTS: Record<string, number> = {
+  '4ed917a4-8655-4f75-bbb3-5c8f4894d5ed': 400, // Sign up to waitlist
+  '4b65ae80-6ac7-4542-9915-1734c96a8193': 100, // Follow Twitter
+  '0abfd745-342b-4e55-9de4-7ec4dfdfd455': 100, // Follow Instagram
+  '5b61746a-e6c2-4773-be30-ae056050995c': 100, // Follow TikTok
+  '520fbffd-464b-4d6a-bef6-fffce5e1cf19': 100, // Join Telegram
+  '4d0c19a7-e2db-43ad-abae-179bacea0b80': 250, // Invite a friend
+  '6c275439-581a-4126-9467-4ec5ce813a69': 1,   // Stake and earn (per ZETA)
+};
+
 // GET /api/snag/rules - Get all active rules
 export async function GET() {
   try {
@@ -21,11 +32,11 @@ export async function GET() {
   }
 }
 
-// POST /api/snag/rules - Complete a rule
+// POST /api/snag/rules - Complete a rule (uses direct point award)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, ruleId, walletAddress } = body;
+    const { ruleId, walletAddress } = body;
 
     if (!ruleId) {
       return NextResponse.json(
@@ -34,29 +45,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!userId && !walletAddress) {
+    if (!walletAddress) {
       return NextResponse.json(
-        { error: 'Either userId or walletAddress is required' },
+        { error: 'walletAddress is required' },
         { status: 400 }
       );
     }
 
-    console.log('[Snag API] Completing rule:', { ruleId, userId, walletAddress });
+    console.log('[Snag API] Completing rule via direct point award:', { ruleId, walletAddress });
 
-    let success: boolean;
-    if (walletAddress) {
-      // Use wallet-based completion (handles account creation)
-      success = await snagClient.completeRuleByWallet(walletAddress, ruleId);
-    } else {
-      // Use direct userId completion
-      success = await snagClient.completeRule(userId, ruleId);
+    // Get points for this rule
+    const points = RULE_POINTS[ruleId];
+    if (!points) {
+      console.error('[Snag API] Unknown rule ID:', ruleId);
+      return NextResponse.json(
+        { error: 'Unknown rule ID' },
+        { status: 400 }
+      );
     }
 
-    if (success) {
-      return NextResponse.json({ success: true });
+    // Award points directly via transactions API (this actually works)
+    const txn = await snagClient.awardPoints(
+      walletAddress,
+      points,
+      ruleId,
+      `Rule completion: ${ruleId}`
+    );
+
+    if (txn) {
+      console.log('[Snag API] Points awarded successfully:', points);
+      return NextResponse.json({ success: true, points });
     } else {
+      console.error('[Snag API] Failed to award points');
       return NextResponse.json(
-        { error: 'Failed to complete rule' },
+        { error: 'Failed to award points' },
         { status: 400 }
       );
     }

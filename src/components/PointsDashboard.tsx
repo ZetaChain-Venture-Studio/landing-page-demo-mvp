@@ -113,7 +113,27 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     return false;
   });
   const [socialDropdownOpen, setSocialDropdownOpen] = useState(false);
-  const [completedTaskIds, setCompletedTaskIds] = useState<Set<string>>(new Set());
+  const [completedTaskIds, setCompletedTaskIds] = useState<Set<string>>(() => {
+    // Load completed tasks from localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('anuma_completed_tasks');
+      if (saved) {
+        try {
+          return new Set(JSON.parse(saved));
+        } catch {
+          return new Set();
+        }
+      }
+    }
+    return new Set();
+  });
+
+  // Persist completed tasks to localStorage
+  useEffect(() => {
+    if (completedTaskIds.size > 0) {
+      localStorage.setItem('anuma_completed_tasks', JSON.stringify([...completedTaskIds]));
+    }
+  }, [completedTaskIds]);
 
   const referralLink = useMemo(() => {
     if (typeof window !== 'undefined' && walletAddress) {
@@ -284,14 +304,12 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
       window.open(task.ctaUrl, '_blank');
     }
 
-    // Only Instagram uses trust-based completion (click = award points)
-    // Twitter, TikTok, Telegram are verified by Snag
-    const isInstagram = task.id === INSTAGRAM_RULE_ID;
-
-    if (isInstagram && task.ruleId && walletAddress) {
+    // Award points for ALL tasks with ruleId (trust-based completion)
+    // The API now uses direct point award which actually works
+    if (task.ruleId && walletAddress) {
       setCompletingTaskId(task.id);
       try {
-        console.log('[Dashboard] Trust-based completion for Instagram:', task.ruleId);
+        console.log('[Dashboard] Awarding points for task:', task.ruleId);
         const response = await fetch('/api/snag/rules', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -302,7 +320,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
         });
 
         const data = await response.json();
-        console.log('[Dashboard] Instagram completion response:', data);
+        console.log('[Dashboard] Task completion response:', data);
 
         if (data.success) {
           // Mark as completed locally
@@ -311,7 +329,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
           await refreshData();
         }
       } catch (err) {
-        console.error('Failed to complete Instagram task:', err);
+        console.error('Failed to complete task:', err);
       } finally {
         setCompletingTaskId(null);
       }
