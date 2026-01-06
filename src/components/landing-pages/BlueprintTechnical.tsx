@@ -260,11 +260,31 @@ export default function BlueprintTechnical() {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
   const [openFAQ, setOpenFAQ] = useState<number | null>(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = usePrivy();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login({ prefill: { type: 'email', value: email } });
+    if (!email || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      // Save to database first
+      await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, role: role || null }),
+      });
+
+      // Then trigger Privy login
+      login({ prefill: { type: 'email', value: email } });
+    } catch (error) {
+      console.error('Error saving user:', error);
+      // Still try to login even if db save fails
+      login({ prefill: { type: 'email', value: email } });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -337,7 +357,13 @@ export default function BlueprintTechnical() {
                   </select>
                 </div>
                 <div className="pt-2">
-                  <RequestAccessButton className="w-full" />
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full px-8 py-4 bg-[#2a2a2a] text-[#E5DDD5] font-mono text-sm hover:bg-[#1a1a1a] transition-colors disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'SUBMITTING...' : 'REQUEST ACCESS'}
+                  </button>
                 </div>
               </div>
             </motion.form>
@@ -360,19 +386,19 @@ export default function BlueprintTechnical() {
             >
               <motion.div
                 animate={{
-                  backgroundColor: ['#4a7c59', '#5a9c69', '#4a7c59'],
-                  boxShadow: ['0 0 0px #4a7c59', '0 0 12px #5a9c69', '0 0 0px #4a7c59'],
+                  opacity: [0.7, 1, 0.7],
+                  scale: [1, 1.02, 1],
                 }}
                 transition={{
-                  duration: 2,
+                  duration: 1.5,
                   repeat: Infinity,
                   ease: 'easeInOut',
                 }}
-                className="inline-flex items-center gap-2 px-4 py-2 font-mono text-xs text-white"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] font-mono text-xs text-white font-bold border border-[#3a3a3a]"
               >
                 <motion.span
-                  animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
-                  transition={{ duration: 1, repeat: Infinity }}
+                  animate={{ opacity: [1, 0.4, 1] }}
+                  transition={{ duration: 0.8, repeat: Infinity }}
                   className="w-2 h-2 bg-white rounded-full"
                 />
                 Early members earn AI credits
@@ -419,7 +445,7 @@ export default function BlueprintTechnical() {
               className="mb-16"
             >
               <h2 className="font-mono text-lg text-[#2a2a2a] mb-8 text-center">
-                No model switching. One subscription.
+                One subscription, access any model.
               </h2>
 
               <PricingComparison />
@@ -443,29 +469,6 @@ export default function BlueprintTechnical() {
                     <span className="text-[#3a3a3a]">Sell or analyze your memory</span>
                   </li>
                 </ul>
-              </div>
-            </motion.div>
-
-            {/* Testimonials */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="mb-16"
-            >
-              <p className="font-mono text-xs text-[#5a5a5a] mb-6 text-center">
-                People want one place their AI "lives."
-              </p>
-              <div className="space-y-4 max-w-lg mx-auto">
-                <blockquote className="font-mono text-sm text-[#3a3a3a] italic border-l-2 border-[#3a3a3a]/30 pl-4">
-                  "I'm tired of re-explaining myself."
-                </blockquote>
-                <blockquote className="font-mono text-sm text-[#3a3a3a] italic border-l-2 border-[#3a3a3a]/30 pl-4">
-                  "The models change. I want my memory to stay."
-                </blockquote>
-                <blockquote className="font-mono text-sm text-[#3a3a3a] italic border-l-2 border-[#3a3a3a]/30 pl-4">
-                  "This feels like the thing that should have existed first."
-                </blockquote>
               </div>
             </motion.div>
 

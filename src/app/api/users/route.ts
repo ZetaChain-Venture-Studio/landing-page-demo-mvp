@@ -6,7 +6,7 @@ import { snagClient } from '@/lib/snag';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, walletAddress } = body;
+    const { email, walletAddress, role } = body;
 
     if (!email && !walletAddress) {
       return NextResponse.json(
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[Users API] Creating/updating user:', { email, walletAddress });
+    console.log('[Users API] Creating/updating user:', { email, walletAddress, role });
 
     // Get Snag account first
     let snagUserId: string | null = null;
@@ -48,12 +48,14 @@ export async function POST(request: NextRequest) {
         email: email || `wallet_${walletAddress}@anuma.ai`,
         walletAddress,
         snagUserId,
+        role: role || null,
         totalPoints: 0,
         referralCount: 0,
       },
       update: {
         walletAddress: walletAddress || undefined,
         snagUserId: snagUserId || undefined,
+        role: role || undefined,
         updatedAt: new Date(),
       },
     });
