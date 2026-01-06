@@ -134,39 +134,42 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     }
   }, [walletAddress, snagAccount, initializeAccount, userId]);
 
-  // Auto-complete waitlist task
+  // Auto-complete waitlist task using the actual Snag rule ID
   useEffect(() => {
     async function autoCompleteWaitlist() {
-      if (!snagAccount || waitlistCompleted || snagRules.length === 0) return;
+      if (!walletAddress || waitlistCompleted) return;
 
-      const waitlistRule = snagRules.find(rule =>
-        rule.type === 'profile_completed' ||
-        rule.name.toLowerCase().includes('waitlist') ||
-        rule.name.toLowerCase().includes('join')
-      );
+      // The actual Snag rule ID for "Sign up to the waitlist"
+      const WAITLIST_RULE_ID = '4ed917a4-8655-4f75-bbb3-5c8f4894d5ed';
 
-      if (waitlistRule) {
-        const status = ruleStatuses.get(waitlistRule.id);
-        if (!status?.completed) {
-          try {
-            console.log('[Dashboard] Auto-completing waitlist task:', waitlistRule.id);
-            const success = await completeRule(waitlistRule.id);
-            if (success) {
-              setWaitlistCompleted(true);
-              await new Promise(resolve => setTimeout(resolve, 1500));
-              await refreshData();
-              console.log('[Dashboard] Refreshed data after completing waitlist');
-            }
-          } catch (err) {
-            console.error('Failed to auto-complete waitlist:', err);
-          }
-        } else {
+      try {
+        console.log('[Dashboard] Auto-completing waitlist task for wallet:', walletAddress);
+        const response = await fetch('/api/snag/rules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            walletAddress: walletAddress,
+            ruleId: WAITLIST_RULE_ID,
+          }),
+        });
+
+        const data = await response.json();
+        console.log('[Dashboard] Waitlist completion response:', data);
+
+        if (data.success) {
           setWaitlistCompleted(true);
+          // Refresh to get updated points
+          await refreshData();
         }
+      } catch (err) {
+        console.error('Failed to auto-complete waitlist:', err);
       }
     }
-    autoCompleteWaitlist();
-  }, [snagAccount, snagRules, ruleStatuses, waitlistCompleted, completeRule, refreshData]);
+
+    // Small delay to ensure account is created first
+    const timer = setTimeout(autoCompleteWaitlist, 2000);
+    return () => clearTimeout(timer);
+  }, [walletAddress, waitlistCompleted, refreshData]);
 
   // Social media links for Anuma
   const socialLinks = {
@@ -177,25 +180,25 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   };
 
   // Convert Snag rules to tasks
-  // Social tasks grouped together for dropdown
+  // Social tasks grouped together for dropdown - using actual Snag rule IDs
   const socialTasks: Task[] = useMemo(() => [
-    { id: 'follow_x', title: 'Follow Twitter', description: 'Stay updated with our latest announcements', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.x, type: 'social' },
-    { id: 'follow_instagram', title: 'Follow Instagram', description: 'Join our visual journey', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.instagram, type: 'social' },
-    { id: 'follow_tiktok', title: 'Follow TikTok', description: 'Discover short-form insights', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.tiktok, type: 'social' },
-    { id: 'follow_telegram', title: 'Join Telegram', description: 'Connect with the community', points: 100, completed: false, action: 'Join', ctaUrl: socialLinks.telegram, type: 'social' },
-  ], [socialLinks.x, socialLinks.instagram, socialLinks.tiktok, socialLinks.telegram]);
+    { id: '4b65ae80-6ac7-4542-9915-1734c96a8193', title: 'Follow Twitter', description: 'Stay updated with our latest announcements', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.x, type: 'social', ruleId: '4b65ae80-6ac7-4542-9915-1734c96a8193' },
+    { id: '5b61746a-e6c2-4773-be30-ae056050995c', title: 'Follow TikTok', description: 'Discover short-form insights', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.tiktok, type: 'social', ruleId: '5b61746a-e6c2-4773-be30-ae056050995c' },
+    { id: '520fbffd-464b-4d6a-bef6-fffce5e1cf19', title: 'Join Telegram', description: 'Connect with the community', points: 100, completed: false, action: 'Join', ctaUrl: socialLinks.telegram, type: 'social', ruleId: '520fbffd-464b-4d6a-bef6-fffce5e1cf19' },
+  ], [socialLinks.x, socialLinks.tiktok, socialLinks.telegram]);
 
   const tasks: Task[] = useMemo(() => {
     // Always use our custom task order (matching the design spec)
     // Order: Waitlist first, Stake last
+    // Using actual Snag rule IDs
     return [
-      { id: 'waitlist', title: 'The Inauguration', description: 'Join the waitlist and secure your spot', points: 400, completed: true, action: 'Completed', claimType: 'auto' },
-      { id: 'social_group', title: 'Follow Us', description: 'Follow on Twitter, Instagram, TikTok & Telegram', points: 400, completed: false, action: 'Expand', type: 'social_group' },
-      { id: 'invite_friend', title: 'Extend an Invitation', description: 'Refer a friend and earn credits when they sign up', points: 250, completed: false, action: 'Invite', type: 'referral' },
+      { id: '4ed917a4-8655-4f75-bbb3-5c8f4894d5ed', title: 'The Inauguration', description: 'Join the waitlist and secure your spot', points: 400, completed: waitlistCompleted, action: 'Completed', claimType: 'auto', ruleId: '4ed917a4-8655-4f75-bbb3-5c8f4894d5ed' },
+      { id: 'social_group', title: 'Follow Us', description: 'Follow on Twitter, TikTok & Telegram', points: 300, completed: false, action: 'Expand', type: 'social_group' },
+      { id: '4d0c19a7-e2db-43ad-abae-179bacea0b80', title: 'Extend an Invitation', description: 'Refer a friend and earn credits when they sign up', points: 250, completed: false, action: 'Invite', type: 'referral', ruleId: '4d0c19a7-e2db-43ad-abae-179bacea0b80' },
       { id: 'amplify', title: 'Amplify Anuma', description: 'Jan 12th product intro post impressions/QT', points: 300, completed: false, action: 'Share', type: 'share', ctaUrl: 'https://x.com/anuma_ai' },
-      { id: 'stake_zeta', title: 'Anchor the Foundation', description: 'Stake ZETA - Earn 2.5 credits per ZETA staked', points: stakingPoints || 0, completed: stakingPoints > 0, action: 'Stake', type: 'staking' },
+      { id: '6c275439-581a-4126-9467-4ec5ce813a69', title: 'Anchor the Foundation', description: 'Stake ZETA - Earn 2.5 credits per ZETA staked', points: stakingPoints || 0, completed: stakingPoints > 0, action: 'Stake', type: 'staking', ruleId: '6c275439-581a-4126-9467-4ec5ce813a69' },
     ];
-  }, [stakingPoints]);
+  }, [stakingPoints, waitlistCompleted]);
 
   // Calculate points from completed tasks (fallback when Snag isn't working)
   const completedTasksPoints = useMemo(() => {
@@ -207,8 +210,8 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   const rank = snagRank?.position || 0;
   const totalUsers = snagRank?.total || 0;
   const rankPercent = totalUsers > 0 && rank > 0 ? Math.ceil((rank / totalUsers) * 100) : null;
-  // Total tasks: 8 (4 individual + 4 socials grouped)
-  const totalTaskCount = tasks.length - 1 + socialTasks.length; // -1 for social_group, +4 for individual socials
+  // Total tasks: 7 (4 individual + 3 socials grouped)
+  const totalTaskCount = tasks.length - 1 + socialTasks.length; // -1 for social_group, +3 for individual socials
   const completedSocialTasks = socialTasks.filter(t => t.completed).length;
   const completedTasksCount = tasks.filter(t => t.completed && t.type !== 'social_group').length + completedSocialTasks;
 
