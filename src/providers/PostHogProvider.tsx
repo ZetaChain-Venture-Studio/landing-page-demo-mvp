@@ -11,6 +11,8 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
     const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
     const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com';
 
+    console.log('[PostHog] Key exists:', !!posthogKey);
+
     if (posthogKey && typeof window !== 'undefined') {
       posthog.init(posthogKey, {
         api_host: posthogHost,
@@ -18,6 +20,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
         capture_pageview: true,
         capture_pageleave: true,
         loaded: (ph) => {
+          console.log('[PostHog] Loaded successfully');
           if (process.env.NODE_ENV === 'development') {
             ph.debug();
           }
@@ -25,7 +28,8 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
         },
       });
     } else {
-      setIsReady(true); // No key, just render children
+      console.log('[PostHog] No key found, skipping init');
+      setIsReady(true);
     }
   }, []);
 
