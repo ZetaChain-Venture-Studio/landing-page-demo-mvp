@@ -251,16 +251,21 @@ class SnagSolutionsClient {
     }
   }
 
-  async completeRule(userId: string, ruleId: string): Promise<boolean> {
+  async completeRule(userId: string, ruleId: string, walletAddress?: string): Promise<boolean> {
     try {
-      console.log('[Snag] Completing rule:', { userId, ruleId });
+      console.log('[Snag] Completing rule:', { userId, ruleId, walletAddress });
       // Rule ID goes in URL path per Snag API
+      // Send both userId and walletAddress for compatibility
+      const body: Record<string, string> = {
+        websiteId: this.websiteId,
+      };
+
+      if (userId) body.userId = userId;
+      if (walletAddress) body.walletAddress = walletAddress.toLowerCase();
+
       await this.request(`/loyalty/rules/${ruleId}/complete`, {
         method: 'POST',
-        body: JSON.stringify({
-          userId,
-          websiteId: this.websiteId,
-        }),
+        body: JSON.stringify(body),
       });
       console.log('[Snag] Rule completed successfully');
       return true;
@@ -271,26 +276,48 @@ class SnagSolutionsClient {
   }
 
   async completeRuleByWallet(walletAddress: string, ruleId: string): Promise<boolean> {
-    try {
-      const account = await this.getAccount(walletAddress);
+    const normalizedWallet = walletAddress.toLowerCase();
 
-      if (account) {
-        return this.completeRule(account.id, ruleId);
+    try {
+      // First ensure account exists
+      let account = await this.getAccount(normalizedWallet);
+
+      if (!account) {
+        console.log('[Snag] Account not found, creating...');
+        account = await this.createAccount(normalizedWallet);
       }
 
-      // Try completing with wallet directly
-      console.log('[Snag] Completing rule with wallet address');
-      // Rule ID goes in URL path per Snag API
+      if (account) {
+        // Complete with both userId and walletAddress
+        return this.completeRule(account.id, ruleId, normalizedWallet);
+      }
+
+      // Fallback: Try completing with wallet directly
+      console.log('[Snag] Completing rule with wallet address only');
       await this.request(`/loyalty/rules/${ruleId}/complete`, {
         method: 'POST',
         body: JSON.stringify({
-          walletAddress: walletAddress.toLowerCase(),
+          walletAddress: normalizedWallet,
           websiteId: this.websiteId,
         }),
       });
       return true;
     } catch (error) {
       console.error('[Snag] Failed to complete rule by wallet:', error);
+
+      // Last resort: Try awarding points directly via transaction
+      try {
+        const rules = await this.getRules();
+        const rule = rules.find(r => r.id === ruleId);
+        if (rule && rule.points) {
+          console.log('[Snag] Trying direct point award as fallback');
+          const txn = await this.awardPoints(normalizedWallet, rule.points, ruleId, rule.name);
+          return !!txn;
+        }
+      } catch (txnError) {
+        console.error('[Snag] Fallback point award failed:', txnError);
+      }
+
       return false;
     }
   }
