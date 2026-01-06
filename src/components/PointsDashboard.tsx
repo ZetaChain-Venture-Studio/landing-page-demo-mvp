@@ -182,8 +182,8 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
 
   // Convert Snag rules to tasks
   // Social tasks grouped together for dropdown - using actual Snag rule IDs
-  // NOTE: Create an "Instagram" rule in Snag dashboard and update the ID below
-  const INSTAGRAM_RULE_ID = 'instagram-rule-id'; // TODO: Replace with actual Snag rule ID after creating it
+  // Instagram rule ID from Snag dashboard
+  const INSTAGRAM_RULE_ID = '0abfd745-342b-4e55-9de4-7ec4dfdfd455';
 
   const socialTasks: Task[] = useMemo(() => [
     { id: '4b65ae80-6ac7-4542-9915-1734c96a8193', title: 'Follow Twitter', description: 'Stay updated with our latest announcements', points: 100, completed: completedTaskIds.has('4b65ae80-6ac7-4542-9915-1734c96a8193'), action: 'Follow', ctaUrl: socialLinks.x, type: 'social', ruleId: '4b65ae80-6ac7-4542-9915-1734c96a8193' },
@@ -255,16 +255,19 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
       return;
     }
 
-    // Open the URL first
+    // Open the URL
     if (task.ctaUrl) {
       window.open(task.ctaUrl, '_blank');
     }
 
-    // Call Snag API to award points (trust-based, no verification)
-    if (task.ruleId && walletAddress) {
+    // Only Instagram uses trust-based completion (click = award points)
+    // Twitter, TikTok, Telegram are verified by Snag
+    const isInstagram = task.id === INSTAGRAM_RULE_ID;
+
+    if (isInstagram && task.ruleId && walletAddress) {
       setCompletingTaskId(task.id);
       try {
-        console.log('[Dashboard] Completing task:', task.title, 'ruleId:', task.ruleId);
+        console.log('[Dashboard] Trust-based completion for Instagram:', task.ruleId);
         const response = await fetch('/api/snag/rules', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -275,7 +278,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
         });
 
         const data = await response.json();
-        console.log('[Dashboard] Task completion response:', data);
+        console.log('[Dashboard] Instagram completion response:', data);
 
         if (data.success) {
           // Mark as completed locally
@@ -284,7 +287,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
           await refreshData();
         }
       } catch (err) {
-        console.error('Failed to complete task:', err);
+        console.error('Failed to complete Instagram task:', err);
       } finally {
         setCompletingTaskId(null);
       }
