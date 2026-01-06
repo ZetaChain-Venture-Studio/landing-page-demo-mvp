@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ANUMA - AI finally has a home</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #fafaf9;
+      color: #1c1917;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header */
+    header {
+      padding: 1.5rem 3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 80rem;
+      margin: 0 auto;
+    }
+
+    .logo {
+      font-size: 1.125rem;
+      letter-spacing: -0.025em;
+      color: #1c1917;
+    }
+
+    .sign-in {
+      font-size: 0.875rem;
+      color: #78716c;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .sign-in:hover {
+      color: #1c1917;
+    }
+
+    /* Main Content */
+    main {
+      padding: 3rem;
+      max-width: 80rem;
+      margin: 0 auto;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      max-width: 48rem;
+      margin: 0 auto 4rem;
+    }
+
+    h1 {
+      font-size: clamp(3rem, 8vw, 6rem);
+      font-weight: 400;
+      line-height: 1.1;
+      letter-spacing: -0.025em;
+      margin-bottom: 1.5rem;
+      color: #1c1917;
+    }
+
+    .subtitle {
+      font-size: 1.25rem;
+      color: #57534e;
+      max-width: 32rem;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* Value Props */
+    .value-props {
+      margin-bottom: 4rem;
+    }
+
+    .value-props h2 {
+      font-size: 1.75rem;
+      text-align: center;
+      margin-bottom: 2.5rem;
+      letter-spacing: -0.025em;
+      font-weight: 400;
+    }
+
+    .props-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+      max-width: 48rem;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 768px) {
+      .props-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .prop {
+      text-align: center;
+    }
+
+    .prop-icon {
+      width: 3.5rem;
+      height: 3.5rem;
+      border: 2px solid #D4AF37;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+      background: #FFFBEB;
+      font-size: 1.25rem;
+      color: #D4AF37;
+    }
+
+    .prop h3 {
+      font-size: 1.125rem;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+
+    .prop p {
+      font-size: 0.875rem;
+      color: #78716c;
+    }
+
+    /* Form */
+    .form-container {
+      max-width: 32rem;
+      margin: 0 auto 1.5rem;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    @media (max-width: 640px) {
+      .form-row {
+        flex-direction: column;
+      }
+    }
+
+    input[type="email"] {
+      flex: 1;
+      padding: 1rem 1.25rem;
+      border: 1px solid #d6d3d1;
+      background: white;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="email"]:focus {
+      border-color: #1c1917;
+    }
+
+    input[type="email"]::placeholder {
+      color: #a8a29e;
+    }
+
+    .btn {
+      padding: 1rem 2rem;
+      background: #1c1917;
+      color: white;
+      border: none;
+      font-size: 1rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: #292524;
+    }
+
+    .form-note {
+      text-align: center;
+      font-size: 0.875rem;
+      color: #a8a29e;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Counter */
+    .counter-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 5rem;
+    }
+
+    .counter {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1.5rem;
+      border: 1px solid #e7e5e4;
+      border-radius: 9999px;
+      background: white;
+    }
+
+    .pulse-dot {
+      position: relative;
+      width: 0.5rem;
+      height: 0.5rem;
+    }
+
+    .pulse-dot::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: #D4AF37;
+      animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+
+    .pulse-dot::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: #D4AF37;
+    }
+
+    @keyframes ping {
+      75%, 100% {
+        transform: scale(2);
+        opacity: 0;
+      }
+    }
+
+    .counter-text {
+      font-size: 0.875rem;
+      color: #78716c;
+    }
+
+    .counter-number {
+      color: #1c1917;
+      font-weight: 500;
+      display: inline-flex;
+    }
+
+    .digit {
+      display: inline-block;
+      overflow: hidden;
+      height: 1.2em;
+      position: relative;
+    }
+
+    .digit span {
+      display: inline-block;
+      transition: transform 0.3s ease-out;
+    }
+
+    /* Pricing */
+    .pricing {
+      margin-bottom: 5rem;
+    }
+
+    .pricing h2 {
+      font-size: 1.5rem;
+      text-align: center;
+      margin-bottom: 2.5rem;
+      letter-spacing: -0.025em;
+      font-weight: 400;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+      max-width: 56rem;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 768px) {
+      .pricing-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .pricing-card {
+      border: 1px solid #e7e5e4;
+      background: white;
+      padding: 2rem;
+    }
+
+    .pricing-card.featured {
+      border: 2px solid #D4AF37;
+      background: #FFFBEB;
+      position: relative;
+    }
+
+    .recommended-badge {
+      position: absolute;
+      top: -0.75rem;
+      left: 1.5rem;
+      padding: 0.25rem 0.75rem;
+      background: #D4AF37;
+      color: white;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .pricing-label {
+      font-size: 0.75rem;
+      color: #78716c;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1.5rem;
+    }
+
+    .pricing-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #f5f5f4;
+    }
+
+    .pricing-card.featured .pricing-item {
+      border-bottom-color: #FEF3C7;
+    }
+
+    .pricing-item span:first-child {
+      color: #1c1917;
+    }
+
+    .pricing-item span:last-child {
+      color: #78716c;
+    }
+
+    .pricing-item .check {
+      color: #D4AF37;
+    }
+
+    .pricing-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 0.75rem;
+      margin-top: 1.5rem;
+      border-top: 1px solid #e7e5e4;
+    }
+
+    .pricing-card.featured .pricing-total {
+      border-top-color: rgba(212, 175, 55, 0.3);
+    }
+
+    .pricing-total span:first-child {
+      font-weight: 500;
+    }
+
+    .price-old {
+      font-size: 1.25rem;
+      color: #dc2626;
+      text-decoration: line-through;
+    }
+
+    .price-new {
+      font-size: 1.875rem;
+    }
+
+    .price-new small {
+      font-size: 0.875rem;
+      color: #78716c;
+    }
+
+    .pricing-benefits {
+      margin-top: 1rem;
+      font-size: 0.75rem;
+      color: #a8a29e;
+      line-height: 1.8;
+    }
+
+    .pricing-card.featured .pricing-benefits {
+      color: #92400E;
+    }
+
+    /* FAQ */
+    .faq {
+      max-width: 42rem;
+      margin: 0 auto 5rem;
+    }
+
+    .faq h2 {
+      font-size: 1.5rem;
+      text-align: center;
+      margin-bottom: 2rem;
+      letter-spacing: -0.025em;
+      font-weight: 400;
+    }
+
+    .faq-item {
+      border-bottom: 1px solid #e7e5e4;
+    }
+
+    .faq-question {
+      width: 100%;
+      padding: 1.25rem 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: none;
+      border: none;
+      font-size: 1rem;
+      font-family: inherit;
+      text-align: left;
+      cursor: pointer;
+      color: #1c1917;
+      transition: background 0.2s;
+    }
+
+    .faq-question:hover {
+      background: #f5f5f4;
+    }
+
+    .faq-question svg {
+      width: 1.25rem;
+      height: 1.25rem;
+      color: #78716c;
+      transition: transform 0.3s;
+    }
+
+    .faq-item.open .faq-question svg {
+      transform: rotate(180deg);
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+
+    .faq-item.open .faq-answer {
+      max-height: 500px;
+    }
+
+    .faq-answer-inner {
+      padding: 0 0.5rem 1.25rem;
+      font-size: 0.875rem;
+      color: #57534e;
+      line-height: 1.7;
+      white-space: pre-line;
+    }
+
+    /* Footer */
+    footer {
+      padding: 2rem 3rem;
+      border-top: 1px solid #e7e5e4;
+    }
+
+    .footer-inner {
+      max-width: 80rem;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-left {
+      font-size: 0.875rem;
+      color: #a8a29e;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .footer-links a {
+      font-size: 0.875rem;
+      color: #78716c;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: #1c1917;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="logo">ANUMA</span>
+    <a href="#" class="sign-in">Sign in</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>AI finally has a home.</h1>
+      <p class="subtitle">One place for all your AI conversations. Every model, one memory, completely yours.</p>
+    </section>
+
+    <section class="value-props">
+      <h2>Powerful. Private. Personal.</h2>
+      <div class="props-grid">
+        <div class="prop">
+          <div class="prop-icon">◎</div>
+          <h3>Unified Memory</h3>
+          <p>One context across all models</p>
+        </div>
+        <div class="prop">
+          <div class="prop-icon">◈</div>
+          <h3>Private by Design</h3>
+          <p>Your data never leaves your device</p>
+        </div>
+        <div class="prop">
+          <div class="prop-icon">◉</div>
+          <h3>User-Owned Data</h3>
+          <p>Export, delete, control everything</p>
+        </div>
+      </div>
+    </section>
+
+    <form class="form-container" onsubmit="event.preventDefault(); alert('Thanks for joining!');">
+      <div class="form-row">
+        <input type="email" placeholder="Enter your email address" required>
+        <button type="submit" class="btn">Join Waitlist</button>
+      </div>
+    </form>
+    <p class="form-note">No spam. Early access only.</p>
+
+    <div class="counter-container">
+      <div class="counter">
+        <span class="pulse-dot"></span>
+        <span class="counter-text">
+          <span class="counter-number" id="counter">2,847</span> on the waitlist
+        </span>
+      </div>
+    </div>
+
+    <section class="pricing">
+      <h2>One subscription, access any model.</h2>
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <div class="pricing-label">Individual Subscriptions</div>
+          <div class="pricing-item"><span>ChatGPT Plus</span><span>$20/mo</span></div>
+          <div class="pricing-item"><span>Claude Pro</span><span>$20/mo</span></div>
+          <div class="pricing-item"><span>Gemini Advanced</span><span>$20/mo</span></div>
+          <div class="pricing-item"><span>Perplexity Pro</span><span>$20/mo</span></div>
+          <div class="pricing-item"><span>Mistral</span><span>$15/mo</span></div>
+          <div class="pricing-item"><span>Llama API</span><span>$15/mo</span></div>
+          <div class="pricing-total">
+            <span>Total</span>
+            <span class="price-old">$110/mo</span>
+          </div>
+          <div class="pricing-benefits">
+            + 6 accounts to manage<br>
+            + No shared context<br>
+            + Re-explain yourself everywhere
+          </div>
+        </div>
+        <div class="pricing-card featured">
+          <div class="recommended-badge">Recommended</div>
+          <div class="pricing-label">Anuma - All Models</div>
+          <div class="pricing-item"><span>All ChatGPT models</span><span class="check">✓</span></div>
+          <div class="pricing-item"><span>All Claude models</span><span class="check">✓</span></div>
+          <div class="pricing-item"><span>All Gemini models</span><span class="check">✓</span></div>
+          <div class="pricing-item"><span>All Perplexity models</span><span class="check">✓</span></div>
+          <div class="pricing-item"><span>All Mistral models</span><span class="check">✓</span></div>
+          <div class="pricing-item"><span>All Llama models</span><span class="check">✓</span></div>
+          <div class="pricing-total">
+            <span>Total</span>
+            <span class="price-new">$25<small>/mo</small></span>
+          </div>
+          <div class="pricing-benefits">
+            ✓ All models, one interface<br>
+            ✓ Your context follows you<br>
+            ✓ 100% private, local storage
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="faq">
+      <h2>Questions</h2>
+      <div class="faq-list">
+        <div class="faq-item open">
+          <button class="faq-question">
+            How does memory work?
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">Anuma is a memory layer that sits between you and any model. Models are interchangeable. Your memory is not.
+
+• Memory belongs to the user. You can inspect, edit, export, and delete it.
+• Models do not own your memory. They receive only the minimum context required.
+• No model switching tax. Changing models won't reset your identity or preferences.
+
+Storage is local-first: encrypted at rest, keys generated on-device. Anuma cannot decrypt without your keys.</div>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question">
+            What makes this different from ChatGPT memory?
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">ChatGPT memory is owned by OpenAI, locked to their platform, and can be used for training. Anuma memory is owned by you, works across any model, and is never used for training. You can inspect, edit, export, and delete everything.</div>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question">
+            Is my data really private?
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">Yes. Memory is stored locally on your device by default. If you enable sync, data is encrypted end-to-end with keys you control. Anuma cannot read your memory. We will never train on your conversations.</div>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question">
+            What models do you support?
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">GPT-4, GPT-4o, Claude 3.5, Gemini Pro, Llama, Mistral, and more. Switch between them freely. Your memory and context persist across all of them. One subscription, every model.</div>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question">
+            How do AI credits work?
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">Early members earn AI credits by joining the waitlist and referring friends. Credits can be used for premium model access and priority features.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <span class="footer-left">Built in San Francisco. Quiet by design.</span>
+      <div class="footer-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // FAQ Toggle
+    document.querySelectorAll('.faq-question').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = btn.parentElement;
+        const wasOpen = item.classList.contains('open');
+        document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+        if (!wasOpen) item.classList.add('open');
+      });
+    });
+
+    // Live Counter with rolling digits
+    let count = 2847;
+    const counterEl = document.getElementById('counter');
+
+    function updateCounter() {
+      const increment = Math.floor(Math.random() * 12) + 1;
+      count += increment;
+      counterEl.textContent = count.toLocaleString();
+    }
+
+    setInterval(updateCounter, 2500);
+  </script>
+</body>
+</html>
