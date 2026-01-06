@@ -1,10 +1,55 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePrivy } from '@privy-io/react-auth';
 import { ChevronDown } from 'lucide-react';
 import posthog from 'posthog-js';
+
+// Live counter component with random increments
+function LiveCounter() {
+  const [count, setCount] = useState(2847);
+  const [increment, setIncrement] = useState<number | null>(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const randomIncrement = Math.floor(Math.random() * 12) + 1; // +1 to +12
+      setIncrement(randomIncrement);
+      setCount(prev => prev + randomIncrement);
+
+      // Clear the increment display after animation
+      setTimeout(() => setIncrement(null), 1500);
+    }, 2500); // Every 2.5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex items-center justify-center gap-3">
+      <div className="flex items-center gap-2">
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4AF37] opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D4AF37]"></span>
+        </span>
+        <span className="text-sm text-[#78716c]">
+          <span className="text-[#1c1917] font-medium">{count.toLocaleString()}</span> on the waitlist
+        </span>
+      </div>
+      <AnimatePresence>
+        {increment && (
+          <motion.span
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="text-sm text-[#D4AF37] font-medium"
+          >
+            +{increment}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 const FAQ_ITEMS = [
   {
@@ -298,10 +343,20 @@ export default function FinalMixedVersion() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="text-sm text-[#a8a29e] text-center mb-20"
+              className="text-sm text-[#a8a29e] text-center mb-6"
             >
               No spam. Early access only.
             </motion.p>
+
+            {/* Live Counter */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="mb-20"
+            >
+              <LiveCounter />
+            </motion.div>
 
             {/* Pricing Comparison */}
             <motion.div
