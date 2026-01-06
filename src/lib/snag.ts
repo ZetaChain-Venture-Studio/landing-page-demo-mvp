@@ -5,6 +5,7 @@ const SNAG_API_URL = process.env.SNAG_API_URL || 'https://admin.snagsolutions.io
 const SNAG_API_KEY = process.env.SNAG_API_KEY || '';
 const SNAG_WEBSITE_ID = process.env.NEXT_PUBLIC_SNAG_WEBSITE_ID || '';
 const SNAG_ORG_ID = process.env.SNAG_ORG_ID || '';
+const SNAG_CURRENCY_ID = process.env.SNAG_CURRENCY_ID || '';
 
 export interface SnagAccount {
   id: string;
@@ -65,12 +66,14 @@ class SnagSolutionsClient {
   private baseUrl: string;
   private websiteId: string;
   private orgId: string;
+  private currencyId: string;
 
   constructor() {
     this.apiKey = SNAG_API_KEY;
     this.baseUrl = SNAG_API_URL;
     this.websiteId = SNAG_WEBSITE_ID;
     this.orgId = SNAG_ORG_ID;
+    this.currencyId = SNAG_CURRENCY_ID;
   }
 
   private async request<T>(
@@ -367,17 +370,21 @@ class SnagSolutionsClient {
     description?: string
   ): Promise<SnagTransaction | null> {
     try {
+      console.log('[Snag] Awarding points:', { walletAddress, amount, ruleId, currencyId: this.currencyId });
+
       const response = await this.request<SnagTransaction>('/loyalty/transactions', {
         method: 'POST',
         body: JSON.stringify({
           walletAddress: walletAddress.toLowerCase(),
           amount,
           loyaltyRuleId: ruleId,
+          loyaltyCurrencyId: this.currencyId, // Required for Snag to know which currency
           description,
           websiteId: this.websiteId,
         }),
       });
 
+      console.log('[Snag] Points awarded successfully:', response);
       return response;
     } catch (error) {
       console.error('[Snag] Error awarding points:', error);
