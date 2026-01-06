@@ -144,35 +144,19 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   // Auto-complete waitlist task using the actual Snag rule ID
   // The actual Snag rule ID for "Sign up to the waitlist"
   const WAITLIST_RULE_ID = '4ed917a4-8655-4f75-bbb3-5c8f4894d5ed';
+  const [waitlistAttempted, setWaitlistAttempted] = useState(false);
 
   useEffect(() => {
     async function autoCompleteWaitlist() {
-      // Skip if no wallet, already completed locally, or already completed in Snag
-      if (!walletAddress) return;
+      // Skip if no wallet or already completed/attempted
+      if (!walletAddress || waitlistCompleted || waitlistAttempted) return;
 
-      // Check if already completed in Snag
-      const isCompletedInSnag = ruleStatuses.get(WAITLIST_RULE_ID)?.completed;
-      if (isCompletedInSnag) {
-        if (!waitlistCompleted) {
-          setWaitlistCompleted(true);
-          localStorage.setItem('anuma_waitlist_completed', 'true');
-        }
-        return;
-      }
+      // Mark as attempted to prevent multiple calls
+      setWaitlistAttempted(true);
 
-      // Skip if already completed locally
-      if (waitlistCompleted) return;
-
-      // Wait for Snag account to be initialized
-      if (!snagAccount) {
-        console.log('[Dashboard] Waiting for Snag account to be created...');
-        return;
-      }
+      console.log('[Dashboard] Auto-completing waitlist task for wallet:', walletAddress);
 
       try {
-        console.log('[Dashboard] Auto-completing waitlist task for wallet:', walletAddress);
-        console.log('[Dashboard] Snag account ID:', snagAccount.id);
-
         const response = await fetch('/api/snag/rules', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -191,17 +175,23 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
           // Refresh to get updated points
           await refreshData();
         } else {
-          console.error('[Dashboard] Waitlist completion failed:', data.error);
+          console.error('[Dashboard] Waitlist completion failed:', data.error, data.details);
+          // Still mark as completed locally if we've attempted (may already be done in Snag)
+          setWaitlistCompleted(true);
+          localStorage.setItem('anuma_waitlist_completed', 'true');
         }
       } catch (err) {
         console.error('[Dashboard] Failed to auto-complete waitlist:', err);
+        // Still mark as completed locally on error (may already be done)
+        setWaitlistCompleted(true);
+        localStorage.setItem('anuma_waitlist_completed', 'true');
       }
     }
 
-    // Small delay to ensure account is created first
-    const timer = setTimeout(autoCompleteWaitlist, 1500);
+    // Run after a short delay to let the page settle
+    const timer = setTimeout(autoCompleteWaitlist, 1000);
     return () => clearTimeout(timer);
-  }, [walletAddress, waitlistCompleted, refreshData, snagAccount, ruleStatuses]);
+  }, [walletAddress, waitlistCompleted, waitlistAttempted, refreshData]);
 
   // Social media links for Anuma
   const socialLinks = {
