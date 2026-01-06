@@ -109,12 +109,30 @@ class SnagSolutionsClient {
         `/loyalty/accounts?walletAddress=${normalizedWallet}&websiteId=${this.websiteId}`
       );
 
+      console.log('[Snag] Raw account response:', JSON.stringify(response, null, 2));
+
       const account = response.data?.[0];
       if (!account) return null;
 
-      // Handle different point field names
+      // Handle different point field names - Snag may return balances in various formats
       const accountData = account as unknown as Record<string, unknown>;
-      const points = accountData.points ?? accountData.balance ?? accountData.loyaltyBalance ?? 0;
+
+      // Try to get points from various possible fields
+      let points = 0;
+
+      // Check for direct points/balance fields
+      if (typeof accountData.points === 'number') {
+        points = accountData.points;
+      } else if (typeof accountData.balance === 'number') {
+        points = accountData.balance;
+      } else if (typeof accountData.loyaltyBalance === 'number') {
+        points = accountData.loyaltyBalance;
+      } else if (Array.isArray(accountData.balances)) {
+        // Sum up all currency balances
+        points = (accountData.balances as Array<{ balance?: number; amount?: number }>).reduce(
+          (sum, b) => sum + (b.balance || b.amount || 0), 0
+        );
+      }
 
       console.log('[Snag] Found account:', account.id, 'points:', points);
 
@@ -127,6 +145,23 @@ class SnagSolutionsClient {
     } catch (error) {
       console.error('[Snag] Error fetching account:', error);
       return null;
+    }
+  }
+
+  // Fetch account balance separately (more reliable)
+  async getAccountBalance(walletAddress: string): Promise<number> {
+    try {
+      const normalizedWallet = walletAddress.toLowerCase();
+
+      // Try fetching transactions to calculate balance
+      const transactions = await this.getTransactions(normalizedWallet);
+      const totalFromTxns = transactions.reduce((sum, txn) => sum + (txn.amount || 0), 0);
+
+      console.log('[Snag] Calculated balance from transactions:', totalFromTxns);
+      return totalFromTxns;
+    } catch (error) {
+      console.error('[Snag] Error fetching balance:', error);
+      return 0;
     }
   }
 

@@ -19,6 +19,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ account: null }, { status: 200 });
     }
 
+    // If account has 0 points, try getting balance from transactions
+    if (account.points === 0) {
+      const txnBalance = await snagClient.getAccountBalance(walletAddress);
+      if (txnBalance > 0) {
+        account.points = txnBalance;
+        console.log('[Account API] Using transaction-based balance:', txnBalance);
+      }
+    }
+
     const rank = await snagClient.getAccountRank(walletAddress);
 
     return NextResponse.json({
@@ -56,6 +65,15 @@ export async function POST(request: NextRequest) {
     if (!account) {
       console.log('[Account API] Could not create account, returning null');
       return NextResponse.json({ account: null });
+    }
+
+    // If account has 0 points, try getting balance from transactions
+    if (account.points === 0) {
+      const txnBalance = await snagClient.getAccountBalance(walletAddress);
+      if (txnBalance > 0) {
+        account.points = txnBalance;
+        console.log('[Account API] Using transaction-based balance:', txnBalance);
+      }
     }
 
     console.log('[Account API] Returning account:', account.id, 'points:', account.points);
