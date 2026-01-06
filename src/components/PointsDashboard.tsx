@@ -107,6 +107,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   const [stakingPoints, setStakingPoints] = useState(0);
   const [waitlistCompleted, setWaitlistCompleted] = useState(false);
   const [socialDropdownOpen, setSocialDropdownOpen] = useState(false);
+  const [completedTaskIds, setCompletedTaskIds] = useState<Set<string>>(new Set());
 
   const referralLink = useMemo(() => {
     if (typeof window !== 'undefined' && walletAddress) {
@@ -181,11 +182,15 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
 
   // Convert Snag rules to tasks
   // Social tasks grouped together for dropdown - using actual Snag rule IDs
+  // NOTE: Create an "Instagram" rule in Snag dashboard and update the ID below
+  const INSTAGRAM_RULE_ID = 'instagram-rule-id'; // TODO: Replace with actual Snag rule ID after creating it
+
   const socialTasks: Task[] = useMemo(() => [
-    { id: '4b65ae80-6ac7-4542-9915-1734c96a8193', title: 'Follow Twitter', description: 'Stay updated with our latest announcements', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.x, type: 'social', ruleId: '4b65ae80-6ac7-4542-9915-1734c96a8193' },
-    { id: '5b61746a-e6c2-4773-be30-ae056050995c', title: 'Follow TikTok', description: 'Discover short-form insights', points: 100, completed: false, action: 'Follow', ctaUrl: socialLinks.tiktok, type: 'social', ruleId: '5b61746a-e6c2-4773-be30-ae056050995c' },
-    { id: '520fbffd-464b-4d6a-bef6-fffce5e1cf19', title: 'Join Telegram', description: 'Connect with the community', points: 100, completed: false, action: 'Join', ctaUrl: socialLinks.telegram, type: 'social', ruleId: '520fbffd-464b-4d6a-bef6-fffce5e1cf19' },
-  ], [socialLinks.x, socialLinks.tiktok, socialLinks.telegram]);
+    { id: '4b65ae80-6ac7-4542-9915-1734c96a8193', title: 'Follow Twitter', description: 'Stay updated with our latest announcements', points: 100, completed: completedTaskIds.has('4b65ae80-6ac7-4542-9915-1734c96a8193'), action: 'Follow', ctaUrl: socialLinks.x, type: 'social', ruleId: '4b65ae80-6ac7-4542-9915-1734c96a8193' },
+    { id: INSTAGRAM_RULE_ID, title: 'Follow Instagram', description: 'Join our visual journey', points: 100, completed: completedTaskIds.has(INSTAGRAM_RULE_ID), action: 'Follow', ctaUrl: socialLinks.instagram, type: 'social', ruleId: INSTAGRAM_RULE_ID },
+    { id: '5b61746a-e6c2-4773-be30-ae056050995c', title: 'Follow TikTok', description: 'Discover short-form insights', points: 100, completed: completedTaskIds.has('5b61746a-e6c2-4773-be30-ae056050995c'), action: 'Follow', ctaUrl: socialLinks.tiktok, type: 'social', ruleId: '5b61746a-e6c2-4773-be30-ae056050995c' },
+    { id: '520fbffd-464b-4d6a-bef6-fffce5e1cf19', title: 'Join Telegram', description: 'Connect with the community', points: 100, completed: completedTaskIds.has('520fbffd-464b-4d6a-bef6-fffce5e1cf19'), action: 'Join', ctaUrl: socialLinks.telegram, type: 'social', ruleId: '520fbffd-464b-4d6a-bef6-fffce5e1cf19' },
+  ], [socialLinks.x, socialLinks.instagram, socialLinks.tiktok, socialLinks.telegram, completedTaskIds]);
 
   const tasks: Task[] = useMemo(() => {
     // Always use our custom task order (matching the design spec)
@@ -193,12 +198,12 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     // Using actual Snag rule IDs
     return [
       { id: '4ed917a4-8655-4f75-bbb3-5c8f4894d5ed', title: 'The Inauguration', description: 'Join the waitlist and secure your spot', points: 400, completed: waitlistCompleted, action: 'Completed', claimType: 'auto', ruleId: '4ed917a4-8655-4f75-bbb3-5c8f4894d5ed' },
-      { id: 'social_group', title: 'Follow Us', description: 'Follow on Twitter, TikTok & Telegram', points: 300, completed: false, action: 'Expand', type: 'social_group' },
-      { id: '4d0c19a7-e2db-43ad-abae-179bacea0b80', title: 'Extend an Invitation', description: 'Refer a friend and earn credits when they sign up', points: 250, completed: false, action: 'Invite', type: 'referral', ruleId: '4d0c19a7-e2db-43ad-abae-179bacea0b80' },
-      { id: 'amplify', title: 'Amplify Anuma', description: 'Jan 12th product intro post impressions/QT', points: 300, completed: false, action: 'Share', type: 'share', ctaUrl: 'https://x.com/anuma_ai' },
-      { id: '6c275439-581a-4126-9467-4ec5ce813a69', title: 'Anchor the Foundation', description: 'Stake ZETA - Earn 2.5 credits per ZETA staked', points: stakingPoints || 0, completed: stakingPoints > 0, action: 'Stake', type: 'staking', ruleId: '6c275439-581a-4126-9467-4ec5ce813a69' },
+      { id: 'social_group', title: 'Follow Us', description: 'Follow on Twitter, Instagram, TikTok & Telegram', points: 400, completed: false, action: 'Expand', type: 'social_group' },
+      { id: '4d0c19a7-e2db-43ad-abae-179bacea0b80', title: 'Extend an Invitation', description: 'Refer a friend and earn credits when they sign up', points: 250, completed: completedTaskIds.has('4d0c19a7-e2db-43ad-abae-179bacea0b80'), action: 'Invite', type: 'referral', ruleId: '4d0c19a7-e2db-43ad-abae-179bacea0b80' },
+      { id: 'amplify', title: 'Amplify Anuma', description: 'Jan 12th product intro post impressions/QT', points: 300, completed: completedTaskIds.has('amplify'), action: 'Share', type: 'share', ctaUrl: 'https://x.com/anuma_ai' },
+      { id: '6c275439-581a-4126-9467-4ec5ce813a69', title: 'Anchor the Foundation', description: 'Stake ZETA - Earn 2.5 credits per ZETA staked', points: stakingPoints || 0, completed: stakingPoints > 0 || completedTaskIds.has('6c275439-581a-4126-9467-4ec5ce813a69'), action: 'Stake', type: 'staking', ruleId: '6c275439-581a-4126-9467-4ec5ce813a69' },
     ];
-  }, [stakingPoints, waitlistCompleted]);
+  }, [stakingPoints, waitlistCompleted, completedTaskIds]);
 
   // Calculate points from completed tasks (fallback when Snag isn't working)
   const completedTasksPoints = useMemo(() => {
@@ -210,8 +215,8 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   const rank = snagRank?.position || 0;
   const totalUsers = snagRank?.total || 0;
   const rankPercent = totalUsers > 0 && rank > 0 ? Math.ceil((rank / totalUsers) * 100) : null;
-  // Total tasks: 7 (4 individual + 3 socials grouped)
-  const totalTaskCount = tasks.length - 1 + socialTasks.length; // -1 for social_group, +3 for individual socials
+  // Total tasks: 8 (4 individual + 4 socials grouped)
+  const totalTaskCount = tasks.length - 1 + socialTasks.length; // -1 for social_group, +4 for individual socials
   const completedSocialTasks = socialTasks.filter(t => t.completed).length;
   const completedTasksCount = tasks.filter(t => t.completed && t.type !== 'social_group').length + completedSocialTasks;
 
@@ -235,7 +240,10 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   }, [referralLink]);
 
   const handleTaskClick = useCallback(async (task: Task) => {
-    if (task.claimType === 'auto' || task.completed) return;
+    if (task.claimType === 'auto') return;
+
+    // Check if already completed (either in state or passed as completed)
+    if (task.completed || completedTaskIds.has(task.id)) return;
 
     if (task.type === 'referral') {
       await copyReferralLink();
@@ -247,22 +255,41 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
       return;
     }
 
+    // Open the URL first
     if (task.ctaUrl) {
       window.open(task.ctaUrl, '_blank');
     }
 
-    if (task.ruleId) {
+    // Call Snag API to award points (trust-based, no verification)
+    if (task.ruleId && walletAddress) {
       setCompletingTaskId(task.id);
       try {
-        const success = await completeRule(task.ruleId);
-        if (success) await refreshData();
+        console.log('[Dashboard] Completing task:', task.title, 'ruleId:', task.ruleId);
+        const response = await fetch('/api/snag/rules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            walletAddress: walletAddress,
+            ruleId: task.ruleId,
+          }),
+        });
+
+        const data = await response.json();
+        console.log('[Dashboard] Task completion response:', data);
+
+        if (data.success) {
+          // Mark as completed locally
+          setCompletedTaskIds(prev => new Set(prev).add(task.id));
+          // Refresh to get updated points
+          await refreshData();
+        }
       } catch (err) {
         console.error('Failed to complete task:', err);
       } finally {
         setCompletingTaskId(null);
       }
     }
-  }, [copyReferralLink, completeRule, refreshData]);
+  }, [copyReferralLink, walletAddress, refreshData, completedTaskIds]);
 
   const handlePrizeReveal = useCallback((points: number) => {
     setBonusPoints(prev => prev + points);
