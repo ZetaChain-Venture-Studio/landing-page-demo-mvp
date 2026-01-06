@@ -21,14 +21,23 @@ function TypeWriter({
   const [displayedText, setDisplayedText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
+  const onCompleteRef = useRef(onComplete);
+  const hasCalledComplete = useRef(false);
 
+  // Keep ref updated with latest callback
   useEffect(() => {
-    // Reset when text changes
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  // Reset when text changes
+  useEffect(() => {
     setDisplayedText('');
     setCurrentIndex(0);
     setIsComplete(false);
+    hasCalledComplete.current = false;
   }, [text]);
 
+  // Typing effect
   useEffect(() => {
     if (currentIndex < text.length) {
       const timeout = setTimeout(() => {
@@ -36,14 +45,20 @@ function TypeWriter({
         setCurrentIndex(prev => prev + 1);
       }, speed);
       return () => clearTimeout(timeout);
-    } else if (!isComplete) {
-      setIsComplete(true);
-      if (onComplete) {
-        const completeTimeout = setTimeout(onComplete, 800);
-        return () => clearTimeout(completeTimeout);
-      }
     }
-  }, [currentIndex, text, speed, onComplete, isComplete]);
+  }, [currentIndex, text, speed]);
+
+  // Completion effect - separate to avoid callback reference issues
+  useEffect(() => {
+    if (currentIndex >= text.length && !hasCalledComplete.current) {
+      setIsComplete(true);
+      hasCalledComplete.current = true;
+      const timeout = setTimeout(() => {
+        onCompleteRef.current?.();
+      }, 800);
+      return () => clearTimeout(timeout);
+    }
+  }, [currentIndex, text.length]);
 
   // Convert **text** to bold after typing is complete
   const renderText = () => {
@@ -126,6 +141,7 @@ export default function VideoIntro() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [waitlistCount, setWaitlistCount] = useState(2847);
   const [musicStarted, setMusicStarted] = useState(false);
+  const musicStartedRef = useRef(false);
 
   const walletCreated = user?.wallet?.address;
 
@@ -137,32 +153,45 @@ export default function VideoIntro() {
     return () => clearInterval(interval);
   }, []);
 
-  // Try to autoplay music on mount
-  useEffect(() => {
-    const tryAutoplay = async () => {
-      if (audioRef.current && !musicStarted) {
-        audioRef.current.volume = 0.25;
-        try {
-          await audioRef.current.play();
+  // Start music helper
+  const startMusic = useCallback(() => {
+    if (audioRef.current && !musicStartedRef.current) {
+      audioRef.current.volume = 0.25;
+      audioRef.current.play()
+        .then(() => {
+          musicStartedRef.current = true;
           setMusicStarted(true);
-        } catch {
-          // Autoplay blocked - will need user interaction
-          // Add click listener to start music
-          const startOnInteraction = () => {
-            if (audioRef.current && !musicStarted) {
-              audioRef.current.play().then(() => setMusicStarted(true)).catch(() => {});
-            }
-            document.removeEventListener('click', startOnInteraction);
-          };
-          document.addEventListener('click', startOnInteraction);
-        }
+        })
+        .catch(() => {
+          // Still blocked, will retry on next interaction
+        });
+    }
+  }, []);
+
+  // Try to autoplay music on mount and add interaction listeners
+  useEffect(() => {
+    // Try autoplay after a small delay
+    const timer = setTimeout(() => {
+      startMusic();
+    }, 500);
+
+    // Add multiple interaction listeners as fallback
+    const events = ['click', 'touchstart', 'keydown', 'scroll'];
+    const handleInteraction = () => {
+      startMusic();
+      // Remove all listeners once music starts
+      if (musicStartedRef.current) {
+        events.forEach(event => document.removeEventListener(event, handleInteraction));
       }
     };
 
-    // Small delay to let audio element mount
-    const timer = setTimeout(tryAutoplay, 500);
-    return () => clearTimeout(timer);
-  }, [musicStarted]);
+    events.forEach(event => document.addEventListener(event, handleInteraction, { once: false, passive: true }));
+
+    return () => {
+      clearTimeout(timer);
+      events.forEach(event => document.removeEventListener(event, handleInteraction));
+    };
+  }, [startMusic]);
 
   // Handle state transitions
   const handleTypingComplete = useCallback(() => {
