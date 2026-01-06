@@ -342,7 +342,7 @@ export default function FinalMixedVersion() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
-              className="mb-20"
+              className="mb-20 flex justify-center"
             >
               <LiveCounter />
             </motion.div>
