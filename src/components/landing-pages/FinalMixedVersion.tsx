@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePrivy } from '@privy-io/react-auth';
 import { ChevronDown } from 'lucide-react';
 import posthog from 'posthog-js';
-import PointsDashboard from '../PointsDashboard';
-import { anumaSanctuary } from '@/lib/palettes';
 
 // Animated digit that only animates when it changes
 function AnimatedDigit({ digit }: { digit: string }) {
@@ -209,40 +208,21 @@ function PricingComparison() {
   );
 }
 
-// Helper to get user's email from any login method
-function getUserEmail(user: ReturnType<typeof usePrivy>['user']): string {
-  if (!user) return '';
-  if (user.email?.address) return user.email.address;
-  if (user.google?.email) return user.google.email;
-  if (user.apple?.email) return user.apple.email;
-  if (user.twitter?.username) return `@${user.twitter.username}`;
-  if (user.tiktok?.username) return `@${user.tiktok.username}`;
-  return user.wallet?.address?.slice(0, 8) || '';
-}
-
 export default function FinalMixedVersion() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openFAQ, setOpenFAQ] = useState<number | null>(0);
-  const [showWelcome, setShowWelcome] = useState(false);
   const { login, authenticated, ready, user } = usePrivy();
 
   const walletCreated = user?.wallet?.address;
 
-  // Show welcome animation for new signups, then redirect to dashboard
+  // Redirect to dashboard when authenticated with wallet
   useEffect(() => {
     if (authenticated && walletCreated) {
-      // Check if this is a new signup
-      const isNew = typeof window !== 'undefined' && localStorage.getItem('anuma_new_signup') === 'true';
-      if (isNew) {
-        setShowWelcome(true);
-        localStorage.removeItem('anuma_new_signup');
-        // Auto-dismiss after 3 seconds
-        const timer = setTimeout(() => setShowWelcome(false), 3000);
-        return () => clearTimeout(timer);
-      }
+      router.push('/dashboard');
     }
-  }, [authenticated, walletCreated]);
+  }, [authenticated, walletCreated, router]);
 
   // Show loading while Privy initializes
   if (!ready) {
@@ -253,37 +233,15 @@ export default function FinalMixedVersion() {
     );
   }
 
-  // Show dashboard if authenticated
+  // Show loading while redirecting to dashboard
   if (authenticated && walletCreated) {
     return (
-      <>
-        {/* Welcome popup for new signups */}
-        <AnimatePresence>
-          {showWelcome && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-white rounded-2xl p-8 max-w-sm mx-4 text-center shadow-xl"
-              >
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#D4AF37]/20 flex items-center justify-center">
-                  <span className="text-3xl">✓</span>
-                </div>
-                <h2 className="text-2xl font-medium text-[#1c1917] mb-2">Welcome to Anuma!</h2>
-                <p className="text-[#78716c] mb-4">You've earned <span className="font-bold text-[#D4AF37]">400 AI Credits</span> for joining the waitlist!</p>
-                <p className="text-sm text-[#a8a29e]">Complete more tasks to earn more credits.</p>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <PointsDashboard email={getUserEmail(user) || email} palette={anumaSanctuary} paletteId="2" />
-      </>
+      <div className="min-h-screen bg-[#fafaf9] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1c1917] border-t-transparent"></div>
+          <p className="text-[#78716c]">Redirecting to dashboard...</p>
+        </div>
+      </div>
     );
   }
 
