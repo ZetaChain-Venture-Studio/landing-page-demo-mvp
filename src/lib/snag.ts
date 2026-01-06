@@ -155,10 +155,11 @@ class SnagSolutionsClient {
 
       // Try fetching transactions to calculate balance
       const transactions = await this.getTransactions(normalizedWallet);
-      const totalFromTxns = transactions.reduce((sum, txn) => sum + (txn.amount || 0), 0);
+      // Ensure we're adding numbers, not strings
+      const totalFromTxns = transactions.reduce((sum, txn) => sum + Number(txn.amount || 0), 0);
 
       console.log('[Snag] Calculated balance from transactions:', totalFromTxns);
-      return totalFromTxns;
+      return Number(totalFromTxns) || 0;
     } catch (error) {
       console.error('[Snag] Error fetching balance:', error);
       return 0;

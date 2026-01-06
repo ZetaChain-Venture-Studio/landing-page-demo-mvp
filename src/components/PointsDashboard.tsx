@@ -232,7 +232,10 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   }, [tasks]);
 
   // Use Snag points if available, otherwise use local calculation
-  const totalPoints = (snagAccount?.points || completedTasksPoints) + bonusPoints + stakingPoints;
+  // Ensure all values are numbers to prevent string concatenation
+  const snagPoints = Number(snagAccount?.points) || 0;
+  const localPoints = Number(completedTasksPoints) || 0;
+  const totalPoints = (snagPoints > 0 ? snagPoints : localPoints) + Number(bonusPoints) + Number(stakingPoints);
   const rank = snagRank?.position || 0;
   const totalUsers = snagRank?.total || 0;
   const rankPercent = totalUsers > 0 && rank > 0 ? Math.ceil((rank / totalUsers) * 100) : null;
