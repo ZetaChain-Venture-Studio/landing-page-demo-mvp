@@ -186,40 +186,16 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   ], [socialLinks.x, socialLinks.instagram, socialLinks.tiktok, socialLinks.telegram]);
 
   const tasks: Task[] = useMemo(() => {
-    if (snagRules.length === 0) {
-      // Order: Waitlist first, Stake last (matching screenshot)
-      return [
-        { id: 'waitlist', title: 'The Inauguration', description: 'Join the waitlist and secure your spot', points: 400, completed: true, action: 'Completed', claimType: 'auto' },
-        { id: 'social_group', title: 'Follow Us', description: 'Follow on Twitter, Instagram, TikTok & Telegram', points: 400, completed: false, action: 'Expand', type: 'social_group' },
-        { id: 'invite_friend', title: 'Extend an Invitation', description: 'Refer a friend and earn credits when they sign up', points: 250, completed: false, action: 'Invite', type: 'referral' },
-        { id: 'amplify', title: 'Amplify Anuma', description: 'Jan 12th product intro post impressions/QT', points: 300, completed: false, action: 'Share', type: 'share', ctaUrl: 'https://x.com/anuma_ai' },
-        { id: 'stake_zeta', title: 'Anchor the Foundation', description: 'Stake ZETA - Earn 2.5 credits per ZETA staked', points: stakingPoints || 0, completed: stakingPoints > 0, action: 'Stake', type: 'staking' },
-      ];
-    }
-
-    return snagRules.map(rule => {
-      const status = ruleStatuses.get(rule.id);
-      const points = rule.points || 0;
-      const isReferral = rule.type === 'referral' || rule.type === 'referred_user';
-      const isWaitlistTask = rule.type === 'profile_completed' || rule.name.toLowerCase().includes('waitlist');
-      const isCompleted = status?.completed || isWaitlistTask;
-      const ctaUrl = rule.metadata?.twitterAccountUrl || rule.metadata?.cta?.href;
-      const referralPoints = rule.metadata?.referrerReward || 0;
-
-      return {
-        id: rule.id,
-        title: rule.name,
-        description: rule.description || '',
-        points: isReferral && referralPoints > 0 ? referralPoints : points,
-        completed: isCompleted,
-        action: rule.metadata?.cta?.label || (isCompleted ? 'Done' : 'Complete'),
-        ruleId: rule.id,
-        type: isReferral ? 'referral' : rule.type,
-        claimType: rule.claimType,
-        ctaUrl,
-      };
-    });
-  }, [snagRules, ruleStatuses, stakingPoints]);
+    // Always use our custom task order (matching the design spec)
+    // Order: Waitlist first, Stake last
+    return [
+      { id: 'waitlist', title: 'The Inauguration', description: 'Join the waitlist and secure your spot', points: 400, completed: true, action: 'Completed', claimType: 'auto' },
+      { id: 'social_group', title: 'Follow Us', description: 'Follow on Twitter, Instagram, TikTok & Telegram', points: 400, completed: false, action: 'Expand', type: 'social_group' },
+      { id: 'invite_friend', title: 'Extend an Invitation', description: 'Refer a friend and earn credits when they sign up', points: 250, completed: false, action: 'Invite', type: 'referral' },
+      { id: 'amplify', title: 'Amplify Anuma', description: 'Jan 12th product intro post impressions/QT', points: 300, completed: false, action: 'Share', type: 'share', ctaUrl: 'https://x.com/anuma_ai' },
+      { id: 'stake_zeta', title: 'Anchor the Foundation', description: 'Stake ZETA - Earn 2.5 credits per ZETA staked', points: stakingPoints || 0, completed: stakingPoints > 0, action: 'Stake', type: 'staking' },
+    ];
+  }, [stakingPoints]);
 
   // Calculate points from completed tasks (fallback when Snag isn't working)
   const completedTasksPoints = useMemo(() => {
