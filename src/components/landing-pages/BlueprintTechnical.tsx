@@ -6,8 +6,6 @@ import { usePrivy } from '@privy-io/react-auth';
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 
-// Design - ANUMA Landing Page Design - Blueprint/technical beige style with memory-focused copy
-
 const ROLES = [
   'Developer',
   'Designer',
@@ -87,7 +85,7 @@ function MemoryDiagram() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="px-8 py-3 border border-[#3a3a3a] bg-[#E5DDD5]"
+        className="px-8 py-3 border-2 border-[#2a2a2a] bg-white text-[#1a1a1a] font-medium"
       >
         You
       </motion.div>
@@ -95,7 +93,7 @@ function MemoryDiagram() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4 }}
-        className="text-[#3a3a3a]"
+        className="text-[#1a1a1a] text-lg"
       >
         ↓
       </motion.div>
@@ -103,7 +101,7 @@ function MemoryDiagram() {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.6 }}
-        className="px-8 py-3 border-2 border-[#2a2a2a] bg-[#2a2a2a] text-[#E5DDD5]"
+        className="px-8 py-3 border-2 border-[#1a1a1a] bg-[#1a1a1a] text-white font-medium"
       >
         Your Memory (Anuma)
       </motion.div>
@@ -111,7 +109,7 @@ function MemoryDiagram() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.8 }}
-        className="text-[#3a3a3a]"
+        className="text-[#1a1a1a] text-lg"
       >
         ↓
       </motion.div>
@@ -119,10 +117,99 @@ function MemoryDiagram() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1 }}
-        className="px-8 py-3 border border-[#3a3a3a] bg-[#E5DDD5]"
+        className="px-8 py-3 border-2 border-[#2a2a2a] bg-white text-[#1a1a1a] font-medium"
       >
         Any Model
       </motion.div>
+    </div>
+  );
+}
+
+function PricingComparison() {
+  return (
+    <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+      {/* Individual Subscriptions */}
+      <div className="border border-[#3a3a3a]/30 bg-[#DDD5CD] p-6">
+        <div className="font-mono text-xs text-[#6a6a6a] mb-4 uppercase tracking-wider">Individual Subscriptions</div>
+        <div className="space-y-2 mb-6">
+          <div className="flex justify-between items-center py-2 border-b border-[#3a3a3a]/20">
+            <span className="font-mono text-sm text-[#2a2a2a]">ChatGPT Plus</span>
+            <span className="font-mono text-sm text-[#4a4a4a]">$20/mo</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-[#3a3a3a]/20">
+            <span className="font-mono text-sm text-[#2a2a2a]">Claude Pro</span>
+            <span className="font-mono text-sm text-[#4a4a4a]">$20/mo</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-[#3a3a3a]/20">
+            <span className="font-mono text-sm text-[#2a2a2a]">Gemini Advanced</span>
+            <span className="font-mono text-sm text-[#4a4a4a]">$20/mo</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-[#3a3a3a]/20">
+            <span className="font-mono text-sm text-[#2a2a2a]">Perplexity Pro</span>
+            <span className="font-mono text-sm text-[#4a4a4a]">$20/mo</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-[#3a3a3a]/20">
+            <span className="font-mono text-sm text-[#2a2a2a]">Mistral</span>
+            <span className="font-mono text-sm text-[#4a4a4a]">$15/mo</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-[#3a3a3a]/20">
+            <span className="font-mono text-sm text-[#2a2a2a]">Llama API</span>
+            <span className="font-mono text-sm text-[#4a4a4a]">$15/mo</span>
+          </div>
+        </div>
+        <div className="flex justify-between items-center py-3 border-t border-[#3a3a3a]/40">
+          <span className="font-mono text-sm text-[#2a2a2a] font-medium">Total</span>
+          <span className="font-mono text-lg text-[#8a4a4a] line-through">$110/mo</span>
+        </div>
+        <div className="mt-3 font-mono text-xs text-[#6a6a6a]">
+          + 6 accounts to manage<br />
+          + No shared context<br />
+          + Re-explain yourself everywhere
+        </div>
+      </div>
+
+      {/* ANUMA */}
+      <div className="border-2 border-[#2a2a2a] bg-[#2a2a2a] p-6 relative">
+        <div className="absolute -top-3 left-4 px-2 py-1 bg-[#E5DDD5] border border-[#2a2a2a] font-mono text-xs text-[#2a2a2a]">
+          RECOMMENDED
+        </div>
+        <div className="font-mono text-xs text-[#a0a0a0] mb-4 uppercase tracking-wider">Anuma — All Models</div>
+        <div className="space-y-2 mb-6">
+          <div className="flex justify-between items-center py-2 border-b border-white/20">
+            <span className="font-mono text-sm text-white">GPT-4 / GPT-4o</span>
+            <span className="font-mono text-sm text-green-400">✓</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-white/20">
+            <span className="font-mono text-sm text-white">Claude 3.5</span>
+            <span className="font-mono text-sm text-green-400">✓</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-white/20">
+            <span className="font-mono text-sm text-white">Gemini Pro</span>
+            <span className="font-mono text-sm text-green-400">✓</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-white/20">
+            <span className="font-mono text-sm text-white">Perplexity</span>
+            <span className="font-mono text-sm text-green-400">✓</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-white/20">
+            <span className="font-mono text-sm text-white">Mistral Large</span>
+            <span className="font-mono text-sm text-green-400">✓</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-white/20">
+            <span className="font-mono text-sm text-white">Llama 3.1</span>
+            <span className="font-mono text-sm text-green-400">✓</span>
+          </div>
+        </div>
+        <div className="flex justify-between items-center py-3 border-t border-white/30">
+          <span className="font-mono text-sm text-white font-medium">Total</span>
+          <span className="font-mono text-2xl text-white">$25<span className="text-sm text-white/60">/mo</span></span>
+        </div>
+        <div className="mt-3 font-mono text-xs text-green-400/80">
+          ✓ All models, one interface<br />
+          ✓ Your context follows you<br />
+          ✓ 100% private, local storage
+        </div>
+      </div>
     </div>
   );
 }
@@ -211,8 +298,8 @@ export default function BlueprintTechnical() {
                 <br />
                 <span className="text-[#6a6a6a]">We don't.</span>
               </h1>
-              <p className="text-lg md:text-xl text-[#4a4a4a] font-mono mt-6">
-                One AI. One memory. Everywhere.
+              <p className="text-lg md:text-xl text-[#3a3a3a] font-mono mt-6">
+                Use any AI model. Your memory and context stay with you.
               </p>
             </motion.div>
 
@@ -226,22 +313,22 @@ export default function BlueprintTechnical() {
             >
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-mono text-[#6a6a6a] mb-2">Email</label>
+                  <label className="block text-xs font-mono text-[#5a5a5a] mb-2">Email</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@domain.com"
                     required
-                    className="w-full px-4 py-3 border border-[#3a3a3a]/30 bg-[#E5DDD5] text-[#2a2a2a] placeholder:text-[#8a8a8a] focus:outline-none focus:border-[#3a3a3a] transition-colors font-mono text-sm"
+                    className="w-full px-4 py-3 border border-[#3a3a3a]/40 bg-white text-[#1a1a1a] placeholder:text-[#8a8a8a] focus:outline-none focus:border-[#2a2a2a] transition-colors font-mono text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-mono text-[#6a6a6a] mb-2">Role</label>
+                  <label className="block text-xs font-mono text-[#5a5a5a] mb-2">Role</label>
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="w-full px-4 py-3 border border-[#3a3a3a]/30 bg-[#E5DDD5] text-[#2a2a2a] focus:outline-none focus:border-[#3a3a3a] transition-colors font-mono text-sm"
+                    className="w-full px-4 py-3 border border-[#3a3a3a]/40 bg-white text-[#1a1a1a] focus:outline-none focus:border-[#2a2a2a] transition-colors font-mono text-sm"
                   >
                     <option value="">What describes you? (optional)</option>
                     {ROLES.map(r => (
@@ -259,22 +346,37 @@ export default function BlueprintTechnical() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="text-center text-xs font-mono text-[#6a6a6a] mb-8"
+              className="text-center text-xs font-mono text-[#5a5a5a] mb-8"
             >
               We're onboarding carefully to protect memory integrity.
             </motion.p>
 
-            {/* AI Credits Badge */}
+            {/* AI Credits Badge - Flickering */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
               className="flex justify-center mb-16"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 border border-[#3a3a3a]/30 font-mono text-xs text-[#4a4a4a]">
-                <span className="w-2 h-2 bg-[#3a3a3a] animate-pulse" />
+              <motion.div
+                animate={{
+                  backgroundColor: ['#4a7c59', '#5a9c69', '#4a7c59'],
+                  boxShadow: ['0 0 0px #4a7c59', '0 0 12px #5a9c69', '0 0 0px #4a7c59'],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 font-mono text-xs text-white"
+              >
+                <motion.span
+                  animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                  className="w-2 h-2 bg-white rounded-full"
+                />
                 Early members earn AI credits
-              </div>
+              </motion.div>
             </motion.div>
 
             {/* Divider */}
@@ -287,13 +389,9 @@ export default function BlueprintTechnical() {
               transition={{ delay: 0.6 }}
               className="mb-16"
             >
-              <div className="flex items-center gap-4 mb-8 justify-center">
-                <span className="font-mono text-sm text-[#4a4a4a]">No model switching. One subscription.</span>
-              </div>
-
               <div className="flex items-center gap-4 mb-12 justify-center">
-                <span className="font-mono text-xs text-[#6a6a6a]">How it works</span>
-                <span className="text-[#6a6a6a]">•</span>
+                <span className="font-mono text-xs text-[#5a5a5a]">How it works</span>
+                <span className="text-[#5a5a5a]">•</span>
                 <Link href="/how-memory-works" className="font-mono text-xs text-[#2a2a2a] hover:underline">
                   /how-memory-works
                 </Link>
@@ -305,38 +403,47 @@ export default function BlueprintTechnical() {
 
               <MemoryDiagram />
 
-              <p className="text-center font-mono text-sm text-[#4a4a4a] mt-8">
-                Switch models. Keep your mind.
+              <p className="text-center font-mono text-sm text-[#3a3a3a] mt-8">
+                Switch models. Keep your context.
               </p>
-              <p className="text-center font-mono text-xs text-[#6a6a6a] mt-2">
+              <p className="text-center font-mono text-xs text-[#5a5a5a] mt-2">
                 Your memory lives with you — not with the model.
               </p>
             </motion.div>
 
-            {/* What Anuma will never do */}
+            {/* No Model Switching + Pricing Comparison */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 }}
-              className="mb-16 p-8 border border-[#3a3a3a]/20"
+              className="mb-16"
             >
-              <h2 className="font-mono text-sm text-[#2a2a2a] mb-6">
-                What Anuma will never do
+              <h2 className="font-mono text-lg text-[#2a2a2a] mb-8 text-center">
+                No model switching. One subscription.
               </h2>
-              <ul className="space-y-3 font-mono text-sm">
-                <li className="flex items-start gap-3">
-                  <span className="text-[#8a4a4a]">✕</span>
-                  <span className="text-[#4a4a4a]">Train on your conversations</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-[#8a4a4a]">✕</span>
-                  <span className="text-[#4a4a4a]">Lock you to one provider</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-[#8a4a4a]">✕</span>
-                  <span className="text-[#4a4a4a]">Sell or analyze your memory</span>
-                </li>
-              </ul>
+
+              <PricingComparison />
+
+              {/* What Anuma will never do */}
+              <div className="mt-12 p-6 border border-[#3a3a3a]/20 max-w-md mx-auto">
+                <h3 className="font-mono text-xs text-[#5a5a5a] mb-4 uppercase tracking-wider">
+                  What Anuma will never do
+                </h3>
+                <ul className="space-y-2 font-mono text-sm">
+                  <li className="flex items-start gap-3">
+                    <span className="text-[#8a4a4a]">✕</span>
+                    <span className="text-[#3a3a3a]">Train on your conversations</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-[#8a4a4a]">✕</span>
+                    <span className="text-[#3a3a3a]">Lock you to one provider</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-[#8a4a4a]">✕</span>
+                    <span className="text-[#3a3a3a]">Sell or analyze your memory</span>
+                  </li>
+                </ul>
+              </div>
             </motion.div>
 
             {/* Testimonials */}
@@ -346,17 +453,17 @@ export default function BlueprintTechnical() {
               transition={{ delay: 0.8 }}
               className="mb-16"
             >
-              <p className="font-mono text-xs text-[#6a6a6a] mb-6 text-center">
+              <p className="font-mono text-xs text-[#5a5a5a] mb-6 text-center">
                 People want one place their AI "lives."
               </p>
               <div className="space-y-4 max-w-lg mx-auto">
-                <blockquote className="font-mono text-sm text-[#4a4a4a] italic border-l-2 border-[#3a3a3a]/30 pl-4">
+                <blockquote className="font-mono text-sm text-[#3a3a3a] italic border-l-2 border-[#3a3a3a]/30 pl-4">
                   "I'm tired of re-explaining myself."
                 </blockquote>
-                <blockquote className="font-mono text-sm text-[#4a4a4a] italic border-l-2 border-[#3a3a3a]/30 pl-4">
+                <blockquote className="font-mono text-sm text-[#3a3a3a] italic border-l-2 border-[#3a3a3a]/30 pl-4">
                   "The models change. I want my memory to stay."
                 </blockquote>
-                <blockquote className="font-mono text-sm text-[#4a4a4a] italic border-l-2 border-[#3a3a3a]/30 pl-4">
+                <blockquote className="font-mono text-sm text-[#3a3a3a] italic border-l-2 border-[#3a3a3a]/30 pl-4">
                   "This feels like the thing that should have existed first."
                 </blockquote>
               </div>
@@ -391,7 +498,7 @@ export default function BlueprintTechnical() {
               transition={{ delay: 1 }}
               className="text-center py-12 border-t border-[#3a3a3a]/20"
             >
-              <p className="font-mono text-sm text-[#4a4a4a] mb-6">
+              <p className="font-mono text-sm text-[#3a3a3a] mb-6">
                 If you care where your memory lives, you already understand this product.
               </p>
               <RequestAccessButton />
@@ -402,8 +509,8 @@ export default function BlueprintTechnical() {
         {/* Footer */}
         <footer className="px-6 md:px-12 py-8 border-t border-[#3a3a3a]/20">
           <div className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="font-mono text-xs text-[#6a6a6a]">Built in San Francisco.</p>
-            <div className="flex gap-6 font-mono text-xs text-[#6a6a6a]">
+            <p className="font-mono text-xs text-[#5a5a5a]">Built in San Francisco. Quiet by design.</p>
+            <div className="flex gap-6 font-mono text-xs text-[#5a5a5a]">
               <Link href="/how-memory-works" className="hover:text-[#2a2a2a] transition-colors">
                 How memory works
               </Link>
