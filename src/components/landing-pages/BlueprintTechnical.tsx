@@ -1,10 +1,31 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePrivy } from '@privy-io/react-auth';
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
+import { useFeatureFlagVariantKey } from 'posthog-js/react';
+import posthog from 'posthog-js';
+
+// A/B Test Variants for the header
+const HEADER_VARIANTS = {
+  control: {
+    headline: "Your AI forgets you.",
+    subheadline: "We don't.",
+    tagline: "Use any AI model. Your memory and context stay with you."
+  },
+  variant_a: {
+    headline: "Stop re-explaining yourself",
+    subheadline: "to AI.",
+    tagline: "One memory layer. Every model. Finally."
+  },
+  variant_b: {
+    headline: "One brain.",
+    subheadline: "Every AI.",
+    tagline: "Your context travels with you. Switch models freely."
+  }
+};
 
 const ROLES = [
   'Developer',
@@ -263,6 +284,22 @@ export default function BlueprintTechnical() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = usePrivy();
 
+  // A/B Test: Get the variant from PostHog
+  const headerVariant = useFeatureFlagVariantKey('landing-page-header') as string | null;
+
+  // Get the content based on variant (default to control)
+  const headerContent = HEADER_VARIANTS[headerVariant as keyof typeof HEADER_VARIANTS] || HEADER_VARIANTS.control;
+
+  // Track experiment exposure
+  useEffect(() => {
+    if (headerVariant && posthog.__loaded) {
+      posthog.capture('$experiment_started', {
+        experiment: 'landing-page-header',
+        variant: headerVariant,
+      });
+    }
+  }, [headerVariant]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || isSubmitting) return;
@@ -274,6 +311,14 @@ export default function BlueprintTechnical() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, role: role || null }),
+      });
+
+      // Track signup with variant info
+      posthog.capture('waitlist_signup', {
+        experiment: 'landing-page-header',
+        variant: headerVariant || 'control',
+        email_domain: email.split('@')[1],
+        role: role || null,
       });
 
       // Then trigger Privy login
@@ -314,12 +359,12 @@ export default function BlueprintTechnical() {
               className="text-center mb-16"
             >
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-light leading-[1.1] tracking-tight text-[#2a2a2a] mb-4">
-                Your AI forgets you.
+                {headerContent.headline}
                 <br />
-                <span className="text-[#6a6a6a]">We don't.</span>
+                <span className="text-[#6a6a6a]">{headerContent.subheadline}</span>
               </h1>
               <p className="text-lg md:text-xl text-[#3a3a3a] font-mono mt-6">
-                Use any AI model. Your memory and context stay with you.
+                {headerContent.tagline}
               </p>
             </motion.div>
 
