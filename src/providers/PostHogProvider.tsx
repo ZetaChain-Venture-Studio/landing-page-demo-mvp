@@ -11,21 +11,24 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
     const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
     const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com';
 
+    // Skip if already initialized
+    if (posthog.__loaded) {
+      setIsReady(true);
+      return;
+    }
+
     if (posthogKey && typeof window !== 'undefined') {
       posthog.init(posthogKey, {
         api_host: posthogHost,
         person_profiles: 'identified_only',
         capture_pageview: true,
         capture_pageleave: true,
-        loaded: (ph) => {
-          if (process.env.NODE_ENV === 'development') {
-            ph.debug();
-          }
+        loaded: () => {
           setIsReady(true);
         },
       });
     } else {
-      setIsReady(true); // No key, just render children
+      setIsReady(true);
     }
   }, []);
 
