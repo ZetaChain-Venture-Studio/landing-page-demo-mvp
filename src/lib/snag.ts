@@ -412,6 +412,25 @@ class SnagSolutionsClient {
     }
   }
 
+  // Get rule IDs that have been completed (from transactions)
+  async getCompletedRuleIds(walletAddress: string): Promise<string[]> {
+    try {
+      const transactions = await this.getTransactions(walletAddress);
+      // Extract unique rule IDs from transactions
+      const ruleIds = new Set<string>();
+      transactions.forEach(txn => {
+        if (txn.loyaltyRuleId) {
+          ruleIds.add(txn.loyaltyRuleId);
+        }
+      });
+      console.log('[Snag] Completed rule IDs from transactions:', [...ruleIds]);
+      return [...ruleIds];
+    } catch (error) {
+      console.error('[Snag] Error getting completed rule IDs:', error);
+      return [];
+    }
+  }
+
   // ============ LEADERBOARD ============
 
   async getLeaderboard(limit = 100, offset = 0): Promise<SnagLeaderboardEntry[]> {

@@ -50,6 +50,7 @@ interface UseSnagReturn {
   rank: SnagRank | null;
   rules: SnagRule[];
   ruleStatuses: Map<string, SnagRuleStatus>;
+  completedRuleIds: string[];
   loading: boolean;
   error: string | null;
   initializeAccount: (walletAddress: string, externalId?: string) => Promise<void>;
@@ -64,6 +65,7 @@ export function useSnag(walletAddress?: string): UseSnagReturn {
   const [ruleStatuses, setRuleStatuses] = useState<Map<string, SnagRuleStatus>>(
     new Map()
   );
+  const [completedRuleIds, setCompletedRuleIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,6 +78,12 @@ export function useSnag(walletAddress?: string): UseSnagReturn {
       if (data.account) {
         setAccount(data.account);
         setRank(data.rank || null);
+      }
+
+      // Set completed rule IDs from transactions (reliable source of truth)
+      if (data.completedRuleIds && Array.isArray(data.completedRuleIds)) {
+        console.log('[useSnag] Completed rule IDs from API:', data.completedRuleIds);
+        setCompletedRuleIds(data.completedRuleIds);
       }
     } catch (err) {
       console.error('Failed to fetch account:', err);
@@ -249,6 +257,7 @@ export function useSnag(walletAddress?: string): UseSnagReturn {
     rank,
     rules,
     ruleStatuses,
+    completedRuleIds,
     loading,
     error,
     initializeAccount,

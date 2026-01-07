@@ -28,11 +28,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Get completed rule IDs from transactions (reliable source of truth)
+    const completedRuleIds = await snagClient.getCompletedRuleIds(walletAddress);
+
     const rank = await snagClient.getAccountRank(walletAddress);
 
     return NextResponse.json({
       account,
       rank,
+      completedRuleIds,
     });
   } catch (error) {
     console.error('Error fetching Snag account:', error);

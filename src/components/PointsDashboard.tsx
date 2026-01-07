@@ -90,6 +90,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     rank: snagRank,
     rules: snagRules,
     ruleStatuses,
+    completedRuleIds: snagCompletedRuleIds,
     initializeAccount,
     completeRule,
     refreshData,
@@ -105,35 +106,63 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   const [revealsRemaining, setRevealsRemaining] = useState(1);
   const [bonusPoints, setBonusPoints] = useState(0);
   const [stakingPoints, setStakingPoints] = useState(0);
-  const [waitlistCompleted, setWaitlistCompleted] = useState(() => {
-    // Check localStorage for persisted completion state
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('anuma_waitlist_completed') === 'true';
-    }
-    return false;
-  });
+  const [waitlistCompleted, setWaitlistCompleted] = useState(false);
   const [socialDropdownOpen, setSocialDropdownOpen] = useState(false);
-  const [completedTaskIds, setCompletedTaskIds] = useState<Set<string>>(() => {
-    // Load completed tasks from localStorage
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('anuma_completed_tasks');
-      if (saved) {
-        try {
-          return new Set(JSON.parse(saved));
-        } catch {
-          return new Set();
+  const [completedTaskIds, setCompletedTaskIds] = useState<Set<string>>(new Set());
+
+  // The actual Snag rule ID for "Sign up to the waitlist"
+  const WAITLIST_RULE_ID = '4ed917a4-8655-4f75-bbb3-5c8f4894d5ed';
+
+  // Sync completed tasks from Snag (using completedRuleIds from transactions as primary source)
+  useEffect(() => {
+    // Primary source: completedRuleIds from transactions (most reliable)
+    if (snagCompletedRuleIds.length > 0) {
+      const newCompletedIds = new Set<string>(snagCompletedRuleIds);
+
+      // Check if waitlist rule is completed in Snag
+      if (newCompletedIds.has(WAITLIST_RULE_ID)) {
+        setWaitlistCompleted(true);
+      }
+
+      // Update completed task IDs from Snag
+      setCompletedTaskIds(prev => {
+        const merged = new Set(prev);
+        newCompletedIds.forEach(id => merged.add(id));
+        return merged;
+      });
+
+      console.log('[Dashboard] Synced from Snag completedRuleIds:', {
+        completedCount: newCompletedIds.size,
+        completedIds: [...newCompletedIds],
+        waitlistCompleted: newCompletedIds.has(WAITLIST_RULE_ID),
+      });
+    }
+
+    // Fallback: also check ruleStatuses if available
+    if (ruleStatuses.size > 0) {
+      const fromStatuses = new Set<string>();
+      ruleStatuses.forEach((status, ruleId) => {
+        if (status.completed || status.completionCount > 0) {
+          fromStatuses.add(ruleId);
         }
+      });
+
+      // Check waitlist from ruleStatuses too
+      const waitlistStatus = ruleStatuses.get(WAITLIST_RULE_ID);
+      if (waitlistStatus && (waitlistStatus.completed || waitlistStatus.completionCount > 0)) {
+        setWaitlistCompleted(true);
+      }
+
+      // Merge with existing
+      if (fromStatuses.size > 0) {
+        setCompletedTaskIds(prev => {
+          const merged = new Set(prev);
+          fromStatuses.forEach(id => merged.add(id));
+          return merged;
+        });
       }
     }
-    return new Set();
-  });
-
-  // Persist completed tasks to localStorage
-  useEffect(() => {
-    if (completedTaskIds.size > 0) {
-      localStorage.setItem('anuma_completed_tasks', JSON.stringify([...completedTaskIds]));
-    }
-  }, [completedTaskIds]);
+  }, [snagCompletedRuleIds, ruleStatuses]);
 
   const referralLink = useMemo(() => {
     if (typeof window !== 'undefined' && walletAddress) {
@@ -162,14 +191,23 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   }, [walletAddress, snagAccount, initializeAccount, userId]);
 
   // Auto-complete waitlist task using the actual Snag rule ID
-  // The actual Snag rule ID for "Sign up to the waitlist"
-  const WAITLIST_RULE_ID = '4ed917a4-8655-4f75-bbb3-5c8f4894d5ed';
   const [waitlistAttempted, setWaitlistAttempted] = useState(false);
 
   useEffect(() => {
     async function autoCompleteWaitlist() {
-      // Skip if no wallet or already completed/attempted
-      if (!walletAddress || waitlistCompleted || waitlistAttempted) return;
+      // Skip if no wallet or already completed
+      if (!walletAddress || waitlistCompleted) return;
+
+      // Check if already completed in Snag (via ruleStatuses)
+      const waitlistStatus = ruleStatuses.get(WAITLIST_RULE_ID);
+      if (waitlistStatus && (waitlistStatus.completed || waitlistStatus.completionCount > 0)) {
+        console.log('[Dashboard] Waitlist already completed in Snag, skipping');
+        setWaitlistCompleted(true);
+        return;
+      }
+
+      // Skip if we've already attempted this session
+      if (waitlistAttempted) return;
 
       // Mark as attempted to prevent multiple calls
       setWaitlistAttempted(true);
@@ -191,27 +229,24 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
 
         if (data.success) {
           setWaitlistCompleted(true);
-          localStorage.setItem('anuma_waitlist_completed', 'true');
-          // Refresh to get updated points
+          // Refresh to get updated points and statuses
           await refreshData();
         } else {
           console.error('[Dashboard] Waitlist completion failed:', data.error, data.details);
-          // Still mark as completed locally if we've attempted (may already be done in Snag)
-          setWaitlistCompleted(true);
-          localStorage.setItem('anuma_waitlist_completed', 'true');
+          // Don't mark as completed on failure - allow retry on next page load
+          setWaitlistAttempted(false);
         }
       } catch (err) {
         console.error('[Dashboard] Failed to auto-complete waitlist:', err);
-        // Still mark as completed locally on error (may already be done)
-        setWaitlistCompleted(true);
-        localStorage.setItem('anuma_waitlist_completed', 'true');
+        // Don't mark as completed on error - allow retry on next page load
+        setWaitlistAttempted(false);
       }
     }
 
-    // Run after a short delay to let the page settle
-    const timer = setTimeout(autoCompleteWaitlist, 1000);
+    // Run after ruleStatuses are loaded (wait for Snag data)
+    const timer = setTimeout(autoCompleteWaitlist, 1500);
     return () => clearTimeout(timer);
-  }, [walletAddress, waitlistCompleted, waitlistAttempted, refreshData]);
+  }, [walletAddress, waitlistCompleted, waitlistAttempted, ruleStatuses, refreshData]);
 
   // Social media links for Anuma
   const socialLinks = {
