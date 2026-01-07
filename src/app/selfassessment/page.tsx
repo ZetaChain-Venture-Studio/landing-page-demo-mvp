@@ -285,7 +285,7 @@ export default function SelfAssessmentPage() {
               >
                 <h1 className="text-4xl md:text-5xl font-light text-[#5C4A3A] leading-tight">
                   <TypeWriter
-                    text="How much do your AI models know about you?"
+                    text="How much do your AI tools know about you?"
                     onComplete={handleTypingComplete}
                     speed={60}
                   />
