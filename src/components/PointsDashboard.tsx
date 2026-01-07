@@ -113,78 +113,19 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   // The actual Snag rule ID for "Sign up to the waitlist"
   const WAITLIST_RULE_ID = '4ed917a4-8655-4f75-bbb3-5c8f4894d5ed';
 
-  // Sync completed tasks from Snag (using completedRuleIds from transactions as primary source)
+  // Sync completed tasks ONLY from actual Snag transaction data - no inference
   useEffect(() => {
-    const snagPoints = Number(snagAccount?.points) || 0;
-    const newCompletedIds = new Set<string>();
-
-    // Primary source: completedRuleIds from transactions
     if (snagCompletedRuleIds.length > 0) {
-      snagCompletedRuleIds.forEach(id => newCompletedIds.add(id));
-    }
+      setCompletedTaskIds(new Set(snagCompletedRuleIds));
 
-    // Fallback: also check ruleStatuses if available
-    if (ruleStatuses.size > 0) {
-      ruleStatuses.forEach((status, ruleId) => {
-        if (status.completed || status.completionCount > 0) {
-          newCompletedIds.add(ruleId);
-        }
-      });
-    }
-
-    // Points-based inference for waitlist (if user has >= 400 points, waitlist was completed)
-    // This handles cases where old transactions don't have loyaltyRuleId
-    if (snagPoints >= 400) {
-      newCompletedIds.add(WAITLIST_RULE_ID);
-      if (!waitlistCompleted) {
-        console.log('[Dashboard] Inferring waitlist completed from points:', snagPoints);
+      // Check if waitlist was completed
+      if (snagCompletedRuleIds.includes(WAITLIST_RULE_ID)) {
         setWaitlistCompleted(true);
       }
+
+      console.log('[Dashboard] Synced from transactions:', snagCompletedRuleIds);
     }
-
-    // Check if waitlist rule is in completed IDs
-    if (newCompletedIds.has(WAITLIST_RULE_ID) && !waitlistCompleted) {
-      setWaitlistCompleted(true);
-    }
-
-    // Infer social tasks from points (each social = 100 points)
-    // If points > 400, some social tasks were completed
-    if (snagPoints > 400) {
-      const socialPoints = snagPoints - 400; // Subtract waitlist
-      const socialTaskCount = Math.min(4, Math.floor(socialPoints / 100));
-
-      // Mark social tasks as completed based on point count
-      const socialRuleIds = [
-        '4b65ae80-6ac7-4542-9915-1734c96a8193', // Twitter
-        '0abfd745-342b-4e55-9de4-7ec4dfdfd455', // Instagram
-        '5b61746a-e6c2-4773-be30-ae056050995c', // TikTok
-        '520fbffd-464b-4d6a-bef6-fffce5e1cf19', // Telegram
-      ];
-
-      for (let i = 0; i < socialTaskCount && i < socialRuleIds.length; i++) {
-        newCompletedIds.add(socialRuleIds[i]);
-      }
-
-      console.log('[Dashboard] Inferred social completions from points:', { socialPoints, socialTaskCount });
-    }
-
-    // Update completed task IDs
-    if (newCompletedIds.size > 0) {
-      setCompletedTaskIds(prev => {
-        const merged = new Set(prev);
-        newCompletedIds.forEach(id => merged.add(id));
-        return merged;
-      });
-    }
-
-    console.log('[Dashboard] Synced completed tasks:', {
-      snagPoints,
-      fromTransactions: snagCompletedRuleIds.length,
-      fromStatuses: ruleStatuses.size,
-      totalCompleted: newCompletedIds.size,
-      completedIds: [...newCompletedIds],
-    });
-  }, [snagCompletedRuleIds, ruleStatuses, snagAccount?.points, waitlistCompleted]);
+  }, [snagCompletedRuleIds]);
 
   const referralLink = useMemo(() => {
     if (typeof window !== 'undefined' && walletAddress) {
@@ -212,37 +153,24 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     }
   }, [walletAddress, snagAccount, initializeAccount, userId]);
 
-  // Auto-complete waitlist task - award 400 points on signup
-  const [waitlistAttempted, setWaitlistAttempted] = useState(false);
+  // Auto-award 400 points on first visit - simple and direct
+  const [waitlistAwarded, setWaitlistAwarded] = useState(false);
 
   useEffect(() => {
-    async function autoCompleteWaitlist() {
-      // Skip if no wallet or already completed
-      if (!walletAddress || waitlistCompleted) return;
+    // Only run once per session, only if we have a wallet
+    if (!walletAddress || waitlistAwarded || waitlistCompleted) return;
 
-      // IMPORTANT: Wait for snagAccount to be loaded first
-      // If snagAccount is null, the account data hasn't loaded yet
-      if (snagAccount === null) {
-        console.log('[Dashboard] Waiting for Snag account to load...');
-        return; // Will re-run when snagAccount changes
-      }
+    // Check localStorage to avoid duplicate awards across page loads
+    const storageKey = `waitlist_awarded_${walletAddress}`;
+    if (typeof window !== 'undefined' && localStorage.getItem(storageKey)) {
+      setWaitlistCompleted(true);
+      setWaitlistAwarded(true);
+      return;
+    }
 
-      const currentPoints = Number(snagAccount?.points) || 0;
-
-      // If user already has >= 400 points, they already got the bonus
-      if (currentPoints >= 400) {
-        console.log('[Dashboard] User already has points, waitlist bonus was received:', currentPoints);
-        setWaitlistCompleted(true);
-        return;
-      }
-
-      // Skip if we've already attempted this session
-      if (waitlistAttempted) return;
-
-      // Mark as attempted to prevent multiple calls
-      setWaitlistAttempted(true);
-
-      console.log('[Dashboard] NEW USER - Awarding 400 waitlist points for wallet:', walletAddress, 'current points:', currentPoints);
+    // Award points immediately
+    async function awardWaitlistPoints() {
+      console.log('[Dashboard] Awarding 400 waitlist points to:', walletAddress);
 
       try {
         const response = await fetch('/api/snag/rules', {
@@ -255,27 +183,25 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
         });
 
         const data = await response.json();
-        console.log('[Dashboard] Waitlist completion response:', data);
+        console.log('[Dashboard] Waitlist award response:', data);
 
         if (data.success) {
           setWaitlistCompleted(true);
-          // Refresh to get updated points and statuses
-          await refreshData();
+          setWaitlistAwarded(true);
+          localStorage.setItem(storageKey, 'true');
+          refreshData();
         } else {
-          console.error('[Dashboard] Waitlist completion failed:', data.error, data.details);
-          // Don't mark as completed on failure - allow retry on next page load
-          setWaitlistAttempted(false);
+          console.error('[Dashboard] Waitlist award failed:', data);
         }
       } catch (err) {
-        console.error('[Dashboard] Failed to auto-complete waitlist:', err);
-        // Don't mark as completed on error - allow retry on next page load
-        setWaitlistAttempted(false);
+        console.error('[Dashboard] Waitlist award error:', err);
       }
     }
 
-    // Run when snagAccount loads (no delay needed - we wait for account)
-    autoCompleteWaitlist();
-  }, [walletAddress, waitlistCompleted, waitlistAttempted, snagAccount, refreshData]);
+    // Small delay to let page settle
+    const timer = setTimeout(awardWaitlistPoints, 500);
+    return () => clearTimeout(timer);
+  }, [walletAddress, waitlistAwarded, waitlistCompleted, refreshData]);
 
   // Social media links for Anuma
   const socialLinks = {
