@@ -58,13 +58,18 @@ export async function GET(request: NextRequest) {
   // Test 3: Test awarding 1 point (actually do it to test)
   let awardTest = { status: 'not_tested', message: '', data: null as unknown, requestBody: null as unknown };
   if (config.currencyId !== 'NOT SET') {
+    // Snag API expects entries array format
     const requestBody = {
-      walletAddress: testWallet.toLowerCase(),
-      amount: 1,
-      loyaltyRuleId: '4ed917a4-8655-4f75-bbb3-5c8f4894d5ed', // waitlist rule
-      loyaltyCurrencyId: config.currencyId,
-      description: 'Debug test - 1 point',
-      websiteId: config.websiteId,
+      entries: [
+        {
+          walletAddress: testWallet.toLowerCase(),
+          amount: 1,
+          loyaltyRuleId: '4ed917a4-8655-4f75-bbb3-5c8f4894d5ed', // waitlist rule
+          loyaltyCurrencyId: config.currencyId,
+          description: 'Debug test - 1 point',
+          websiteId: config.websiteId,
+        }
+      ]
     };
 
     try {

@@ -372,20 +372,25 @@ class SnagSolutionsClient {
     try {
       console.log('[Snag] Awarding points:', { walletAddress, amount, ruleId, currencyId: this.currencyId });
 
-      const response = await this.request<SnagTransaction>('/loyalty/transactions', {
+      // Snag API expects an "entries" array
+      const response = await this.request<{ data: SnagTransaction[] }>('/loyalty/transactions', {
         method: 'POST',
         body: JSON.stringify({
-          walletAddress: walletAddress.toLowerCase(),
-          amount,
-          loyaltyRuleId: ruleId,
-          loyaltyCurrencyId: this.currencyId, // Required for Snag to know which currency
-          description,
-          websiteId: this.websiteId,
+          entries: [
+            {
+              walletAddress: walletAddress.toLowerCase(),
+              amount,
+              loyaltyRuleId: ruleId,
+              loyaltyCurrencyId: this.currencyId,
+              description: description || `Points award: ${amount}`,
+              websiteId: this.websiteId,
+            }
+          ]
         }),
       });
 
       console.log('[Snag] Points awarded successfully:', response);
-      return response;
+      return response.data?.[0] || null;
     } catch (error) {
       console.error('[Snag] Error awarding points:', error);
       return null;
