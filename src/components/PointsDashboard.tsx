@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, Copy, Check, ExternalLink, Share2, User, ChevronDown, ChevronRight, LogOut } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
@@ -113,19 +113,45 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   // The actual Snag rule ID for "Sign up to the waitlist"
   const WAITLIST_RULE_ID = '4ed917a4-8655-4f75-bbb3-5c8f4894d5ed';
 
-  // Sync completed tasks ONLY from actual Snag transaction data - no inference
+  // Load completed tasks from localStorage (Snag doesn't store rule IDs in transactions)
   useEffect(() => {
-    if (snagCompletedRuleIds.length > 0) {
-      setCompletedTaskIds(new Set(snagCompletedRuleIds));
+    if (!walletAddress) return;
 
-      // Check if waitlist was completed
-      if (snagCompletedRuleIds.includes(WAITLIST_RULE_ID)) {
-        setWaitlistCompleted(true);
+    const storageKey = `completed_tasks_${walletAddress}`;
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      try {
+        const ids = JSON.parse(stored) as string[];
+        setCompletedTaskIds(new Set(ids));
+        if (ids.includes(WAITLIST_RULE_ID)) {
+          setWaitlistCompleted(true);
+        }
+        console.log('[Dashboard] Loaded completed tasks from localStorage:', ids);
+      } catch {
+        console.error('[Dashboard] Failed to parse stored tasks');
       }
-
-      console.log('[Dashboard] Synced from transactions:', snagCompletedRuleIds);
     }
-  }, [snagCompletedRuleIds]);
+  }, [walletAddress]);
+
+  // Helper to mark a task as completed (persists to localStorage)
+  const markTaskCompleted = useCallback((taskId: string) => {
+    if (!walletAddress) return;
+
+    setCompletedTaskIds(prev => {
+      const updated = new Set(prev);
+      updated.add(taskId);
+
+      // Persist to localStorage
+      const storageKey = `completed_tasks_${walletAddress}`;
+      localStorage.setItem(storageKey, JSON.stringify([...updated]));
+
+      return updated;
+    });
+
+    if (taskId === WAITLIST_RULE_ID) {
+      setWaitlistCompleted(true);
+    }
+  }, [walletAddress]);
 
   const referralLink = useMemo(() => {
     if (typeof window !== 'undefined' && walletAddress) {
@@ -153,22 +179,28 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     }
   }, [walletAddress, snagAccount, initializeAccount, userId]);
 
-  // Auto-award 400 points on first visit - simple and direct
-  const [waitlistAwarded, setWaitlistAwarded] = useState(false);
+  // Auto-award 400 points on first visit - use ref to prevent duplicate calls
+  const waitlistAwardingRef = useRef(false);
 
   useEffect(() => {
-    // Only run once per session, only if we have a wallet
-    if (!walletAddress || waitlistAwarded || waitlistCompleted) return;
+    if (!walletAddress || waitlistCompleted || waitlistAwardingRef.current) return;
 
-    // Check localStorage to avoid duplicate awards across page loads
-    const storageKey = `waitlist_awarded_${walletAddress}`;
-    if (typeof window !== 'undefined' && localStorage.getItem(storageKey)) {
-      setWaitlistCompleted(true);
-      setWaitlistAwarded(true);
-      return;
+    // Check localStorage SYNCHRONOUSLY before anything else
+    const storageKey = `completed_tasks_${walletAddress}`;
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      try {
+        const ids = JSON.parse(stored) as string[];
+        if (ids.includes(WAITLIST_RULE_ID)) {
+          setWaitlistCompleted(true);
+          return;
+        }
+      } catch { /* ignore */ }
     }
 
-    // Award points immediately
+    // Mark as awarding to prevent duplicate calls
+    waitlistAwardingRef.current = true;
+
     async function awardWaitlistPoints() {
       console.log('[Dashboard] Awarding 400 waitlist points to:', walletAddress);
 
@@ -183,25 +215,19 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
         });
 
         const data = await response.json();
-        console.log('[Dashboard] Waitlist award response:', data);
 
         if (data.success) {
-          setWaitlistCompleted(true);
-          setWaitlistAwarded(true);
-          localStorage.setItem(storageKey, 'true');
+          markTaskCompleted(WAITLIST_RULE_ID);
           refreshData();
-        } else {
-          console.error('[Dashboard] Waitlist award failed:', data);
         }
       } catch (err) {
         console.error('[Dashboard] Waitlist award error:', err);
+        waitlistAwardingRef.current = false; // Allow retry on error
       }
     }
 
-    // Small delay to let page settle
-    const timer = setTimeout(awardWaitlistPoints, 500);
-    return () => clearTimeout(timer);
-  }, [walletAddress, waitlistAwarded, waitlistCompleted, refreshData]);
+    awardWaitlistPoints();
+  }, [walletAddress, waitlistCompleted, markTaskCompleted, refreshData]);
 
   // Social media links for Anuma
   const socialLinks = {
@@ -313,8 +339,8 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
         console.log('[Dashboard] Task completion response:', data);
 
         if (data.success) {
-          // Mark as completed locally
-          setCompletedTaskIds(prev => new Set(prev).add(task.id));
+          // Mark as completed and persist to localStorage
+          markTaskCompleted(task.id);
           // Refresh to get updated points
           await refreshData();
         }
@@ -324,7 +350,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
         setCompletingTaskId(null);
       }
     }
-  }, [copyReferralLink, walletAddress, refreshData, completedTaskIds]);
+  }, [copyReferralLink, walletAddress, refreshData, completedTaskIds, markTaskCompleted]);
 
   const handlePrizeReveal = useCallback((points: number) => {
     setBonusPoints(prev => prev + points);
