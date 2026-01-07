@@ -212,7 +212,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     }
   }, [walletAddress, snagAccount, initializeAccount, userId]);
 
-  // Auto-complete waitlist task using the actual Snag rule ID
+  // Auto-complete waitlist task - award 400 points on signup
   const [waitlistAttempted, setWaitlistAttempted] = useState(false);
 
   useEffect(() => {
@@ -220,25 +220,18 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
       // Skip if no wallet or already completed
       if (!walletAddress || waitlistCompleted) return;
 
-      // Check if already completed based on points (>= 400 means waitlist was done)
+      // IMPORTANT: Wait for snagAccount to be loaded first
+      // If snagAccount is null, the account data hasn't loaded yet
+      if (snagAccount === null) {
+        console.log('[Dashboard] Waiting for Snag account to load...');
+        return; // Will re-run when snagAccount changes
+      }
+
       const currentPoints = Number(snagAccount?.points) || 0;
+
+      // If user already has >= 400 points, they already got the bonus
       if (currentPoints >= 400) {
-        console.log('[Dashboard] Waitlist already completed (inferred from points):', currentPoints);
-        setWaitlistCompleted(true);
-        return;
-      }
-
-      // Check if already completed in Snag (via ruleStatuses)
-      const waitlistStatus = ruleStatuses.get(WAITLIST_RULE_ID);
-      if (waitlistStatus && (waitlistStatus.completed || waitlistStatus.completionCount > 0)) {
-        console.log('[Dashboard] Waitlist already completed in Snag, skipping');
-        setWaitlistCompleted(true);
-        return;
-      }
-
-      // Check if in completedRuleIds from transactions
-      if (snagCompletedRuleIds.includes(WAITLIST_RULE_ID)) {
-        console.log('[Dashboard] Waitlist already completed (from transactions)');
+        console.log('[Dashboard] User already has points, waitlist bonus was received:', currentPoints);
         setWaitlistCompleted(true);
         return;
       }
@@ -249,7 +242,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
       // Mark as attempted to prevent multiple calls
       setWaitlistAttempted(true);
 
-      console.log('[Dashboard] Auto-completing waitlist task for wallet:', walletAddress);
+      console.log('[Dashboard] NEW USER - Awarding 400 waitlist points for wallet:', walletAddress, 'current points:', currentPoints);
 
       try {
         const response = await fetch('/api/snag/rules', {
@@ -280,10 +273,9 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
       }
     }
 
-    // Run after ruleStatuses are loaded (wait for Snag data)
-    const timer = setTimeout(autoCompleteWaitlist, 1500);
-    return () => clearTimeout(timer);
-  }, [walletAddress, waitlistCompleted, waitlistAttempted, ruleStatuses, snagAccount?.points, snagCompletedRuleIds, refreshData]);
+    // Run when snagAccount loads (no delay needed - we wait for account)
+    autoCompleteWaitlist();
+  }, [walletAddress, waitlistCompleted, waitlistAttempted, snagAccount, refreshData]);
 
   // Social media links for Anuma
   const socialLinks = {
