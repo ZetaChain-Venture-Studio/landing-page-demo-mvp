@@ -115,54 +115,76 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
 
   // Sync completed tasks from Snag (using completedRuleIds from transactions as primary source)
   useEffect(() => {
-    // Primary source: completedRuleIds from transactions (most reliable)
-    if (snagCompletedRuleIds.length > 0) {
-      const newCompletedIds = new Set<string>(snagCompletedRuleIds);
+    const snagPoints = Number(snagAccount?.points) || 0;
+    const newCompletedIds = new Set<string>();
 
-      // Check if waitlist rule is completed in Snag
-      if (newCompletedIds.has(WAITLIST_RULE_ID)) {
+    // Primary source: completedRuleIds from transactions
+    if (snagCompletedRuleIds.length > 0) {
+      snagCompletedRuleIds.forEach(id => newCompletedIds.add(id));
+    }
+
+    // Fallback: also check ruleStatuses if available
+    if (ruleStatuses.size > 0) {
+      ruleStatuses.forEach((status, ruleId) => {
+        if (status.completed || status.completionCount > 0) {
+          newCompletedIds.add(ruleId);
+        }
+      });
+    }
+
+    // Points-based inference for waitlist (if user has >= 400 points, waitlist was completed)
+    // This handles cases where old transactions don't have loyaltyRuleId
+    if (snagPoints >= 400) {
+      newCompletedIds.add(WAITLIST_RULE_ID);
+      if (!waitlistCompleted) {
+        console.log('[Dashboard] Inferring waitlist completed from points:', snagPoints);
         setWaitlistCompleted(true);
       }
+    }
 
-      // Update completed task IDs from Snag
+    // Check if waitlist rule is in completed IDs
+    if (newCompletedIds.has(WAITLIST_RULE_ID) && !waitlistCompleted) {
+      setWaitlistCompleted(true);
+    }
+
+    // Infer social tasks from points (each social = 100 points)
+    // If points > 400, some social tasks were completed
+    if (snagPoints > 400) {
+      const socialPoints = snagPoints - 400; // Subtract waitlist
+      const socialTaskCount = Math.min(4, Math.floor(socialPoints / 100));
+
+      // Mark social tasks as completed based on point count
+      const socialRuleIds = [
+        '4b65ae80-6ac7-4542-9915-1734c96a8193', // Twitter
+        '0abfd745-342b-4e55-9de4-7ec4dfdfd455', // Instagram
+        '5b61746a-e6c2-4773-be30-ae056050995c', // TikTok
+        '520fbffd-464b-4d6a-bef6-fffce5e1cf19', // Telegram
+      ];
+
+      for (let i = 0; i < socialTaskCount && i < socialRuleIds.length; i++) {
+        newCompletedIds.add(socialRuleIds[i]);
+      }
+
+      console.log('[Dashboard] Inferred social completions from points:', { socialPoints, socialTaskCount });
+    }
+
+    // Update completed task IDs
+    if (newCompletedIds.size > 0) {
       setCompletedTaskIds(prev => {
         const merged = new Set(prev);
         newCompletedIds.forEach(id => merged.add(id));
         return merged;
       });
-
-      console.log('[Dashboard] Synced from Snag completedRuleIds:', {
-        completedCount: newCompletedIds.size,
-        completedIds: [...newCompletedIds],
-        waitlistCompleted: newCompletedIds.has(WAITLIST_RULE_ID),
-      });
     }
 
-    // Fallback: also check ruleStatuses if available
-    if (ruleStatuses.size > 0) {
-      const fromStatuses = new Set<string>();
-      ruleStatuses.forEach((status, ruleId) => {
-        if (status.completed || status.completionCount > 0) {
-          fromStatuses.add(ruleId);
-        }
-      });
-
-      // Check waitlist from ruleStatuses too
-      const waitlistStatus = ruleStatuses.get(WAITLIST_RULE_ID);
-      if (waitlistStatus && (waitlistStatus.completed || waitlistStatus.completionCount > 0)) {
-        setWaitlistCompleted(true);
-      }
-
-      // Merge with existing
-      if (fromStatuses.size > 0) {
-        setCompletedTaskIds(prev => {
-          const merged = new Set(prev);
-          fromStatuses.forEach(id => merged.add(id));
-          return merged;
-        });
-      }
-    }
-  }, [snagCompletedRuleIds, ruleStatuses]);
+    console.log('[Dashboard] Synced completed tasks:', {
+      snagPoints,
+      fromTransactions: snagCompletedRuleIds.length,
+      fromStatuses: ruleStatuses.size,
+      totalCompleted: newCompletedIds.size,
+      completedIds: [...newCompletedIds],
+    });
+  }, [snagCompletedRuleIds, ruleStatuses, snagAccount?.points, waitlistCompleted]);
 
   const referralLink = useMemo(() => {
     if (typeof window !== 'undefined' && walletAddress) {
@@ -198,10 +220,25 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
       // Skip if no wallet or already completed
       if (!walletAddress || waitlistCompleted) return;
 
+      // Check if already completed based on points (>= 400 means waitlist was done)
+      const currentPoints = Number(snagAccount?.points) || 0;
+      if (currentPoints >= 400) {
+        console.log('[Dashboard] Waitlist already completed (inferred from points):', currentPoints);
+        setWaitlistCompleted(true);
+        return;
+      }
+
       // Check if already completed in Snag (via ruleStatuses)
       const waitlistStatus = ruleStatuses.get(WAITLIST_RULE_ID);
       if (waitlistStatus && (waitlistStatus.completed || waitlistStatus.completionCount > 0)) {
         console.log('[Dashboard] Waitlist already completed in Snag, skipping');
+        setWaitlistCompleted(true);
+        return;
+      }
+
+      // Check if in completedRuleIds from transactions
+      if (snagCompletedRuleIds.includes(WAITLIST_RULE_ID)) {
+        console.log('[Dashboard] Waitlist already completed (from transactions)');
         setWaitlistCompleted(true);
         return;
       }
@@ -246,7 +283,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     // Run after ruleStatuses are loaded (wait for Snag data)
     const timer = setTimeout(autoCompleteWaitlist, 1500);
     return () => clearTimeout(timer);
-  }, [walletAddress, waitlistCompleted, waitlistAttempted, ruleStatuses, refreshData]);
+  }, [walletAddress, waitlistCompleted, waitlistAttempted, ruleStatuses, snagAccount?.points, snagCompletedRuleIds, refreshData]);
 
   // Social media links for Anuma
   const socialLinks = {

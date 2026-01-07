@@ -55,7 +55,32 @@ export async function GET(request: NextRequest) {
     balanceTest = { status: 'error', message: String(error), data: null };
   }
 
-  // Test 3: Test awarding 1 point (actually do it to test)
+  // Test 3: Fetch transactions to see their structure
+  let transactionsTest = { status: 'not_tested', message: '', data: null as unknown };
+  try {
+    const response = await fetch(
+      `${baseUrl}/loyalty/transaction_entries?walletAddress=${testWallet.toLowerCase()}&websiteId=${config.websiteId}`,
+      { headers }
+    );
+    const data = await response.json();
+    const transactions = data.data || [];
+    // Extract unique loyaltyRuleIds
+    const ruleIds = [...new Set(transactions.map((t: Record<string, unknown>) => t.loyaltyRuleId).filter(Boolean))];
+    transactionsTest = {
+      status: response.ok ? 'success' : 'error',
+      message: response.ok ? `Found ${transactions.length} transactions, ${ruleIds.length} unique rules` : `Error ${response.status}`,
+      data: {
+        count: transactions.length,
+        ruleIds,
+        sampleTransaction: transactions[0] || null,
+        allFields: transactions[0] ? Object.keys(transactions[0]) : [],
+      },
+    };
+  } catch (error) {
+    transactionsTest = { status: 'error', message: String(error), data: null };
+  }
+
+  // Test 4: Test awarding 1 point (actually do it to test)
   let awardTest = { status: 'not_tested', message: '', data: null as unknown, requestBody: null as unknown };
   if (config.currencyId !== 'NOT SET') {
     // Snag API expects description at top level and direction in each entry
@@ -103,6 +128,7 @@ export async function GET(request: NextRequest) {
     tests: {
       rules: rulesTest,
       balance: balanceTest,
+      transactions: transactionsTest,
       award: awardTest,
     },
     testWallet,
