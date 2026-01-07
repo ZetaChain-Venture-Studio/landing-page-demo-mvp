@@ -372,17 +372,19 @@ class SnagSolutionsClient {
     try {
       console.log('[Snag] Awarding points:', { walletAddress, amount, ruleId, currencyId: this.currencyId });
 
-      // Snag API expects an "entries" array
+      // Snag API expects "description" at top level and "direction" in each entry
+      const desc = description || `Points award: ${amount}`;
       const response = await this.request<{ data: SnagTransaction[] }>('/loyalty/transactions', {
         method: 'POST',
         body: JSON.stringify({
+          description: desc,
           entries: [
             {
               walletAddress: walletAddress.toLowerCase(),
               amount,
+              direction: 'credit', // 'credit' to add points, 'debit' to subtract
               loyaltyRuleId: ruleId,
               loyaltyCurrencyId: this.currencyId,
-              description: description || `Points award: ${amount}`,
               websiteId: this.websiteId,
             }
           ]
