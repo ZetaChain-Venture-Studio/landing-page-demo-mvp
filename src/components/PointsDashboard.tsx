@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, Copy, Check, ExternalLink, Share2, User, ChevronDown, ChevronRight, LogOut } from 'lucide-react';
+import { CheckCircle, Copy, Check, ExternalLink, Share2, User, ChevronDown, ChevronRight, LogOut, AlertCircle } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
-import { useSnag } from '@/hooks/useSnag';
+import { useSnag, SnagRule } from '@/hooks/useSnag';
 import { ColorPalette, anumaSanctuary, isDarkPalette } from '@/lib/palettes';
 import PrizeReveal from './PrizeReveal';
 import ShareModal from './ShareModal';
 import StakingModal from './StakingModal';
+import SocialConnectCard from './SocialConnectCard';
+
+// ============ TIPOS ============
 
 interface Task {
   id: string;
@@ -19,8 +22,10 @@ interface Task {
   action: string;
   ruleId?: string;
   type?: string;
+  uiType?: string;
   claimType?: 'manual' | 'auto';
   ctaUrl?: string;
+  icon?: string;
 }
 
 interface PointsDashboardProps {
@@ -30,7 +35,8 @@ interface PointsDashboardProps {
   paletteId?: string;
 }
 
-// Inner component that uses Privy
+// ============ COMPONENTES WRAPPER ============
+
 function PointsDashboardWithPrivy({ email, palette, paletteId }: { email: string; palette: ColorPalette; paletteId: string }) {
   const { logout, user } = usePrivy();
   const walletAddress = user?.wallet?.address;
@@ -48,7 +54,6 @@ function PointsDashboardWithPrivy({ email, palette, paletteId }: { email: string
   );
 }
 
-// Test mode wrapper
 function PointsDashboardTestMode({ email, testWallet, palette, paletteId }: { email: string; testWallet: string; palette: ColorPalette; paletteId: string }) {
   return (
     <PointsDashboardContent
@@ -72,6 +77,8 @@ export default function PointsDashboard({ email, testWallet, palette, paletteId 
   return <PointsDashboardWithPrivy email={email} palette={colors} paletteId={paletteId} />;
 }
 
+// ============ COMPONENTE PRINCIPAL ============
+
 interface PointsDashboardContentProps {
   email: string;
   walletAddress?: string;
@@ -85,17 +92,24 @@ interface PointsDashboardContentProps {
 function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTestMode, palette, paletteId }: PointsDashboardContentProps) {
   const isDark = isDarkPalette(paletteId);
 
+  // Hook de Snag - reglas dinámicas desde el servidor
   const {
     account: snagAccount,
     rank: snagRank,
     rules: snagRules,
-    ruleStatuses,
-    completedRuleIds: snagCompletedRuleIds,
+    completedRuleIds,
+    socialStatus,
+    loading: snagLoading,
+    error: snagError,
+    initialized: snagInitialized,
     initializeAccount,
     completeRule,
     refreshData,
+    refreshSocialStatus,
+    isRuleCompleted,
   } = useSnag(walletAddress);
 
+  // Estados locales
   const [copiedReferral, setCopiedReferral] = useState(false);
   const [copiedWallet, setCopiedWallet] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
@@ -106,53 +120,8 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   const [revealsRemaining, setRevealsRemaining] = useState(1);
   const [bonusPoints, setBonusPoints] = useState(0);
   const [stakingPoints, setStakingPoints] = useState(0);
-  const [waitlistCompleted, setWaitlistCompleted] = useState(false);
-  const [socialDropdownOpen, setSocialDropdownOpen] = useState(false);
-  const [completedTaskIds, setCompletedTaskIds] = useState<Set<string>>(new Set());
 
-  // The actual Snag rule ID for "Sign up to the waitlist"
-  const WAITLIST_RULE_ID = '4ed917a4-8655-4f75-bbb3-5c8f4894d5ed';
-
-  // Load completed tasks from localStorage (Snag doesn't store rule IDs in transactions)
-  useEffect(() => {
-    if (!walletAddress) return;
-
-    const storageKey = `completed_tasks_${walletAddress}`;
-    const stored = localStorage.getItem(storageKey);
-    if (stored) {
-      try {
-        const ids = JSON.parse(stored) as string[];
-        setCompletedTaskIds(new Set(ids));
-        if (ids.includes(WAITLIST_RULE_ID)) {
-          setWaitlistCompleted(true);
-        }
-        console.log('[Dashboard] Loaded completed tasks from localStorage:', ids);
-      } catch {
-        console.error('[Dashboard] Failed to parse stored tasks');
-      }
-    }
-  }, [walletAddress]);
-
-  // Helper to mark a task as completed (persists to localStorage)
-  const markTaskCompleted = useCallback((taskId: string) => {
-    if (!walletAddress) return;
-
-    setCompletedTaskIds(prev => {
-      const updated = new Set(prev);
-      updated.add(taskId);
-
-      // Persist to localStorage
-      const storageKey = `completed_tasks_${walletAddress}`;
-      localStorage.setItem(storageKey, JSON.stringify([...updated]));
-
-      return updated;
-    });
-
-    if (taskId === WAITLIST_RULE_ID) {
-      setWaitlistCompleted(true);
-    }
-  }, [walletAddress]);
-
+  // Referral link
   const referralLink = useMemo(() => {
     if (typeof window !== 'undefined' && walletAddress) {
       return `${window.location.origin}?ref=${walletAddress.slice(0, 8)}`;
@@ -160,125 +129,86 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     return '';
   }, [walletAddress]);
 
-  // Debug logging for Snag integration
+  // Debug logging
   useEffect(() => {
-    console.log('[PointsDashboard] Snag State:', {
+    console.log('[Dashboard] Estado de Snag:', {
       walletAddress,
       accountId: snagAccount?.id,
       accountPoints: snagAccount?.points,
       rulesCount: snagRules.length,
-      rules: snagRules.map(r => ({ id: r.id, name: r.name, points: r.points })),
-      rankPosition: snagRank?.position,
-      ruleStatusesCount: ruleStatuses.size,
+      rules: snagRules.map(r => ({ id: r.id, name: r.name, points: r.points, uiType: r.uiType })),
+      completedRuleIds,
+      loading: snagLoading,
+      error: snagError,
     });
-  }, [walletAddress, snagAccount, snagRules, snagRank, ruleStatuses]);
+  }, [walletAddress, snagAccount, snagRules, completedRuleIds, snagLoading, snagError]);
 
+  // Inicializar cuenta al cargar (solo si no está inicializada)
   useEffect(() => {
-    if (walletAddress && !snagAccount) {
+    if (walletAddress && !snagInitialized && !snagLoading) {
       initializeAccount(walletAddress, userId || 'test-user');
     }
-  }, [walletAddress, snagAccount, initializeAccount, userId]);
+  }, [walletAddress, snagInitialized, snagLoading, initializeAccount, userId]);
 
-  // Auto-award 400 points on first visit - use ref to prevent duplicate calls
-  const waitlistAwardingRef = useRef(false);
+  // ============ CONVERTIR REGLAS DE SNAG A TASKS ============
 
-  useEffect(() => {
-    if (!walletAddress || waitlistCompleted || waitlistAwardingRef.current) return;
+  // Helper para convertir una regla de Snag a Task
+  const ruleToTask = useCallback((rule: SnagRule): Task => {
+    const completed = isRuleCompleted(rule.id);
+    
+    // Determinar la acción según el tipo
+    let action = 'Complete';
+    const uiType = rule.uiType || 'manual';
+    
+    if (uiType === 'social') action = 'Follow';
+    if (uiType === 'referral') action = 'Invite';
+    if (uiType === 'staking') action = 'Stake';
+    if (uiType === 'waitlist') action = completed ? 'Completed' : 'Join';
+    if (rule.claimType === 'auto') action = completed ? 'Completed' : 'Auto';
 
-    // Check localStorage SYNCHRONOUSLY before anything else
-    const storageKey = `completed_tasks_${walletAddress}`;
-    const stored = localStorage.getItem(storageKey);
-    if (stored) {
-      try {
-        const ids = JSON.parse(stored) as string[];
-        if (ids.includes(WAITLIST_RULE_ID)) {
-          setWaitlistCompleted(true);
-          return;
-        }
-      } catch { /* ignore */ }
-    }
+    return {
+      id: rule.id,
+      title: rule.name,
+      description: rule.description || '',
+      points: rule.points,
+      completed,
+      action,
+      ruleId: rule.id,
+      type: uiType,
+      uiType: uiType,
+      claimType: rule.claimType,
+      ctaUrl: rule.ctaUrl,
+      icon: rule.icon,
+    };
+  }, [isRuleCompleted]);
 
-    // Mark as awarding to prevent duplicate calls
-    waitlistAwardingRef.current = true;
-
-    async function awardWaitlistPoints() {
-      console.log('[Dashboard] Awarding 400 waitlist points to:', walletAddress);
-
-      try {
-        const response = await fetch('/api/snag/rules', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            walletAddress: walletAddress,
-            ruleId: WAITLIST_RULE_ID,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          markTaskCompleted(WAITLIST_RULE_ID);
-          refreshData();
-        }
-      } catch (err) {
-        console.error('[Dashboard] Waitlist award error:', err);
-        waitlistAwardingRef.current = false; // Allow retry on error
-      }
-    }
-
-    awardWaitlistPoints();
-  }, [walletAddress, waitlistCompleted, markTaskCompleted, refreshData]);
-
-  // Social media links for Anuma
-  const socialLinks = {
-    x: 'https://x.com/anuma_ai',
-    instagram: 'https://www.instagram.com/anuma_ai/',
-    tiktok: 'https://www.tiktok.com/@anuma.ai',
-    telegram: 'https://t.me/AnumaAI',
-  };
-
-  // Convert Snag rules to tasks
-  // Social tasks grouped together for dropdown - using actual Snag rule IDs
-  // Instagram rule ID from Snag dashboard
-  const INSTAGRAM_RULE_ID = '0abfd745-342b-4e55-9de4-7ec4dfdfd455';
-
-  const socialTasks: Task[] = useMemo(() => [
-    { id: '4b65ae80-6ac7-4542-9915-1734c96a8193', title: 'Follow Twitter', description: 'Stay updated with our latest announcements', points: 100, completed: completedTaskIds.has('4b65ae80-6ac7-4542-9915-1734c96a8193'), action: 'Follow', ctaUrl: socialLinks.x, type: 'social', ruleId: '4b65ae80-6ac7-4542-9915-1734c96a8193' },
-    { id: INSTAGRAM_RULE_ID, title: 'Follow Instagram', description: 'Join our visual journey', points: 100, completed: completedTaskIds.has(INSTAGRAM_RULE_ID), action: 'Follow', ctaUrl: socialLinks.instagram, type: 'social', ruleId: INSTAGRAM_RULE_ID },
-    { id: '5b61746a-e6c2-4773-be30-ae056050995c', title: 'Follow TikTok', description: 'Discover short-form insights', points: 100, completed: completedTaskIds.has('5b61746a-e6c2-4773-be30-ae056050995c'), action: 'Follow', ctaUrl: socialLinks.tiktok, type: 'social', ruleId: '5b61746a-e6c2-4773-be30-ae056050995c' },
-    { id: '520fbffd-464b-4d6a-bef6-fffce5e1cf19', title: 'Join Telegram', description: 'Connect with the community', points: 100, completed: completedTaskIds.has('520fbffd-464b-4d6a-bef6-fffce5e1cf19'), action: 'Join', ctaUrl: socialLinks.telegram, type: 'social', ruleId: '520fbffd-464b-4d6a-bef6-fffce5e1cf19' },
-  ], [socialLinks.x, socialLinks.instagram, socialLinks.tiktok, socialLinks.telegram, completedTaskIds]);
-
+  // Tareas desde Snag (dinámico - sin hardcodes)
   const tasks: Task[] = useMemo(() => {
-    // Always use our custom task order (matching the design spec)
-    // Order: Waitlist first, Stake last
-    // Using actual Snag rule IDs
-    return [
-      { id: '4ed917a4-8655-4f75-bbb3-5c8f4894d5ed', title: 'The Inauguration', description: 'Join the waitlist and secure your spot', points: 400, completed: waitlistCompleted, action: 'Completed', claimType: 'auto', ruleId: '4ed917a4-8655-4f75-bbb3-5c8f4894d5ed' },
-      { id: 'social_group', title: 'Follow Us', description: 'Follow on Twitter, Instagram, TikTok & Telegram', points: 400, completed: false, action: 'Expand', type: 'social_group' },
-      { id: '4d0c19a7-e2db-43ad-abae-179bacea0b80', title: 'Extend an Invitation', description: 'Refer a friend and earn credits when they sign up', points: 250, completed: completedTaskIds.has('4d0c19a7-e2db-43ad-abae-179bacea0b80'), action: 'Invite', type: 'referral', ruleId: '4d0c19a7-e2db-43ad-abae-179bacea0b80' },
-      { id: 'amplify', title: 'Amplify Anuma', description: 'Jan 12th product intro post impressions/QT', points: 300, completed: completedTaskIds.has('amplify'), action: 'Share', type: 'share', ctaUrl: 'https://x.com/anuma_ai' },
-      { id: '6c275439-581a-4126-9467-4ec5ce813a69', title: 'Anchor the Foundation', description: 'Stake ZETA - Earn 2.5 credits per ZETA staked', points: stakingPoints || 0, completed: stakingPoints > 0 || completedTaskIds.has('6c275439-581a-4126-9467-4ec5ce813a69'), action: 'Stake', type: 'staking', ruleId: '6c275439-581a-4126-9467-4ec5ce813a69' },
-    ];
-  }, [stakingPoints, waitlistCompleted, completedTaskIds]);
+    if (snagRules.length === 0) {
+      return [];
+    }
 
-  // Calculate points from completed tasks (fallback when Snag isn't working)
-  const completedTasksPoints = useMemo(() => {
-    return tasks.reduce((sum, task) => task.completed ? sum + task.points : sum, 0);
-  }, [tasks]);
+    // Convertir todas las reglas de Snag a tareas
+    return snagRules.map(ruleToTask);
+  }, [snagRules, ruleToTask]);
 
-  // Use Snag points if available, otherwise use local calculation
-  // Ensure all values are numbers to prevent string concatenation
+  // Separar tareas sociales para agruparlas
+  const socialTasks = useMemo(() => tasks.filter(t => t.uiType === 'social'), [tasks]);
+  const otherTasks = useMemo(() => tasks.filter(t => t.uiType !== 'social'), [tasks]);
+
+  // ============ CÁLCULOS DE PUNTOS ============
+
   const snagPoints = Number(snagAccount?.points) || 0;
-  const localPoints = Number(completedTasksPoints) || 0;
-  const totalPoints = (snagPoints > 0 ? snagPoints : localPoints) + Number(bonusPoints) + Number(stakingPoints);
+  const totalPoints = snagPoints + Number(bonusPoints) + Number(stakingPoints);
+  
   const rank = snagRank?.position || 0;
   const totalUsers = snagRank?.total || 0;
   const rankPercent = totalUsers > 0 && rank > 0 ? Math.ceil((rank / totalUsers) * 100) : null;
-  // Total tasks: 8 (4 individual + 4 socials grouped)
-  const totalTaskCount = tasks.length - 1 + socialTasks.length; // -1 for social_group, +4 for individual socials
-  const completedSocialTasks = socialTasks.filter(t => t.completed).length;
-  const completedTasksCount = tasks.filter(t => t.completed && t.type !== 'social_group').length + completedSocialTasks;
+  
+  const totalTaskCount = tasks.length;
+  const completedTasksCount = tasks.filter(t => t.completed).length;
+
+  // ============ HANDLERS ============
 
   const copyReferralLink = useCallback(async () => {
     if (referralLink) {
@@ -301,56 +231,43 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
 
   const handleTaskClick = useCallback(async (task: Task) => {
     if (task.claimType === 'auto') return;
+    if (task.completed) return;
 
-    // Check if already completed (either in state or passed as completed)
-    if (task.completed || completedTaskIds.has(task.id)) return;
-
-    if (task.type === 'referral') {
+    // Casos especiales
+    if (task.type === 'referral' || task.uiType === 'referral') {
       await copyReferralLink();
+      setShowShareModal(true);
       return;
     }
 
-    if (task.type === 'staking') {
+    if (task.type === 'staking' || task.uiType === 'staking') {
       setShowStakingModal(true);
       return;
     }
 
-    // Open the URL
+    // Abrir URL si existe
     if (task.ctaUrl) {
       window.open(task.ctaUrl, '_blank');
     }
 
-    // Award points for ALL tasks with ruleId (trust-based completion)
-    // The API now uses direct point award which actually works
+    // Completar regla en Snag
     if (task.ruleId && walletAddress) {
       setCompletingTaskId(task.id);
       try {
-        console.log('[Dashboard] Awarding points for task:', task.ruleId);
-        const response = await fetch('/api/snag/rules', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            walletAddress: walletAddress,
-            ruleId: task.ruleId,
-          }),
-        });
+        console.log('[Dashboard] Completando tarea:', task.ruleId);
+        const result = await completeRule(task.ruleId);
+        console.log('[Dashboard] Resultado:', result);
 
-        const data = await response.json();
-        console.log('[Dashboard] Task completion response:', data);
-
-        if (data.success) {
-          // Mark as completed and persist to localStorage
-          markTaskCompleted(task.id);
-          // Refresh to get updated points
+        if (result.success) {
           await refreshData();
         }
       } catch (err) {
-        console.error('Failed to complete task:', err);
+        console.error('[Dashboard] Error al completar tarea:', err);
       } finally {
         setCompletingTaskId(null);
       }
     }
-  }, [copyReferralLink, walletAddress, refreshData, completedTaskIds, markTaskCompleted]);
+  }, [copyReferralLink, walletAddress, completeRule, refreshData]);
 
   const handlePrizeReveal = useCallback((points: number) => {
     setBonusPoints(prev => prev + points);
@@ -358,8 +275,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   }, []);
 
   const handleStakeSuccess = useCallback((amount: string) => {
-    // 1 point per ZETA staked
-    const points = Math.floor(parseFloat(amount));
+    const points = Math.floor(parseFloat(amount) * 2.5);
     setStakingPoints(prev => prev + points);
   }, []);
 
@@ -382,8 +298,9 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     }
   }, [walletAddress]);
 
-  // Modal overlay color
   const overlayBg = palette.overlay || (isDark ? 'rgba(12, 12, 12, 0.95)' : 'rgba(248, 249, 250, 0.95)');
+
+  // ============ RENDER ============
 
   return (
     <div className="min-h-screen font-['Inter',sans-serif]" style={{ backgroundColor: palette.bg }}>
@@ -391,7 +308,6 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
       <header className="px-8 py-6 border-b" style={{ borderColor: palette.border }}>
         <nav className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center">
-            {/* ANUMA Logo - Typography based with Greek Lambda for A */}
             <span
               className="text-2xl font-medium"
               style={{
@@ -418,33 +334,23 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
               <ChevronDown className="w-4 h-4" style={{ color: palette.textMuted }} />
             </button>
 
-            {/* Account Dropdown */}
             <AnimatePresence>
               {showAccountMenu && (
                 <>
-                  {/* Backdrop */}
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowAccountMenu(false)}
-                  />
+                  <div className="fixed inset-0 z-40" onClick={() => setShowAccountMenu(false)} />
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.15 }}
                     className="absolute right-0 top-full mt-2 w-72 rounded-xl border shadow-lg z-50 overflow-hidden"
-                    style={{
-                      backgroundColor: palette.bg,
-                      borderColor: palette.border
-                    }}
+                    style={{ backgroundColor: palette.bg, borderColor: palette.border }}
                   >
-                    {/* Email */}
                     <div className="px-4 py-3 border-b" style={{ borderColor: palette.border }}>
                       <p className="text-xs uppercase tracking-widest mb-1" style={{ color: palette.textLight }}>Email</p>
                       <p className="text-sm truncate" style={{ color: palette.text }}>{email}</p>
                     </div>
 
-                    {/* Wallet */}
                     {walletAddress && (
                       <div className="px-4 py-3 border-b" style={{ borderColor: palette.border }}>
                         <p className="text-xs uppercase tracking-widest mb-1" style={{ color: palette.textLight }}>Wallet</p>
@@ -467,12 +373,8 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                       </div>
                     )}
 
-                    {/* Sign out */}
                     <button
-                      onClick={() => {
-                        setShowAccountMenu(false);
-                        onLogout();
-                      }}
+                      onClick={() => { setShowAccountMenu(false); onLogout(); }}
                       className="w-full px-4 py-3 flex items-center gap-2 transition-colors hover:opacity-80"
                       style={{ color: palette.textMuted }}
                     >
@@ -500,7 +402,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
               Get Early Access
             </h1>
             <p className="max-w-2xl" style={{ color: palette.textMuted }}>
-              Complete tasks to earn AI Credits. The more credits you earn, the earlier you get access to Anuma. Your credits represent your early stake in the platform.
+              Complete tasks to earn AI Credits. The more credits you earn, the earlier you get access to Anuma.
             </p>
           </motion.div>
 
@@ -508,234 +410,97 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
             {/* Left: Tasks */}
             <div className="lg:col-span-2 space-y-4">
               <h2 className="text-sm uppercase tracking-widest mb-4" style={{ color: palette.textLight }}>
-                Earn AI Credits
+                Earn AI Credits 
+                {snagLoading && <span className="ml-2 text-xs">(Loading...)</span>}
+                {!snagLoading && snagRules.length > 0 && <span className="ml-2 text-xs text-green-600">({snagRules.length} tasks from Snag)</span>}
               </h2>
 
-              {tasks.map((task, index) => {
-                const isReferralTask = task.type === 'referral';
-                const isSocialGroup = task.type === 'social_group';
-                const isStakingTask = task.type === 'staking';
+              {/* Conectar Redes Sociales */}
+              {walletAddress && (
+                <SocialConnectCard
+                  walletAddress={walletAddress}
+                  palette={palette}
+                  paletteId={paletteId}
+                  socialStatus={socialStatus}
+                  onConnectionChange={() => {
+                    // Solo refrescar estado social (no todos los datos)
+                    refreshSocialStatus();
+                  }}
+                />
+              )}
 
-                // Social Group with dropdown
-                if (isSocialGroup) {
-                  const completedSocials = socialTasks.filter(t => t.completed).length;
-                  const totalSocialPoints = socialTasks.reduce((sum, t) => sum + t.points, 0);
+              {/* Error de Snag */}
+              {snagError && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-4 rounded-xl border flex items-start gap-3"
+                  style={{ backgroundColor: palette.bgAlt, borderColor: '#ef4444' }}
+                >
+                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-red-600">Error cargando tareas</p>
+                    <p className="text-sm" style={{ color: palette.textMuted }}>{snagError}</p>
+                  </div>
+                </motion.div>
+              )}
 
-                  return (
-                    <motion.div
-                      key={task.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="rounded-xl border overflow-hidden"
-                      style={{
-                        backgroundColor: palette.bg,
-                        borderColor: palette.border,
-                      }}
-                    >
-                      {/* Main Social Group Header */}
-                      <button
-                        type="button"
-                        onClick={() => setSocialDropdownOpen(!socialDropdownOpen)}
-                        className="w-full p-5 flex items-start justify-between gap-4 text-left transition-colors hover:opacity-90"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-medium" style={{ color: palette.text }}>{task.title}</h3>
-                            <motion.div
-                              animate={{ rotate: socialDropdownOpen ? 90 : 0 }}
-                              transition={{ duration: 0.2 }}
-                            >
-                              <ChevronRight className="w-4 h-4" style={{ color: palette.textMuted }} />
-                            </motion.div>
-                            {completedSocials === socialTasks.length && (
-                              <CheckCircle className="w-4 h-4" style={{ color: palette.success }} />
-                            )}
-                          </div>
-                          <p className="text-sm" style={{ color: palette.textMuted }}>
-                            {task.description} ({completedSocials}/{socialTasks.length} completed)
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-lg font-medium" style={{ color: palette.accent }}>
-                            +{totalSocialPoints}
-                          </span>
-                          <span className="text-sm ml-1" style={{ color: palette.textLight }}>Credits</span>
-                        </div>
-                      </button>
-
-                      {/* Expandable Social Tasks */}
-                      <AnimatePresence>
-                        {socialDropdownOpen && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="border-t" style={{ borderColor: palette.border }}>
-                              {socialTasks.map((socialTask, sIndex) => (
-                                <div
-                                  key={socialTask.id}
-                                  className="px-5 py-4 flex items-center justify-between border-b last:border-b-0"
-                                  style={{
-                                    backgroundColor: socialTask.completed ? palette.bgAlt : 'transparent',
-                                    borderColor: palette.border,
-                                  }}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <div className="flex items-center gap-2">
-                                      <h4 className="text-sm font-medium" style={{ color: palette.text }}>
-                                        {socialTask.title}
-                                      </h4>
-                                      {socialTask.completed && (
-                                        <CheckCircle className="w-3.5 h-3.5" style={{ color: palette.success }} />
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-sm" style={{ color: palette.accent }}>
-                                      +{socialTask.points}
-                                    </span>
-                                    {!socialTask.completed && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleTaskClick(socialTask);
-                                        }}
-                                        className="px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1"
-                                        style={{
-                                          backgroundColor: palette.accent,
-                                          color: isDark ? palette.bg : '#ffffff'
-                                        }}
-                                      >
-                                        <ExternalLink className="w-3 h-3" />
-                                        {socialTask.action}
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
-                  );
-                }
-
-                return (
-                  <motion.div
-                    key={task.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="p-5 rounded-xl border transition-all"
-                    style={{
-                      backgroundColor: task.completed ? palette.bgAlt : palette.bg,
-                      borderColor: palette.border,
-                    }}
+              {/* Sin tareas configuradas */}
+              {!snagLoading && snagRules.length === 0 && !snagError && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-6 rounded-xl border text-center"
+                  style={{ backgroundColor: palette.bgAlt, borderColor: palette.border }}
+                >
+                  <AlertCircle className="w-8 h-8 mx-auto mb-3" style={{ color: palette.textMuted }} />
+                  <p className="font-medium mb-2" style={{ color: palette.text }}>No hay tareas configuradas</p>
+                  <p className="text-sm mb-4" style={{ color: palette.textMuted }}>
+                    Necesitas crear reglas de lealtad en el dashboard de Snag Solutions.
+                  </p>
+                  <a
+                    href="https://admin.snagsolutions.io"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+                    style={{ backgroundColor: palette.accent, color: isDark ? palette.bg : '#ffffff' }}
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium" style={{ color: palette.text }}>{task.title}</h3>
-                          {task.completed && (
-                            <CheckCircle className="w-4 h-4" style={{ color: palette.success }} />
-                          )}
-                        </div>
-                        <p className="text-sm mb-3" style={{ color: palette.textMuted }}>{task.description}</p>
+                    <ExternalLink className="w-4 h-4" />
+                    Ir a Snag Dashboard
+                  </a>
+                </motion.div>
+              )}
 
-                        {isReferralTask && !task.completed ? (
-                          <div className="flex flex-col gap-3">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                readOnly
-                                value={referralLink}
-                                className="flex-1 px-3 py-2 text-sm rounded-lg border"
-                                style={{
-                                  backgroundColor: palette.bgAlt,
-                                  borderColor: palette.border,
-                                  color: palette.textMuted,
-                                }}
-                              />
-                              <button
-                                onClick={copyReferralLink}
-                                className="px-3 py-2 text-sm font-medium rounded-lg flex items-center gap-1"
-                                style={{
-                                  backgroundColor: palette.bgAlt,
-                                  border: `1px solid ${palette.border}`,
-                                  color: palette.textMuted
-                                }}
-                              >
-                                {copiedReferral ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                              </button>
-                            </div>
-                            <button
-                              onClick={() => setShowShareModal(true)}
-                              className="w-full px-4 py-3 text-sm font-medium rounded-lg flex items-center justify-center gap-2"
-                              style={{
-                                backgroundColor: palette.accent,
-                                color: isDark ? palette.bg : '#ffffff'
-                              }}
-                            >
-                              <Share2 className="w-4 h-4" />
-                              Share & Earn Credits
-                            </button>
-                          </div>
-                        ) : isStakingTask && !task.completed ? (
-                          <button
-                            onClick={() => setShowStakingModal(true)}
-                            className="px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2"
-                            style={{
-                              backgroundColor: palette.accent,
-                              color: isDark ? palette.bg : '#ffffff'
-                            }}
-                          >
-                            Stake ZETA
-                          </button>
-                        ) : !task.completed ? (
-                          <button
-                            onClick={() => handleTaskClick(task)}
-                            disabled={completingTaskId === task.id}
-                            className="px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2 disabled:opacity-50"
-                            style={{
-                              backgroundColor: palette.accent,
-                              color: isDark ? palette.bg : '#ffffff'
-                            }}
-                          >
-                            {task.ctaUrl && <ExternalLink className="w-4 h-4" />}
-                            {completingTaskId === task.id ? 'Processing...' : task.action}
-                          </button>
-                        ) : null}
-                      </div>
+              {/* Tareas sociales agrupadas */}
+              {socialTasks.length > 0 && (
+                <SocialTasksGroup
+                  tasks={socialTasks}
+                  onTaskClick={handleTaskClick}
+                  completingTaskId={completingTaskId}
+                  palette={palette}
+                  isDark={isDark}
+                />
+              )}
 
-                      <div className="text-right">
-                        {isStakingTask ? (
-                          <>
-                            <span className="text-lg font-medium" style={{ color: palette.accent }}>
-                              2.5
-                            </span>
-                            <span className="text-sm ml-1" style={{ color: palette.textLight }}>per ZETA</span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="text-lg font-medium" style={{ color: palette.accent }}>
-                              +{task.points}
-                            </span>
-                            <span className="text-sm ml-1" style={{ color: palette.textLight }}>Credits</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
+              {/* Otras tareas */}
+              {otherTasks.map((task, index) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  index={index}
+                  onTaskClick={handleTaskClick}
+                  completingTaskId={completingTaskId}
+                  palette={palette}
+                  isDark={isDark}
+                  referralLink={referralLink}
+                  copiedReferral={copiedReferral}
+                  onCopyReferral={copyReferralLink}
+                  onShowShareModal={() => setShowShareModal(true)}
+                  onShowStakingModal={() => setShowStakingModal(true)}
+                />
+              ))}
 
-              {/* More Coming Soon Task */}
+              {/* More Coming Soon */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -763,7 +528,6 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
               className="lg:sticky lg:top-8 h-fit"
             >
               <div className="p-6 rounded-2xl border" style={{ backgroundColor: palette.bg, borderColor: palette.border }}>
-                {/* Credits */}
                 <div className="mb-6 pb-6 border-b" style={{ borderColor: palette.border }}>
                   <p className="text-sm uppercase tracking-widest mb-2" style={{ color: palette.textLight }}>
                     AI Credits
@@ -782,7 +546,6 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                   </p>
                 </div>
 
-                {/* Stats */}
                 <div className="grid grid-cols-2 gap-4 mb-6 pb-6 border-b" style={{ borderColor: palette.border }}>
                   <div>
                     <p className="text-xs uppercase tracking-widest mb-1" style={{ color: palette.textLight }}>Rank</p>
@@ -798,31 +561,28 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                   </div>
                 </div>
 
-                {/* Early Access - Locked Feature */}
                 <div
                   className="p-4 rounded-xl border"
                   style={{ backgroundColor: palette.bgAlt, borderColor: palette.border }}
                 >
-                  <div>
-                    <p className="font-medium text-sm mb-1 flex items-center gap-2" style={{ color: totalPoints >= 10000 ? palette.success : palette.textMuted }}>
-                      <span>{totalPoints >= 10000 ? '✓' : '🔒'}</span> {totalPoints >= 10000 ? 'Eligibility Confirmed' : 'Get Early Access'}
-                    </p>
-                    <p className="text-xs mb-2" style={{ color: palette.textLight }}>
-                      Priority eligibility at 10,000 credits
-                    </p>
-                    <div className="w-full h-2 rounded-full" style={{ backgroundColor: palette.border }}>
-                      <div
-                        className="h-2 rounded-full transition-all"
-                        style={{
-                          backgroundColor: totalPoints >= 10000 ? palette.success : palette.accent,
-                          width: `${Math.min((totalPoints / 10000) * 100, 100)}%`
-                        }}
-                      />
-                    </div>
-                    <p className="text-xs mt-1 text-right" style={{ color: palette.textLight }}>
-                      {totalPoints.toLocaleString()} / 10,000
-                    </p>
+                  <p className="font-medium text-sm mb-1 flex items-center gap-2" style={{ color: totalPoints >= 10000 ? palette.success : palette.textMuted }}>
+                    <span>{totalPoints >= 10000 ? '✓' : '🔒'}</span> {totalPoints >= 10000 ? 'Eligibility Confirmed' : 'Get Early Access'}
+                  </p>
+                  <p className="text-xs mb-2" style={{ color: palette.textLight }}>
+                    Priority eligibility at 10,000 credits
+                  </p>
+                  <div className="w-full h-2 rounded-full" style={{ backgroundColor: palette.border }}>
+                    <div
+                      className="h-2 rounded-full transition-all"
+                      style={{
+                        backgroundColor: totalPoints >= 10000 ? palette.success : palette.accent,
+                        width: `${Math.min((totalPoints / 10000) * 100, 100)}%`
+                      }}
+                    />
                   </div>
+                  <p className="text-xs mt-1 text-right" style={{ color: palette.textLight }}>
+                    {totalPoints.toLocaleString()} / 10,000
+                  </p>
                 </div>
               </div>
             </motion.div>
@@ -830,7 +590,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
         </div>
       </main>
 
-      {/* Prize Reveal Modal */}
+      {/* Modals */}
       <AnimatePresence>
         {showPrizeReveal && (
           <motion.div
@@ -849,7 +609,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
             >
               <button
                 onClick={() => setShowPrizeReveal(false)}
-                className="absolute top-4 right-4 p-2 rounded-full transition-colors"
+                className="absolute top-4 right-4 p-2 rounded-full"
                 style={{ color: palette.textLight }}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -858,9 +618,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
               </button>
 
               <h2 className="text-xl font-medium mb-2" style={{ color: palette.text }}>Daily Reward</h2>
-              <p className="text-sm mb-8" style={{ color: palette.textMuted }}>
-                Tap to reveal your bonus points
-              </p>
+              <p className="text-sm mb-8" style={{ color: palette.textMuted }}>Tap to reveal your bonus points</p>
 
               <PrizeReveal
                 onRevealComplete={(points) => {
@@ -877,7 +635,6 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
         )}
       </AnimatePresence>
 
-      {/* Share Modal */}
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
@@ -886,7 +643,6 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
         paletteId={paletteId}
       />
 
-      {/* Staking Modal */}
       {walletAddress && (
         <StakingModal
           isOpen={showStakingModal}
@@ -898,5 +654,214 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
         />
       )}
     </div>
+  );
+}
+
+// ============ COMPONENTES AUXILIARES ============
+
+interface TaskCardProps {
+  task: Task;
+  index: number;
+  onTaskClick: (task: Task) => void;
+  completingTaskId: string | null;
+  palette: ColorPalette;
+  isDark: boolean;
+  referralLink: string;
+  copiedReferral: boolean;
+  onCopyReferral: () => void;
+  onShowShareModal: () => void;
+  onShowStakingModal: () => void;
+}
+
+function TaskCard({
+  task,
+  index,
+  onTaskClick,
+  completingTaskId,
+  palette,
+  isDark,
+  referralLink,
+  copiedReferral,
+  onCopyReferral,
+  onShowShareModal,
+  onShowStakingModal,
+}: TaskCardProps) {
+  const isReferralTask = task.uiType === 'referral';
+  const isStakingTask = task.uiType === 'staking';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className="p-5 rounded-xl border transition-all"
+      style={{
+        backgroundColor: task.completed ? palette.bgAlt : palette.bg,
+        borderColor: palette.border,
+      }}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-medium" style={{ color: palette.text }}>{task.title}</h3>
+            {task.completed && <CheckCircle className="w-4 h-4" style={{ color: palette.success }} />}
+          </div>
+          <p className="text-sm mb-3" style={{ color: palette.textMuted }}>{task.description}</p>
+
+          {isReferralTask && !task.completed ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={referralLink}
+                  className="flex-1 px-3 py-2 text-sm rounded-lg border"
+                  style={{ backgroundColor: palette.bgAlt, borderColor: palette.border, color: palette.textMuted }}
+                />
+                <button
+                  onClick={onCopyReferral}
+                  className="px-3 py-2 text-sm font-medium rounded-lg flex items-center gap-1"
+                  style={{ backgroundColor: palette.bgAlt, border: `1px solid ${palette.border}`, color: palette.textMuted }}
+                >
+                  {copiedReferral ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+              <button
+                onClick={onShowShareModal}
+                className="w-full px-4 py-3 text-sm font-medium rounded-lg flex items-center justify-center gap-2"
+                style={{ backgroundColor: palette.accent, color: isDark ? palette.bg : '#ffffff' }}
+              >
+                <Share2 className="w-4 h-4" />
+                Share & Earn Credits
+              </button>
+            </div>
+          ) : isStakingTask && !task.completed ? (
+            <button
+              onClick={onShowStakingModal}
+              className="px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2"
+              style={{ backgroundColor: palette.accent, color: isDark ? palette.bg : '#ffffff' }}
+            >
+              Stake ZETA
+            </button>
+          ) : !task.completed && task.claimType !== 'auto' ? (
+            <button
+              onClick={() => onTaskClick(task)}
+              disabled={completingTaskId === task.id}
+              className="px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2 disabled:opacity-50"
+              style={{ backgroundColor: palette.accent, color: isDark ? palette.bg : '#ffffff' }}
+            >
+              {task.ctaUrl && <ExternalLink className="w-4 h-4" />}
+              {completingTaskId === task.id ? 'Processing...' : task.action}
+            </button>
+          ) : null}
+        </div>
+
+        <div className="text-right">
+          {isStakingTask ? (
+            <>
+              <span className="text-lg font-medium" style={{ color: palette.accent }}>2.5</span>
+              <span className="text-sm ml-1" style={{ color: palette.textLight }}>per ZETA</span>
+            </>
+          ) : (
+            <>
+              <span className="text-lg font-medium" style={{ color: palette.accent }}>+{task.points}</span>
+              <span className="text-sm ml-1" style={{ color: palette.textLight }}>Credits</span>
+            </>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+interface SocialTasksGroupProps {
+  tasks: Task[];
+  onTaskClick: (task: Task) => void;
+  completingTaskId: string | null;
+  palette: ColorPalette;
+  isDark: boolean;
+}
+
+function SocialTasksGroup({ tasks, onTaskClick, completingTaskId, palette, isDark }: SocialTasksGroupProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const completedCount = tasks.filter(t => t.completed).length;
+  const totalPoints = tasks.reduce((sum, t) => sum + t.points, 0);
+  const allCompleted = completedCount === tasks.length;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-xl border overflow-hidden"
+      style={{ backgroundColor: palette.bg, borderColor: palette.border }}
+    >
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full p-5 flex items-start justify-between gap-4 text-left transition-colors hover:opacity-90"
+      >
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-medium" style={{ color: palette.text }}>Follow Us</h3>
+            <motion.div animate={{ rotate: isOpen ? 90 : 0 }} transition={{ duration: 0.2 }}>
+              <ChevronRight className="w-4 h-4" style={{ color: palette.textMuted }} />
+            </motion.div>
+            {allCompleted && <CheckCircle className="w-4 h-4" style={{ color: palette.success }} />}
+          </div>
+          <p className="text-sm" style={{ color: palette.textMuted }}>
+            Follow on social media ({completedCount}/{tasks.length} completed)
+          </p>
+        </div>
+        <div className="text-right">
+          <span className="text-lg font-medium" style={{ color: palette.accent }}>+{totalPoints}</span>
+          <span className="text-sm ml-1" style={{ color: palette.textLight }}>Credits</span>
+        </div>
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="border-t" style={{ borderColor: palette.border }}>
+              {tasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="px-5 py-4 flex items-center justify-between border-b last:border-b-0"
+                  style={{
+                    backgroundColor: task.completed ? palette.bgAlt : 'transparent',
+                    borderColor: palette.border,
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-medium" style={{ color: palette.text }}>{task.title}</h4>
+                    {task.completed && <CheckCircle className="w-3.5 h-3.5" style={{ color: palette.success }} />}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm" style={{ color: palette.accent }}>+{task.points}</span>
+                    {!task.completed && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onTaskClick(task); }}
+                        disabled={completingTaskId === task.id}
+                        className="px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1 disabled:opacity-50"
+                        style={{ backgroundColor: palette.accent, color: isDark ? palette.bg : '#ffffff' }}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        {completingTaskId === task.id ? '...' : task.action}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

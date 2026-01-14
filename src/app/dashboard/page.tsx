@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
 import { usePrivy } from '@privy-io/react-auth';
 import PointsDashboard from '@/components/PointsDashboard';
 import { anumaSanctuary } from '@/lib/palettes';
@@ -21,7 +20,6 @@ function getUserEmail(user: ReturnType<typeof usePrivy>['user']): string {
 export default function Dashboard() {
   const router = useRouter();
   const { authenticated, ready, user } = usePrivy();
-  const [showWelcome, setShowWelcome] = useState(false);
 
   const walletCreated = user?.wallet?.address;
 
@@ -31,19 +29,6 @@ export default function Dashboard() {
       router.push('/');
     }
   }, [ready, authenticated, router]);
-
-  // Show welcome animation for new signups
-  useEffect(() => {
-    if (authenticated && walletCreated) {
-      const isNew = typeof window !== 'undefined' && localStorage.getItem('anuma_new_signup') === 'true';
-      if (isNew) {
-        setShowWelcome(true);
-        localStorage.removeItem('anuma_new_signup');
-        const timer = setTimeout(() => setShowWelcome(false), 3000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [authenticated, walletCreated]);
 
   // Show loading while Privy initializes
   if (!ready) {
@@ -76,33 +61,6 @@ export default function Dashboard() {
   }
 
   return (
-    <>
-      {/* Welcome popup for new signups */}
-      <AnimatePresence>
-        {showWelcome && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl p-8 max-w-sm mx-4 text-center shadow-xl"
-            >
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#D4AF37]/20 flex items-center justify-center">
-                <span className="text-3xl">✓</span>
-              </div>
-              <h2 className="text-2xl font-medium text-[#1c1917] mb-2">Welcome to Anuma!</h2>
-              <p className="text-[#78716c] mb-4">You&apos;ve earned <span className="font-bold text-[#D4AF37]">400 AI Credits</span> for joining the waitlist!</p>
-              <p className="text-sm text-[#a8a29e]">Complete more tasks to earn more credits.</p>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <PointsDashboard email={getUserEmail(user)} palette={anumaSanctuary} paletteId="2" />
-    </>
+    <PointsDashboard email={getUserEmail(user)} palette={anumaSanctuary} paletteId="2" />
   );
 }
