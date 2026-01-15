@@ -102,11 +102,35 @@ export async function GET() {
       const uiType = detectUiType(rule);
       const icon = detectIcon(rule);
       
-      // Obtener URL de CTA desde metadatos de Snag
-      const ctaUrl = rule.metadata?.cta?.href || rule.metadata?.twitterAccountUrl;
+      // Obtener URL de CTA desde múltiples campos posibles de Snag
+      // Snag puede tener campos adicionales no tipados, usamos type assertion
+      const metadata = rule.metadata as Record<string, unknown> | undefined;
+      const ctaObj = metadata?.cta as { href?: string } | undefined;
+      
+      const possibleUrls = [
+        ctaObj?.href,
+        metadata?.link as string | undefined,
+        metadata?.url as string | undefined,
+        metadata?.redirectUrl as string | undefined,
+        metadata?.twitterAccountUrl as string | undefined,
+        metadata?.instagramUrl as string | undefined,
+        metadata?.telegramUrl as string | undefined,
+        metadata?.discordUrl as string | undefined,
+        metadata?.tiktokUrl as string | undefined,
+        (rule as { redirectUrl?: string }).redirectUrl,
+        (rule as { url?: string }).url,
+      ];
+      
+      // Usar la primera URL válida (no vacía)
+      const ctaUrl = possibleUrls.find(url => url && url.trim().length > 0);
 
       // Puntos desde Snag (amount es el campo principal)
       const points = Number(rule.amount) || rule.points || 0;
+      
+      // Log para debug
+      if (rule.metadata) {
+        console.log(`[Rules API] Metadata de ${rule.name}:`, JSON.stringify(rule.metadata));
+      }
 
       return {
         id: rule.id,
@@ -151,17 +175,20 @@ export async function GET() {
 }
 
 /**
- * POST /api/snag/rules - Completar una regla
+ * POST /api/snag/rules - Completar una regla (otorgar puntos)
+ * 
+ * Para tareas de tipo "seguir/unirse" (Join Discord, Follow X, etc.)
+ * usamos awardPoints directamente ya que la verificación real
+ * requiere configuración avanzada en Snag.
  * 
  * Body:
  * - walletAddress: string (requerido)
  * - ruleId: string (requerido)
- * - skipValidation?: boolean (opcional, para pruebas)
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { ruleId, walletAddress, skipValidation } = body;
+    const { ruleId, walletAddress } = body;
 
     if (!ruleId) {
       return NextResponse.json(
@@ -177,7 +204,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[Rules API] Completando regla:', { ruleId, walletAddress, skipValidation });
+    console.log('[Rules API] Completando regla:', { ruleId, walletAddress });
 
     // Verificar configuración
     if (!snagClient.isConfigured()) {
@@ -193,7 +220,6 @@ export async function POST(request: NextRequest) {
     
     if (!rule) {
       console.error('[Rules API] Regla no encontrada:', ruleId);
-      console.log('[Rules API] Reglas disponibles:', rules.map(r => ({ id: r.id, name: r.name })));
       return NextResponse.json(
         { 
           error: 'Rule not found', 
@@ -207,58 +233,57 @@ export async function POST(request: NextRequest) {
     const points = Number(rule.amount) || rule.points || 0;
     console.log('[Rules API] Regla encontrada:', rule.name, 'puntos:', points);
 
-    // Verificar si ya fue completada (límite de completado)
-    const completedRuleIds = await snagClient.getCompletedRuleIds(walletAddress);
-    const completionLimit = rule.completionLimit || 1;
-    const currentCompletions = completedRuleIds.filter(id => id === ruleId).length;
+    // Verificar si ya fue completada (por ruleId o nombre)
+    const alreadyCompleted = await snagClient.isTaskCompleted(walletAddress, ruleId, rule.name);
 
-    if (currentCompletions >= completionLimit && !skipValidation) {
-      console.log('[Rules API] Regla ya completada:', ruleId, 'veces:', currentCompletions);
+    if (alreadyCompleted) {
+      console.log('[Rules API] Tarea ya completada anteriormente:', rule.name);
       return NextResponse.json({
         success: false,
-        error: 'Rule already completed',
-        completions: currentCompletions,
-        limit: completionLimit,
+        error: 'Task already completed',
+        message: `Ya completaste "${rule.name}"`,
       }, { status: 400 });
     }
 
-    // Intentar completar la regla usando completeRuleByWallet
-    let success = false;
-    let method = 'completeRule';
-
-    if (!skipValidation) {
-      success = await snagClient.completeRuleByWallet(walletAddress, ruleId);
-    }
-
-    // Si falla o se saltó validación, usar award directo
-    if (!success) {
-      console.log('[Rules API] completeRule falló o saltado, usando awardPoints directo...');
-      method = 'awardPoints';
-      
+    // Otorgar puntos directamente
+    console.log('[Rules API] Otorgando puntos para:', rule.name);
+    
+    try {
       const txn = await snagClient.awardPoints(
         walletAddress,
         points,
         ruleId,
-        `Completed: ${rule.name}`
+        rule.name // Usar el nombre de la regla como descripción
       );
-      
-      success = !!txn;
-    }
 
-    if (success) {
-      console.log('[Rules API] Regla completada exitosamente via', method);
-      return NextResponse.json({ 
-        success: true, 
-        points,
-        ruleName: rule.name,
-        method,
-      });
-    } else {
-      console.error('[Rules API] Falló al completar regla');
-      return NextResponse.json(
-        { error: 'Failed to complete rule' },
-        { status: 500 }
-      );
+      if (txn) {
+        console.log('[Rules API] ✅ Puntos otorgados:', points);
+        return NextResponse.json({ 
+          success: true, 
+          points,
+          ruleName: rule.name,
+          transactionId: txn.id,
+        });
+      } else {
+        console.error('[Rules API] ❌ No se pudo otorgar puntos');
+        return NextResponse.json(
+          { error: 'Failed to award points' },
+          { status: 500 }
+        );
+      }
+    } catch (awardError) {
+      const errorStr = String(awardError);
+      
+      // Rate limit
+      if (errorStr.includes('429') || errorStr.includes('Too many requests')) {
+        return NextResponse.json({
+          success: false,
+          error: 'Demasiadas solicitudes. Espera un momento e intenta de nuevo.',
+          retryAfter: 60,
+        }, { status: 429 });
+      }
+      
+      throw awardError;
     }
   } catch (error) {
     console.error('[Rules API] Error:', error);

@@ -538,23 +538,22 @@ class SnagSolutionsClient {
 
   /**
    * Completa una regla de lealtad para un usuario
+   * IMPORTANTE: Snag solo acepta userId OR walletAddress, NO ambos
    */
-  async completeRule(userId: string, ruleId: string, walletAddress?: string): Promise<boolean> {
+  async completeRule(userId: string, ruleId: string): Promise<boolean> {
     if (!this.isConfigured()) return false;
 
     try {
-      console.log('[Snag SDK] Completando regla:', { userId, ruleId, walletAddress });
+      console.log('[Snag SDK] Completando regla:', { userId, ruleId });
 
-      const body: Record<string, string> = {
-        websiteId: this.websiteId,
-      };
-
-      if (userId) body.userId = userId;
-      if (walletAddress) body.walletAddress = walletAddress.toLowerCase();
-
+      // Snag solo acepta userId OR walletAddress, no ambos
+      // Preferimos userId porque es más confiable
       await this.request(`/loyalty/rules/${ruleId}/complete`, {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          userId,
+          websiteId: this.websiteId,
+        }),
       });
 
       console.log('[Snag SDK] Regla completada exitosamente');
@@ -566,13 +565,14 @@ class SnagSolutionsClient {
   }
 
   /**
-   * Completa una regla usando solo la wallet address
+   * Completa una regla usando la wallet address
+   * Primero obtiene el userId de Snag, luego completa la regla
    */
-  async completeRuleByWallet(walletAddress: string, ruleId: string): Promise<boolean> {
+  async completeRuleByWallet(walletAddress: string, ruleId: string): Promise<{ success: boolean; alreadyAwarded?: boolean }> {
     const normalizedWallet = walletAddress.toLowerCase();
 
     try {
-      // Asegurar que la cuenta exista
+      // Paso 1: Obtener o crear la cuenta para conseguir el userId
       let account = await this.getAccount(normalizedWallet);
       
       if (!account) {
@@ -580,38 +580,23 @@ class SnagSolutionsClient {
         account = await this.createAccount(normalizedWallet);
       }
 
-      if (account) {
-        const success = await this.completeRule(account.id, ruleId, normalizedWallet);
-        if (success) return true;
+      if (!account?.id) {
+        console.error('[Snag SDK] No se pudo obtener userId');
+        return { success: false };
       }
 
-      // Fallback: intentar completar con wallet directamente
-      console.log('[Snag SDK] Intentando completar con wallet directamente...');
-      await this.request(`/loyalty/rules/${ruleId}/complete`, {
-        method: 'POST',
-        body: JSON.stringify({
-          walletAddress: normalizedWallet,
-          websiteId: this.websiteId,
-        }),
-      });
-      return true;
+      // Paso 2: Intentar completar con userId (método preferido por Snag)
+      const success = await this.completeRule(account.id, ruleId);
+      if (success) {
+        return { success: true };
+      }
+
+      // Si completeRule falla, devolver false sin hacer fallback aquí
+      // El fallback se maneja en la ruta API para evitar duplicación
+      return { success: false };
     } catch (error) {
       console.error('[Snag SDK] Error al completar regla por wallet:', error);
-
-      // Último recurso: otorgar puntos directamente
-      try {
-        const rules = await this.getRules();
-        const rule = rules.find(r => r.id === ruleId);
-        if (rule && rule.points) {
-          console.log('[Snag SDK] Otorgando puntos directamente como fallback...');
-          const txn = await this.awardPoints(normalizedWallet, rule.points, ruleId, rule.name);
-          return !!txn;
-        }
-      } catch (txnError) {
-        console.error('[Snag SDK] Fallback de puntos falló:', txnError);
-      }
-
-      return false;
+      return { success: false };
     }
   }
 
@@ -633,7 +618,13 @@ class SnagSolutionsClient {
 
       const desc = description || `Points award: ${amount}`;
 
-      const response = await this.request<{ data: SnagTransaction[] }>('/loyalty/transactions', {
+      // Usar idempotencyKey para evitar duplicados (máx 32 chars)
+      // Formato: últimos 8 chars del wallet + últimos 8 chars del ruleId
+      const shortWallet = walletAddress.toLowerCase().slice(-8);
+      const shortRuleId = ruleId.slice(-8);
+      const idempotencyKey = `${shortWallet}:${shortRuleId}`;
+      
+      const response = await this.request<SnagTransaction>('/loyalty/transactions', {
         method: 'POST',
         body: JSON.stringify({
           description: desc,
@@ -642,16 +633,18 @@ class SnagSolutionsClient {
               walletAddress: walletAddress.toLowerCase(),
               amount,
               direction: 'credit',
-              loyaltyRuleId: ruleId,
               loyaltyCurrencyId: this.currencyId,
               websiteId: this.websiteId,
+              idempotencyKey, // ← Previene duplicados
             },
           ],
         }),
       });
 
       console.log('[Snag SDK] Puntos otorgados exitosamente:', response);
-      return response.data?.[0] || null;
+      
+      // La respuesta es directamente el objeto transacción
+      return response || null;
     } catch (error) {
       console.error('[Snag SDK] Error al otorgar puntos:', error);
       return null;
@@ -659,14 +652,15 @@ class SnagSolutionsClient {
   }
 
   /**
-   * Obtiene las transacciones de un usuario
+   * Obtiene las entradas de transacciones de un usuario
    */
   async getTransactions(walletAddress: string): Promise<SnagTransaction[]> {
     if (!this.isConfigured()) return [];
 
     try {
+      // Usar transaction_entries que filtra directamente por wallet
       const response = await this.request<{ data: SnagTransaction[] }>(
-        `/loyalty/transaction_entries?walletAddress=${walletAddress.toLowerCase()}&websiteId=${this.websiteId}`
+        `/loyalty/transaction_entries?walletAddress=${walletAddress.toLowerCase()}&websiteId=${this.websiteId}&limit=100`
       );
 
       return response.data || [];
@@ -677,21 +671,89 @@ class SnagSolutionsClient {
   }
 
   /**
+   * Verifica si una tarea ya fue completada por el usuario
+   * Busca por idempotencyKey (nuevas transacciones) o por descripción (transacciones antiguas)
+   */
+  async isTaskCompleted(walletAddress: string, ruleId: string, ruleName?: string): Promise<boolean> {
+    if (!this.isConfigured()) return false;
+
+    try {
+      // Obtener entradas de transacción del usuario
+      const entries = await this.getTransactions(walletAddress);
+      
+      // El idempotencyKey tiene formato corto: últimos8wallet:últimos8ruleId
+      const shortWallet = walletAddress.toLowerCase().slice(-8);
+      const shortRuleId = ruleId.slice(-8);
+      const expectedKey = `${shortWallet}:${shortRuleId}`;
+      
+      const completed = entries.some(entry => {
+        // Buscar por idempotencyKey (nuevas transacciones)
+        const entryKey = (entry as { idempotencyKey?: string }).idempotencyKey;
+        if (entryKey === expectedKey) return true;
+        
+        // Fallback: buscar por descripción en la transacción (transacciones antiguas)
+        const txn = (entry as { loyaltyTransaction?: { description?: string } }).loyaltyTransaction;
+        if (ruleName && txn?.description === ruleName) return true;
+        
+        return false;
+      });
+
+      if (completed) {
+        console.log('[Snag SDK] Tarea ya completada:', ruleId);
+      }
+      
+      return completed;
+    } catch (error) {
+      console.error('[Snag SDK] Error verificando tarea completada:', error);
+      return false;
+    }
+  }
+
+  /**
    * Obtiene los IDs de reglas completadas (desde transacciones)
+   * Busca por descripción (nombre de regla) y mapea a ruleId
    */
   async getCompletedRuleIds(walletAddress: string): Promise<string[]> {
     try {
-      const transactions = await this.getTransactions(walletAddress);
-      const ruleIds = new Set<string>();
+      // Obtener transacciones del usuario
+      const entries = await this.getTransactions(walletAddress);
       
-      transactions.forEach(txn => {
-        if (txn.loyaltyRuleId) {
-          ruleIds.add(txn.loyaltyRuleId);
+      // Obtener todas las reglas para mapear nombre -> id
+      const rules = await this.getRules();
+      const ruleNameToId = new Map<string, string>();
+      rules.forEach(rule => {
+        if (rule.name) ruleNameToId.set(rule.name, rule.id);
+      });
+      
+      const completedRuleIds = new Set<string>();
+      
+      // Buscar por descripción en las transacciones
+      entries.forEach(entry => {
+        // Verificar si tiene loyaltyTransaction con descripción
+        const txn = (entry as { loyaltyTransaction?: { description?: string } }).loyaltyTransaction;
+        if (txn?.description) {
+          const ruleId = ruleNameToId.get(txn.description);
+          if (ruleId) {
+            completedRuleIds.add(ruleId);
+          }
+        }
+        
+        // También verificar por idempotencyKey (nuevas transacciones)
+        // Formato corto: últimos8wallet:últimos8ruleId
+        const idempKey = (entry as { idempotencyKey?: string }).idempotencyKey;
+        if (idempKey && idempKey.includes(':')) {
+          const shortRuleId = idempKey.split(':')[1];
+          // Buscar la regla completa que termina con estos 8 caracteres
+          rules.forEach(rule => {
+            if (rule.id.slice(-8) === shortRuleId) {
+              completedRuleIds.add(rule.id);
+            }
+          });
         }
       });
 
-      console.log('[Snag SDK] IDs de reglas completadas:', [...ruleIds]);
-      return [...ruleIds];
+      console.log('[Snag SDK] IDs de reglas completadas:', [...completedRuleIds]);
+      return [...completedRuleIds];
     } catch (error) {
       console.error('[Snag SDK] Error al obtener reglas completadas:', error);
       return [];
