@@ -305,7 +305,7 @@ class SnagSolutionsClient {
       const normalizedWallet = walletAddress.toLowerCase();
       const transactions = await this.getTransactions(normalizedWallet);
       const total = transactions.reduce((sum, txn) => sum + Number(txn.amount || 0), 0);
-      
+
       console.log('[Snag SDK] Balance calculado desde transacciones:', total);
       return Number(total) || 0;
     } catch (error) {
@@ -339,8 +339,8 @@ class SnagSolutionsClient {
         {
           method: 'POST',
           body: JSON.stringify({
-            walletAddress: normalizedWallet,
-            organizationId: this.orgId,
+          walletAddress: normalizedWallet,
+          organizationId: this.orgId,
             ...metadata,
           }),
         }
@@ -357,8 +357,8 @@ class SnagSolutionsClient {
           createdAt: response.createdAt,
         };
         console.log('[Snag SDK] Cuenta creada:', account.id);
-        return account;
-      }
+          return account;
+        }
 
       // Si no hay id en la respuesta, buscar el usuario
       console.log('[Snag SDK] Respuesta sin ID, buscando usuario...');
@@ -370,7 +370,7 @@ class SnagSolutionsClient {
       // Si no se encontró la cuenta, devolver null
       console.error('[Snag SDK] No se pudo obtener el ID del usuario creado');
       return null;
-    } catch (error) {
+      } catch (error) {
       console.error('[Snag SDK] Error al crear cuenta:', error);
       
       // Fallback: intentar obtener cuenta existente (podría ya existir)
@@ -380,7 +380,7 @@ class SnagSolutionsClient {
         return existingAccount;
       }
 
-      return null;
+    return null;
     }
   }
 
@@ -574,7 +574,7 @@ class SnagSolutionsClient {
     try {
       // Paso 1: Obtener o crear la cuenta para conseguir el userId
       let account = await this.getAccount(normalizedWallet);
-      
+
       if (!account) {
         console.log('[Snag SDK] Cuenta no encontrada, creando...');
         account = await this.createAccount(normalizedWallet);
@@ -735,7 +735,7 @@ class SnagSolutionsClient {
           const ruleId = ruleNameToId.get(txn.description);
           if (ruleId) {
             completedRuleIds.add(ruleId);
-          }
+        }
         }
         
         // También verificar por idempotencyKey (nuevas transacciones)
@@ -777,6 +777,251 @@ class SnagSolutionsClient {
     } catch (error) {
       console.error('[Snag SDK] Error al obtener leaderboard:', error);
       return [];
+    }
+  }
+
+  // ============ SISTEMA DE REFERIDOS ============
+
+  /**
+   * Obtiene el ID de la regla "Refer a Friend"
+   */
+  async getReferralRuleId(): Promise<string | null> {
+    try {
+      const rules = await this.getRules();
+      const referralRule = rules.find(r => 
+        r.type === 'referral' || 
+        r.name?.toLowerCase().includes('refer') ||
+        r.name?.toLowerCase().includes('referral')
+      );
+      return referralRule?.id || null;
+    } catch (error) {
+      console.error('[Snag SDK] Error al obtener regla de referido:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Genera u obtiene el código de referido de un usuario
+   * Según la documentación de Snag, requiere loyaltyRuleId
+   * https://docs.snagsolutions.io/loyalty/rules/refer-friends#step-1-generate-referral-code
+   * https://docs.snagsolutions.io/api-reference/referrals/create-referral-code
+   */
+  async getReferralCode(userId: string, loyaltyRuleId?: string): Promise<string | null> {
+    if (!this.isConfigured()) return null;
+
+    try {
+      // Si no se proporciona loyaltyRuleId, buscarlo
+      let ruleId = loyaltyRuleId;
+      if (!ruleId) {
+        ruleId = await this.getReferralRuleId();
+        if (!ruleId) {
+          console.error('[Snag SDK] No se encontró regla de referido');
+          return null;
+        }
+      }
+
+      console.log('[Snag SDK] Generando código de referido para userId:', userId, 'ruleId:', ruleId);
+
+      // Intentar usar el SDK directamente si tiene el método
+      try {
+        // @ts-ignore - El SDK puede tener métodos de referral
+        if (this.sdk.referral?.codes?.create) {
+          const result = await this.sdk.referral.codes.create({
+            userMetadataId: userId,
+            loyaltyRuleId: ruleId,
+            websiteId: this.websiteId,
+          });
+          const code = result.referralCode || result.code;
+          if (code) {
+            console.log('[Snag SDK] Código de referido (via SDK):', code);
+            return code;
+          }
+        }
+      } catch (sdkError) {
+        console.log('[Snag SDK] SDK method not available, using direct API call');
+      }
+
+      // Fallback: llamada directa a la API
+      // Según la documentación: POST /api/referral/codes
+      // Intentar diferentes variantes del endpoint
+      const requestBody = {
+        userMetadataId: userId,
+        loyaltyRuleId: ruleId,
+        websiteId: this.websiteId,
+        organizationId: this.orgId,
+      };
+      
+      console.log('[Snag SDK] Request body para referral code:', JSON.stringify(requestBody, null, 2));
+      
+      // Intentar primero con /referrals/codes (plural)
+      let response: any = null;
+      let lastError: any = null;
+      
+      const endpointsToTry = [
+        '/referrals/codes',  // Plural
+        '/referral/codes',   // Singular
+        '/referrals/code',   // Singular code
+      ];
+      
+      for (const endpoint of endpointsToTry) {
+        try {
+          console.log('[Snag SDK] Intentando endpoint:', `${this.baseUrl}${endpoint}`);
+          response = await this.request<{ 
+            referralCode?: string; 
+            code?: string; 
+            data?: { referralCode?: string };
+            referralCode?: string;
+          }>(
+            endpoint,
+            {
+              method: 'POST',
+              body: JSON.stringify(requestBody),
+            }
+          );
+          console.log('[Snag SDK] ✅ Endpoint exitoso:', endpoint);
+          break; // Si funciona, salir del loop
+        } catch (error: any) {
+          lastError = error;
+          console.log(`[Snag SDK] ❌ Endpoint ${endpoint} falló:`, error.message);
+          // Continuar con el siguiente endpoint
+        }
+      }
+      
+      if (!response) {
+        throw lastError || new Error('Todos los endpoints fallaron');
+      }
+
+      // La respuesta puede tener diferentes formatos
+      const code = response.referralCode || response.code || response.data?.referralCode;
+      console.log('[Snag SDK] Código de referido:', code);
+      console.log('[Snag SDK] Respuesta completa de referral:', JSON.stringify(response, null, 2));
+      
+      if (!code) {
+        console.error('[Snag SDK] No se encontró código en la respuesta');
+      }
+      
+      return code || null;
+    } catch (error: any) {
+      console.error('[Snag SDK] Error al generar código de referido:', error);
+      // Log más detallado del error
+      if (error.message) {
+        console.error('[Snag SDK] Error message:', error.message);
+      }
+      if (error.response) {
+        console.error('[Snag SDK] Error response:', error.response);
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Registra una relación de referido
+   * https://docs.snagsolutions.io/loyalty/rules/refer-friends#step-2-create-referral-user
+   * 
+   * Según la documentación: POST /api/referral/users
+   * Body: { userIds: string[], referralCode?: string, referralCodeId?: string }
+   */
+  async createReferralUser(referralCode: string, referredUserId: string): Promise<boolean> {
+    if (!this.isConfigured()) return false;
+
+    try {
+      console.log('[Snag SDK] Registrando referido:', { referralCode, referredUserId });
+
+      // Según la documentación, userIds debe ser un array
+      const requestBody = {
+        userIds: [referredUserId], // Array de UUIDs
+        referralCode, // Código de referido (string, max 8 caracteres)
+        websiteId: this.websiteId,
+        organizationId: this.orgId,
+      };
+      
+      console.log('[Snag SDK] Request body para createReferralUser:', JSON.stringify(requestBody, null, 2));
+
+      // Intentar diferentes variantes del endpoint
+      const endpointsToTry = [
+        '/referrals/users',  // Plural
+        '/referral/users',   // Singular
+      ];
+      
+      let response: any = null;
+      let lastError: any = null;
+      
+      for (const endpoint of endpointsToTry) {
+        try {
+          console.log('[Snag SDK] Intentando endpoint:', `${this.baseUrl}${endpoint}`);
+          response = await this.request<{ message?: string; success?: boolean }>(
+            endpoint,
+            {
+              method: 'POST',
+              body: JSON.stringify(requestBody),
+            }
+          );
+          console.log('[Snag SDK] ✅ Endpoint exitoso:', endpoint);
+          break;
+        } catch (error: any) {
+          lastError = error;
+          console.log(`[Snag SDK] ❌ Endpoint ${endpoint} falló:`, error.message);
+        }
+      }
+      
+      if (!response) {
+        throw lastError || new Error('Todos los endpoints fallaron');
+      }
+
+      console.log('[Snag SDK] Referido registrado exitosamente:', response.message || response.success || 'OK');
+      console.log('[Snag SDK] Respuesta completa:', JSON.stringify(response, null, 2));
+      return true;
+    } catch (error: any) {
+      console.error('[Snag SDK] Error al registrar referido:', error);
+      if (error.message) {
+        console.error('[Snag SDK] Error message:', error.message);
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Obtiene los datos de referidos de un usuario
+   * https://docs.snagsolutions.io/loyalty/rules/refer-friends#step-3-retrieve-referral-data
+   */
+  async getReferralData(userId: string): Promise<{
+    referrals: Array<{
+      userId: string;
+      eligible: boolean;
+      amount: number;
+      tier1Amount: number;
+      tier2Amount: number;
+    }>;
+    totalReferrals: number;
+  } | null> {
+    if (!this.isConfigured()) return null;
+
+    try {
+      console.log('[Snag SDK] Obteniendo datos de referidos para:', userId);
+
+      const response = await this.request<{
+        data: Array<{
+          userId: string;
+          eligible: boolean;
+          amount: number;
+          tier1Amount: number;
+          tier2Amount: number;
+        }>;
+      }>(
+        `/referral/users?userId=${userId}&websiteId=${this.websiteId}`,
+        { method: 'GET' }
+      );
+
+      const referrals = response.data || [];
+      console.log('[Snag SDK] Referidos encontrados:', referrals.length);
+
+      return {
+        referrals,
+        totalReferrals: referrals.length,
+      };
+    } catch (error) {
+      console.error('[Snag SDK] Error al obtener referidos:', error);
+      return null;
     }
   }
 

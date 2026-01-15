@@ -28,7 +28,25 @@ export async function GET(request: NextRequest) {
     state: state ? 'present' : 'absent',
   });
 
-  // Construir URL de redirección al dashboard con el resultado
+  // Si es Twitter, redirigir a la página específica /twitter-callback
+  if (platform === 'twitter' || platform === 'x') {
+    const twitterCallbackUrl = new URL('/twitter-callback', BASE_URL);
+    
+    if (error) {
+      twitterCallbackUrl.searchParams.set('error', error);
+    } else if (success === 'true' || code) {
+      twitterCallbackUrl.searchParams.set('success', 'true');
+      if (code) twitterCallbackUrl.searchParams.set('code', code);
+    }
+    
+    if (userId) twitterCallbackUrl.searchParams.set('userId', userId);
+    if (state) twitterCallbackUrl.searchParams.set('state', state);
+    
+    console.log('[Social Callback] Redirigiendo a /twitter-callback:', twitterCallbackUrl.toString());
+    return NextResponse.redirect(twitterCallbackUrl.toString());
+  }
+
+  // Para otras plataformas, redirigir al dashboard
   const dashboardUrl = new URL('/dashboard', BASE_URL);
   
   if (error) {

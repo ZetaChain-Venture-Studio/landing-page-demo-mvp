@@ -93,23 +93,7 @@ function LandingPageWithPrivy({ palette, paletteId }: { palette: ColorPalette; p
     }
   };
 
-  // Save user to database when authenticated
-  useEffect(() => {
-    if (authenticated && walletCreated) {
-      const userEmail = getUserEmail(user) || email;
-      fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: userEmail,
-          walletAddress: walletCreated,
-        }),
-      })
-        .then(res => res.json())
-        .then(data => console.log('[LandingPage] User saved:', data))
-        .catch(err => console.error('[LandingPage] Failed to save user:', err));
-    }
-  }, [authenticated, walletCreated, user, email]);
+  // Nota: La creación del usuario se maneja en PointsDashboard para evitar llamadas duplicadas
 
   useEffect(() => {
     if (authenticated && walletCreated && isNewSignup && !showAnimation && !animationDone) {

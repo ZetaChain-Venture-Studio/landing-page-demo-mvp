@@ -127,10 +127,6 @@ export async function GET() {
       // Puntos desde Snag (amount es el campo principal)
       const points = Number(rule.amount) || rule.points || 0;
       
-      // Log para debug
-      if (rule.metadata) {
-        console.log(`[Rules API] Metadata de ${rule.name}:`, JSON.stringify(rule.metadata));
-      }
 
       return {
         id: rule.id,
@@ -245,8 +241,42 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Otorgar puntos directamente
-    console.log('[Rules API] Otorgando puntos para:', rule.name);
+    // Obtener el userId de Snag para usar completeRule (como sugiere el prompt)
+    const account = await snagClient.getAccount(walletAddress);
+    if (!account || !account.id) {
+      console.error('[Rules API] No se pudo obtener cuenta de Snag');
+      return NextResponse.json(
+        { error: 'Could not get Snag account. Please try again.' },
+        { status: 500 }
+      );
+    }
+
+    const userId = account.id;
+    console.log('[Rules API] Usando userId:', userId, 'para completar regla:', rule.name);
+
+    // Intentar usar el endpoint /complete primero (como sugiere el prompt)
+    // POST /api/loyalty/rules/{ruleId}/complete con { userId }
+    try {
+      console.log('[Rules API] Intentando completar regla con /complete endpoint...');
+      const completed = await snagClient.completeRule(userId, ruleId);
+      
+      if (completed) {
+        console.log('[Rules API] ✅ Regla completada usando /complete endpoint');
+        return NextResponse.json({ 
+          success: true, 
+          points,
+          ruleName: rule.name,
+          method: 'complete',
+        });
+      }
+    } catch (completeError) {
+      console.log('[Rules API] ⚠️ /complete falló, usando awardPoints como fallback:', completeError);
+      // Continuar con awardPoints como fallback
+    }
+
+    // Fallback: Otorgar puntos directamente usando awardPoints
+    // (Para reglas que no soportan /complete o como respaldo)
+    console.log('[Rules API] Otorgando puntos directamente con awardPoints...');
     
     try {
       const txn = await snagClient.awardPoints(
@@ -257,12 +287,13 @@ export async function POST(request: NextRequest) {
       );
 
       if (txn) {
-        console.log('[Rules API] ✅ Puntos otorgados:', points);
+        console.log('[Rules API] ✅ Puntos otorgados con awardPoints:', points);
         return NextResponse.json({ 
           success: true, 
           points,
           ruleName: rule.name,
           transactionId: txn.id,
+          method: 'awardPoints',
         });
       } else {
         console.error('[Rules API] ❌ No se pudo otorgar puntos');

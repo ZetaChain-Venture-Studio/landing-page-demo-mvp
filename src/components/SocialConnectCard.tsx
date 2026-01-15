@@ -98,8 +98,14 @@ export default function SocialConnectCard({
           walletAddress,
         });
         response = await fetch(`/api/social/discord?${params.toString()}`);
+      } else if (platform.id === 'twitter') {
+        // Twitter: usar el endpoint específico como sugiere el prompt
+        const params = new URLSearchParams({
+          walletAddress,
+        });
+        response = await fetch(`/api/twitter-auth-url?${params.toString()}`);
       } else {
-        // Otras plataformas usan el flujo de Snag
+        // Otras plataformas usan el flujo genérico de Snag
         const params = new URLSearchParams({
           platform: platform.id,
           walletAddress,

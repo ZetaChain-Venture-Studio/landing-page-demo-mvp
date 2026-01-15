@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, Copy, Check, ExternalLink, Share2, User, ChevronDown, ChevronRight, LogOut, AlertCircle } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
@@ -10,6 +10,7 @@ import PrizeReveal from './PrizeReveal';
 import ShareModal from './ShareModal';
 import StakingModal from './StakingModal';
 import SocialConnectCard from './SocialConnectCard';
+import WelcomeModal from './WelcomeModal';
 
 // ============ TIPOS ============
 
@@ -120,14 +121,102 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
   const [revealsRemaining, setRevealsRemaining] = useState(1);
   const [bonusPoints, setBonusPoints] = useState(0);
   const [stakingPoints, setStakingPoints] = useState(0);
+  
+  // Estados para el modal de bienvenida
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [welcomePoints, setWelcomePoints] = useState(0);
+  const [welcomeRuleName, setWelcomeRuleName] = useState<string | undefined>();
 
-  // Referral link
-  const referralLink = useMemo(() => {
-    if (typeof window !== 'undefined' && walletAddress) {
-      return `${window.location.origin}?ref=${walletAddress.slice(0, 8)}`;
+  // Ref para evitar llamadas duplicadas
+  const userInitializedRef = useRef(false);
+  const referralFetchedRef = useRef(false);
+  const referralProcessedRef = useRef<string | null>(null); // Para evitar procesar el mismo código múltiples veces
+
+  // Función helper para guardar y procesar código de referido
+  const saveAndProcessReferralCode = useCallback((refCode: string | null, wallet: string) => {
+    if (!refCode || !wallet) return null;
+    
+    const refKey = `anuma_ref_code_${wallet}`;
+    const existingRef = localStorage.getItem(refKey);
+    
+    // Guardar si no existe o es diferente
+    if (!existingRef || existingRef !== refCode) {
+      localStorage.setItem(refKey, refCode);
+      console.log('[Dashboard] 💾 Código de referido guardado:', refCode);
     }
-    return '';
-  }, [walletAddress]);
+    
+    return refCode;
+  }, []);
+
+  // Capturar código de referido INMEDIATAMENTE cuando se carga la página (antes de Privy)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Capturar código de la URL actual
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref');
+    
+    if (refCode && walletAddress) {
+      saveAndProcessReferralCode(refCode, walletAddress);
+    }
+    
+    // También escuchar cambios en la URL (por si Privy redirige)
+    const handleLocationChange = () => {
+      const newParams = new URLSearchParams(window.location.search);
+      const newRefCode = newParams.get('ref');
+      if (newRefCode && walletAddress) {
+        saveAndProcessReferralCode(newRefCode, walletAddress);
+      }
+    };
+    
+    // Escuchar eventos de popstate (navegación del navegador)
+    window.addEventListener('popstate', handleLocationChange);
+    
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+    };
+  }, [walletAddress, saveAndProcessReferralCode]);
+
+  // Estado para código de referido real de Snag
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [referralLink, setReferralLink] = useState<string>('');
+  const [referralStats, setReferralStats] = useState<{ totalReferrals: number } | null>(null);
+
+  // Obtener código de referido real de Snag - SOLO cuando el usuario ya existe en Snag
+  useEffect(() => {
+    // Esperar a que el usuario tenga cuenta en Snag antes de pedir el código
+    if (!walletAddress || !snagAccount?.id || referralFetchedRef.current) return;
+    
+    referralFetchedRef.current = true;
+    console.log('[Dashboard] Usuario existe en Snag, obteniendo código de referido...');
+    
+    fetch(`/api/snag/referral?walletAddress=${walletAddress}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.referralCode) {
+          setReferralCode(data.referralCode);
+          // Construir link con el código real
+          const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+          setReferralLink(`${baseUrl}?ref=${data.referralCode}`);
+          console.log('[Dashboard] ✅ Código de referido obtenido:', data.referralCode);
+        } else {
+          console.log('[Dashboard] No se obtuvo código, usando fallback');
+          // Fallback al método anterior si no hay código
+          const fallbackLink = typeof window !== 'undefined' && walletAddress
+            ? `${window.location.origin}?ref=${walletAddress.slice(0, 8)}`
+            : '';
+          setReferralLink(fallbackLink);
+        }
+      })
+      .catch(err => {
+        console.error('[Dashboard] Error obteniendo código de referido:', err);
+        // Fallback
+        const fallbackLink = typeof window !== 'undefined' && walletAddress
+          ? `${window.location.origin}?ref=${walletAddress.slice(0, 8)}`
+          : '';
+        setReferralLink(fallbackLink);
+      });
+  }, [walletAddress, snagAccount?.id]); // Depende de snagAccount para esperar a que exista
 
   // Debug logging
   useEffect(() => {
@@ -143,12 +232,134 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
     });
   }, [walletAddress, snagAccount, snagRules, completedRuleIds, snagLoading, snagError]);
 
-  // Inicializar cuenta al cargar (solo si no está inicializada)
+  // Inicializar cuenta y verificar si es usuario nuevo (UNA SOLA VEZ)
   useEffect(() => {
-    if (walletAddress && !snagInitialized && !snagLoading) {
+    if (!walletAddress) return;
+
+    // Verificar si hay código de referido en la URL (ANTES de cualquier otra cosa)
+    // Esto debe hacerse SIEMPRE, incluso si ya se inicializó, para capturar códigos nuevos
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref');
+    
+    // Guardar el código de referido usando la función helper
+    if (refCode) {
+      saveAndProcessReferralCode(refCode, walletAddress);
+    }
+    
+    // Obtener código de referido: primero de la URL, luego de localStorage
+    const referralCodeToUse = refCode || localStorage.getItem(`anuma_ref_code_${walletAddress}`) || undefined;
+    
+    // Log detallado para debugging
+    console.log('[Dashboard] 🔍 Verificando código de referido:', {
+      refCodeFromURL: refCode,
+      refCodeFromStorage: localStorage.getItem(`anuma_ref_code_${walletAddress}`),
+      referralCodeToUse,
+      walletAddress,
+      userInitialized: userInitializedRef.current,
+    });
+    
+    // Verificar si el modal de bienvenida ya se mostró para esta wallet
+    const welcomeShown = localStorage.getItem(`anuma_welcome_shown_${walletAddress}`);
+    
+    // Si ya se inicializó Y no hay código de referido, no hacer nada más
+    if (userInitializedRef.current && !referralCodeToUse) {
+      return;
+    }
+    
+    // Si hay código de referido, SIEMPRE intentar registrarlo (incluso si ya se inicializó)
+    if (referralCodeToUse && userInitializedRef.current) {
+      console.log('[Dashboard] 🔄 Código de referido detectado después de inicialización, registrando...');
+      fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress,
+          email: email || undefined,
+          referralCode: referralCodeToUse,
+        }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log('[Dashboard] Respuesta de referido:', {
+            referralRegistered: data.referralRegistered,
+          });
+          
+          if (data.referralRegistered) {
+            localStorage.removeItem(`anuma_ref_code_${walletAddress}`);
+            console.log('[Dashboard] ✅ Referido registrado, código limpiado');
+          }
+          
+          // Limpiar el código de referido de la URL
+          if (refCode) {
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, '', newUrl);
+            console.log('[Dashboard] 🧹 Código de referido limpiado de URL');
+          }
+        })
+        .catch(err => console.error('[Dashboard] Error registrando referido:', err));
+      return;
+    }
+    
+    // Si ya se inicializó, no hacer nada más
+    if (userInitializedRef.current) return;
+    
+    // Marcar como inicializado ANTES de hacer la llamada
+    userInitializedRef.current = true;
+
+    // Inicializar cuenta de Snag
+    if (!snagInitialized && !snagLoading) {
       initializeAccount(walletAddress, userId || 'test-user');
     }
-  }, [walletAddress, snagInitialized, snagLoading, initializeAccount, userId]);
+    
+    // Si ya se mostró el welcome y no hay código, no hacer nada más
+    if (welcomeShown && !referralCodeToUse) {
+      console.log('[Dashboard] Welcome ya mostrado y sin código de referido, saltando...');
+      return;
+    }
+    
+    // Crear/verificar usuario y mostrar welcome si es nuevo
+    console.log('[Dashboard] Verificando usuario nuevo...', referralCodeToUse ? `(referido por ${referralCodeToUse})` : '(sin referido)');
+    console.log('[Dashboard] Body que se enviará:', { walletAddress, email: email || undefined, referralCode: referralCodeToUse });
+    
+    fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        walletAddress,
+        email: email || undefined,
+        referralCode: referralCodeToUse, // Pasar código de referido si existe
+      }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        console.log('[Dashboard] Respuesta de usuario:', {
+          isNewUser: data.isNewUser,
+          welcomePoints: data.welcomePoints,
+          referralRegistered: data.referralRegistered,
+        });
+        
+        // Si el referido se registró exitosamente, limpiar el código guardado
+        if (data.referralRegistered) {
+          localStorage.removeItem(`anuma_ref_code_${walletAddress}`);
+          console.log('[Dashboard] ✅ Referido registrado, código limpiado');
+        }
+        
+        if (data.isNewUser && data.welcomePoints > 0) {
+          setWelcomePoints(data.welcomePoints);
+          setWelcomeRuleName(data.welcomeRuleName);
+          setShowWelcomeModal(true);
+          localStorage.setItem(`anuma_welcome_shown_${walletAddress}`, 'true');
+        }
+        
+        // Limpiar el código de referido de la URL para evitar re-uso (después de enviarlo)
+        if (refCode) {
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, '', newUrl);
+          console.log('[Dashboard] 🧹 Código de referido limpiado de URL');
+        }
+      })
+      .catch(err => console.error('[Dashboard] Error verificando usuario:', err));
+  }, [walletAddress, snagInitialized, snagLoading, initializeAccount, userId, email, saveAndProcessReferralCode]);
 
   // ============ CONVERTIR REGLAS DE SNAG A TASKS ============
 
@@ -410,7 +621,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
             {/* Left: Tasks */}
             <div className="lg:col-span-2 space-y-4">
               <h2 className="text-sm uppercase tracking-widest mb-4" style={{ color: palette.textLight }}>
-                Earn AI Credits 
+                Earn AI Credits
                 {snagLoading && <span className="ml-2 text-xs">(Loading...)</span>}
                 {!snagLoading && snagRules.length > 0 && <span className="ml-2 text-xs text-green-600">({snagRules.length} tasks from Snag)</span>}
               </h2>
@@ -431,9 +642,9 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
 
               {/* Error de Snag */}
               {snagError && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
                   className="p-4 rounded-xl border flex items-start gap-3"
                   style={{ backgroundColor: palette.bgAlt, borderColor: '#ef4444' }}
                 >
@@ -441,18 +652,18 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                   <div>
                     <p className="font-medium text-red-600">Error cargando tareas</p>
                     <p className="text-sm" style={{ color: palette.textMuted }}>{snagError}</p>
-                  </div>
-                </motion.div>
-              )}
+                            </div>
+                          </motion.div>
+                        )}
 
               {/* Sin tareas configuradas */}
               {!snagLoading && snagRules.length === 0 && !snagError && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
                   className="p-6 rounded-xl border text-center"
                   style={{ backgroundColor: palette.bgAlt, borderColor: palette.border }}
-                >
+                  >
                   <AlertCircle className="w-8 h-8 mx-auto mb-3" style={{ color: palette.textMuted }} />
                   <p className="font-medium mb-2" style={{ color: palette.text }}>No hay tareas configuradas</p>
                   <p className="text-sm mb-4" style={{ color: palette.textMuted }}>
@@ -464,7 +675,7 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
                     style={{ backgroundColor: palette.accent, color: isDark ? palette.bg : '#ffffff' }}
-                  >
+                            >
                     <ExternalLink className="w-4 h-4" />
                     Ir a Snag Dashboard
                   </a>
@@ -565,24 +776,24 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
                   className="p-4 rounded-xl border"
                   style={{ backgroundColor: palette.bgAlt, borderColor: palette.border }}
                 >
-                  <p className="font-medium text-sm mb-1 flex items-center gap-2" style={{ color: totalPoints >= 10000 ? palette.success : palette.textMuted }}>
-                    <span>{totalPoints >= 10000 ? '✓' : '🔒'}</span> {totalPoints >= 10000 ? 'Eligibility Confirmed' : 'Get Early Access'}
-                  </p>
-                  <p className="text-xs mb-2" style={{ color: palette.textLight }}>
-                    Priority eligibility at 10,000 credits
-                  </p>
-                  <div className="w-full h-2 rounded-full" style={{ backgroundColor: palette.border }}>
-                    <div
-                      className="h-2 rounded-full transition-all"
-                      style={{
-                        backgroundColor: totalPoints >= 10000 ? palette.success : palette.accent,
-                        width: `${Math.min((totalPoints / 10000) * 100, 100)}%`
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs mt-1 text-right" style={{ color: palette.textLight }}>
-                    {totalPoints.toLocaleString()} / 10,000
-                  </p>
+                    <p className="font-medium text-sm mb-1 flex items-center gap-2" style={{ color: totalPoints >= 10000 ? palette.success : palette.textMuted }}>
+                      <span>{totalPoints >= 10000 ? '✓' : '🔒'}</span> {totalPoints >= 10000 ? 'Eligibility Confirmed' : 'Get Early Access'}
+                    </p>
+                    <p className="text-xs mb-2" style={{ color: palette.textLight }}>
+                      Priority eligibility at 10,000 credits
+                    </p>
+                    <div className="w-full h-2 rounded-full" style={{ backgroundColor: palette.border }}>
+                      <div
+                        className="h-2 rounded-full transition-all"
+                        style={{
+                          backgroundColor: totalPoints >= 10000 ? palette.success : palette.accent,
+                          width: `${Math.min((totalPoints / 10000) * 100, 100)}%`
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs mt-1 text-right" style={{ color: palette.textLight }}>
+                      {totalPoints.toLocaleString()} / 10,000
+                    </p>
                 </div>
               </div>
             </motion.div>
@@ -653,6 +864,20 @@ function PointsDashboardContent({ email, walletAddress, userId, onLogout, isTest
           onStakeSuccess={handleStakeSuccess}
         />
       )}
+
+      {/* Welcome Modal - Mostrado cuando usuario nuevo se une */}
+      <WelcomeModal
+        isOpen={showWelcomeModal}
+        onClose={() => {
+          setShowWelcomeModal(false);
+          // Refrescar datos para mostrar los puntos actualizados
+          refreshData();
+        }}
+        points={welcomePoints}
+        ruleName={welcomeRuleName}
+        palette={palette}
+        paletteId={paletteId}
+      />
     </div>
   );
 }
